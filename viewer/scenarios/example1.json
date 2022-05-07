@@ -1,0 +1,43 @@
+{
+	"teams" : [
+		{
+			"name" : "Team Red",
+			"characters": [
+				[
+					{ "name" : "Darth Vader", "cid" : "V" },
+					{ "name" : "Baron Vladimir Harkonnen", "cid" : "K" },
+					{ "name" : "the God-Pharaoh", "cid" : "B" },
+					{ "name" : "Lysander", "cid" : "L" }
+				], [
+					{ "name" : "Sauron", "cid" : "S" },
+					{ "name" : "Hashenaad the Enemy", "cid" : "E" },
+					{ "name" : "Vogon Soldier", "cid" : "I" },
+					{ "name" : "Lord Voldemort", "cid" : "O" }
+				]
+			]
+		}, {
+			"name" : "Team Blue",
+			"characters" : [
+				[
+					{ "name" : "Luke Skywalker", "cid" : "s" },
+					{ "name" : "Paul Atreides", "cid" : "f" },
+					{ "name" : "Liliana the Necromancer", "cid" : "i" },
+					{ "name" : "Dancer", "cid" : "w" }
+				], [
+					{ "name" : "Gandalf the Grey", "cid" : "v" },
+					{ "name" : "Arachne", "cid" : "l" },
+					{ "name" : "Zaphod Beeblebrox", "cid" : "y" },
+					{ "name" : "Hagrid", "cid" : "k" }
+				]
+			]
+		}
+	],
+	"steps" : [
+		{ "action" : "move", "target" : "l", "from" : [8, 1], "to" : [8, 0], "isCOF" : true },
+		{ "action" : "pass" },
+		{ "action" : "move", "target" : "V", "from" : [1, 0], "to" : [0, 0], "isCOF" : false },
+		{ "action" : "move", "target" : "B", "from" : [3, 0], "to" : [0, 0], "isCOF" : true },
+		{ "action" : "move", "target" : "k", "from" : [10, 1], "to" : [11, 0], "isCOF" : false },
+		{ "action" : "move", "target" : "O", "from" : [4, 1], "to" : [6, 1], "isCOF" : false }
+	]
+}

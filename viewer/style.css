@@ -1,0 +1,25 @@
+div#board {
+	width: 100%;
+	display: grid;
+	grid-template-columns: repeat(12, minmax(0, 1fr));
+	grid-template-rows: repeat(2, 50%);
+	grid-auto-flow: row;
+}
+
+div.board-field {
+	background: white;
+	color: black;
+	margin: 4px;
+}
+
+div#screen {
+	display: grid;
+}
+
+div.character.team-1 {
+	background: orangered;
+}
+
+div.character.team-2 {
+	background: lightblue;
+}

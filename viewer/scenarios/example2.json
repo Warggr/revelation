@@ -1,0 +1,40 @@
+{
+	"teams" : [
+		{
+			"name" : "Weiss",
+			"characters": [
+				[
+					{ "name" : "Springer", "cid" : "A" },
+					{ "name" : "K&ouml;nig", "cid" : "B" },
+					{ "name" : "Dame", "cid" : "C" },
+					{ "name" : "Springer", "cid" : "D" }
+				], [
+					{ "name" : "Bauer", "cid" : "E" },
+					{ "name" : "Bauer", "cid" : "F" },
+					{ "name" : "Bauer", "cid" : "G" },
+					{ "name" : "Bauer", "cid" : "H" }
+				]
+			]
+		}, {
+			"name" : "Schwarz",
+			"characters" : [
+				[
+					{ "name" : "Springer", "cid" : "a" },
+					{ "name" : "Bauer", "cid" : "b" },
+					{ "name" : "Bauer", "cid" : "c" },
+					{ "name" : "Dame", "cid" : "d" }
+				], [
+					{ "name" : "K&ouml;nig", "cid" : "e" },
+					{ "name" : "Springer", "cid" : "f" },
+					{ "name" : "Bauer", "cid" : "g" },
+					{ "name" : "Bauer", "cid" : "h" }
+				]
+			]
+		}
+	],
+	"steps" : [
+		{ "action" : "move", "target" : "D", "from" : [4, 0], "to" : [6, 0], "isCOF" : false },
+		{ "action" : "move", "target" : "H", "from" : [4, 1], "to" : [5, 1], "isCOF" : false },
+		{ "action" : "move", "target" : "a", "from" : [7, 0], "to" : [6, 1], "isCOF" : false }
+	]
+}
