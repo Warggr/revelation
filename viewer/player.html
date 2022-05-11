@@ -15,20 +15,35 @@
 		<button onclick="playPause(this);">&#x23ef;</button>
 		<button onclick="nxt();">&#x25b6;</button>
 	</div>
-	<label for="file-to-load">Replay-Datei (JSON) hier ausw&auml;hlen:</label>
-	<input type="file" id="file-to-load"/>
-	<br/>
-	<label for="load-file-button">Dann hier zum Laden clicken:</label>
-	<button onclick="loadFile();" id="load-file-button">Datei laden</button>
+	<div>
+		<h2>Replay anschauen</h2>
+		<label for="file-to-load">Replay-Datei (JSON) hier ausw&auml;hlen:</label>
+		<input type="file" id="file-to-load"/>
+		<br/>
+		<label for="load-file-button">Dann hier zum Laden clicken:</label>
+		<button onclick="loadFile();" id="load-file-button">Datei laden</button>
+	</div>
+	<div>
+		<h2>Mit Live-Server verbinden</h2>
+		<label for="server-to-connect">Server-Adresse</label>
+		<input type="text" id="server-to-connect" value="ws://localhost:8000"/>
+		<button onclick="connectToServer();">Mit Server verbinden</button>
+		<span>Status:</span><span id="connection-status">Nicht verbunden</span>
+	</div>
 </body>
 <script>
 	var steps = [];
 	var inverts = [];
 	var state = null;
 	var playing = false;
+	var initialized = false;
 	var playLock = undefined;
+	var socket = undefined;
 	var currentStep = 0;
+
 	var stepCountDom = document.getElementById('step-count');
+	var connectionStatusDom = document.getElementById('connection-status');
+
 	const nxt = () => {
 		const step = steps.shift();
 		if(!step) return false;
@@ -63,19 +78,56 @@
 		if(!playing) play(playBtn);
 		else pause(playBtn);
 	}
-
+	const reloadNbSteps = () => { document.getElementById('nb-steps').textContent = '/' + steps.length; }
+	const reloadCurrentStep = () => { document.getElementById('current-step').textContent = currentStep; }
+	const restart = (stepsNState) => {
+		state = stepsNState.state;
+		steps = stepsNState.steps;
+		inverts = [];
+		currentStep = 0;
+		reloadNbSteps(); reloadCurrentStep();
+	}
 	const loadFile = () => {
 		const fileInput = document.getElementById('file-to-load');
 		let file = fileInput.files[0];
 		console.log(file);
 		let reader = new FileReader();
 		reader.onload = () => {
-			init(reader.result);
-			currentStep = 0;
-			document.getElementById('nb-steps').textContent = '/' + steps.length; document.getElementById('current-step').textContent = '0';
+			stepsNState = readGame(reader.result);
+			restart(stepsNState);
 		}
-		reader.onerror = () => { console.log('ERROR: could not load file because...\n' + reader.error); }
+		reader.onerror = () => { console.warn('Could not load file because...\n' + reader.error); }
 		reader.readAsText(file);
+	}
+	const connectToServer = () => {
+		const url = document.getElementById('server-to-connect').value;
+		connectionStatusDom.textContent = 'Verbindung starten...';
+		if(window.WebSocket === undefined) {
+			connectionStatusDom.textContent = 'WebSockets nicht unterstützt!';
+			return;
+		}
+
+		socket = new WebSocket('ws://' + url);
+		socket.onopen = (event) => {
+			connectionStatusDom.textContent = 'Verbunden';
+			initialized = false;
+		};
+		socket.onclose = (event) => { connectionStatusDom.textContent = 'Nicht verbunden'; };
+		socket.onmessage = (event) => {
+			console.log(event.data);
+			if(!initialized){
+				stepsNState = readGame(event.data);
+				restart(stepsNState);
+				connectionStatusDom.textContent = 'Bereit';
+				initialized = true;
+			} else {
+				let step = readStep(event.data);
+				steps.push(step);
+				reloadNbSteps();
+				if(currentStep == steps.length) nxt();
+			}
+		}
+		socket.onerror = (err) => { console.error(err); }
 	}
 </script>
 </html>

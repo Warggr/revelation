@@ -23,7 +23,7 @@ function apply(step, backwards) {
 var boardDom = [];
 var screen = null;
 
-function init(content){
+function createState(teams){
 	let outerScreen = document.getElementById('screen');
 	outerScreen.textContent = '';
 
@@ -36,10 +36,6 @@ function init(content){
 	boardDom.id = 'board';
 	boardDom.style.flex = 2;
 	screen.appendChild(boardDom);
-
-	let ret = JSON.parse(content);
-	steps = ret.steps;
-	let teams = ret.teams;
 
 	for(let i = 0; i < 2; i++){
 		let row = [];
@@ -76,4 +72,18 @@ function init(content){
 
 	screen.prepend(headers[0]);
 	screen.append(headers[1]);
+
+	return null;
+}
+
+function readGame(content){
+	let ret = JSON.parse(content);
+	let teams = ret.teams;
+	let state = createState(teams);
+
+	return { state : state, steps : ret.steps }
+}
+
+function readStep(content) {
+	return JSON.parse(content);
 }
