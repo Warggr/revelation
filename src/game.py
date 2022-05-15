@@ -1,76 +1,30 @@
-import asyncio
-from threading import Thread, Lock
-from Queue import Queue
-from websockets.server import serve
-import json as JSONlib
-from serialize import WSJSONencoder
-
-from player import Agent
+from player import Player
 from team import Team
 from state import State, Step
-
-class Logger:
-	def __init__(self, teams : tuple[Team, Team]):
-		self.teams = teams
-		self.steps : list[Step] = []
-	def addStep(self, step : Step):
-		self.steps.append(step)
-	def all(self):
-		return { "teams" : self.teams, "steps" : self.steps }
-	def close(self):
-		pass
-
-class LiveServerAndLogger(Logger):
-	def __init__(self, teams):
-		super(teams)
-		self.connected = False
-		self.lockConnectionStatus = Lock()
-		self.messageQueue = Queue()
-		self.serverThread = Thread(target=self.runServer)
-
-	#network-thread
-	def runServer(self):
-		asyncio.run( websockets.serve(self.asyncServer, localhost, 8000) )
-		print('Network thread exited')
-
-	async def asyncServer(self, websocket, path):
-		# on connect
-		with self.lockConnectionStatus:
-			self.connected = True
-
-		await websocket.send( JSONlib.dumps(self.all(), cls=WSJSONencoder) )
-
-		while True:
-			msg = self.messageQueue.get()
-			if(msg is None):
-				await websocket.close()
-				print('WebSocket server exited')
-				return
-			else:
-				await websocket.send( JSONlib.dumps(step, cls=WSJSONencoder) )
-
-	def addStep(self, step : Step):
-		super().addStep(step)
-		with self.lockConnectionStatus:
-			if self.connected:
-				self.messageQueue.put(step)
-
-	def close(self):
-		self.messageQueue.put(None)
-		self.serverThread.join()
+from agent import Agent, MoveDecision
+from logger import Logger, LiveServerAndLogger
 
 class Game:
-	def __init__(self, teams : tuple[Team, Team], agents : tuple[Agent, Agent]):
-		self.head = State.createStart(teams)
-		self.agents = agents
-	def play(self, isLiveServer : bool) -> bool:
-		logger = None
-		if isLiveServer:
-			logger = LiveServerAndLogger()
-		else:
-			logger = Logger()
+    def __init__(self, teams : tuple[Team, Team], agents : tuple[Agent, Agent]):
+        self.state = State.createStart(teams)
+        self.teams = teams
+        self.agents = agents
+    def play(self, isLiveServer : bool = False) -> bool:
+        logger = None
+        if isLiveServer:
+            logger = LiveServerAndLogger(self.teams)
+        else:
+            logger = Logger(self.teams)
 
-		while not self.head.isFinished():
-			
+        with logger:
+            iActiveAgent = 0
+            while not self.state.isFinished():
+            #for _ in range(2):
+                agent = self.agents[iActiveAgent]
+                for iMovement in range(2):
+                    move : MoveDecision = agent.getMovement(self.state)
+                    step : Step = self.state.mkStep(move)
+                    logger.addStep(step)
+                    self.state = self.state.apply(step)
 
-		logger.close()
+                iActiveAgent = 1 - iActiveAgent

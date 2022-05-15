@@ -1,15 +1,15 @@
 function invert(step, state, backwards) {
 	switch(step.action){
 		case 'pass': return { 'action' : 'pass' };
-		case 'move': return { 'action' : 'move', 'target' : step.target, 'from' : step.to, 'to' : step.from, 'isCOF' : step.isCOF };
+		case 'move': return { 'action' : 'move', 'target' : step.target, 'frm' : step.to, 'to' : step.frm, 'isCOF' : step.isCOF };
 	}
 }
 function apply(step, backwards) {
 	switch(step.action){
 		case 'pass': return;
 		case 'move': {
-			let fieldFrom = boardDom.children[ step.from[0] + 12*step.from[1] ];
-			let fieldTo = boardDom.children[ step.to[0] + 12*step.to[1] ];
+			let fieldFrom = boardDom.children[ step.frm[1] + 12*step.frm[0] ];
+			let fieldTo = boardDom.children[ step.to[1] + 12*step.to[0] ];
 			let unit = fieldFrom.firstChild;
 			if(unit.id != 'cid-' + step.target) console.warn('Target is named ' + unit.id + ' instead of cid-' + step.target);
 			fieldTo.appendChild(unit);
@@ -60,13 +60,17 @@ function createState(teams){
 
 		for(let j=0; j<2; j++)
 			for(let k=0; k<4; k++){
-				let char = document.createElement('div');
-				char.id = 'cid-' + teams[i].characters[j][k].cid;
-				char.classList.add(teamClass);
-				char.classList.add('character');
-				char.classList.add('team-' + (i+1));
-				char.innerHTML = teams[i].characters[j][k].name;
-				boardDom.children[k + 1 + 6*i + 12*j].appendChild(char);
+				let charDom = document.createElement('div');
+				let char = teams[i].characters[j][k];
+				charDom.id = 'cid-' + teams[i].characters[j][k].cid;
+				charDom.classList.add(teamClass);
+				charDom.classList.add('character');
+				charDom.classList.add('team-' + (i+1));
+				charDom.innerHTML = 
+					`<h1>${char.name}</h1><div class="stats"><span>${char.hp}</span> max.<span>${char.maxHP}</span>`+
+					`<span>${char.softAtk}</span><span>${char.hardAtk}</span><span>${char.mov} MOV</span><span>${char.rng} RNG</span>`+
+					`<span>${char.netWorth}$</span><i>${char.flavor}</i>`;
+				boardDom.children[k + 1 + 6*i + 12*j].appendChild(charDom);
 		}
 	}
 

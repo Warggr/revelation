@@ -11,7 +11,7 @@ class Deck:
 	def __init__(self, cards):
 		self.cards = cards
 		random.shuffle(self.cards)
-		self.discard = discard
+		self.discard = []
 	def discard(card):
 		self.discard.append(card)
 	def draw(self):

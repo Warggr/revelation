@@ -6,4 +6,4 @@ class Team(Serializable):
 		self.name = name
 		self.characters = characters
 	def serialize(self):
-		return { 'name' : team.name, 'characters' : self.characters }
+		return { 'name' : self.name, 'characters' : self.characters }

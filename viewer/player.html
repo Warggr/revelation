@@ -26,7 +26,7 @@
 	<div>
 		<h2>Mit Live-Server verbinden</h2>
 		<label for="server-to-connect">Server-Adresse</label>
-		<input type="text" id="server-to-connect" value="ws://localhost:8000"/>
+		<input type="text" id="server-to-connect" value="localhost:8000"/>
 		<button onclick="connectToServer();">Mit Server verbinden</button>
 		<span>Status:</span><span id="connection-status">Nicht verbunden</span>
 	</div>
@@ -78,7 +78,9 @@
 		if(!playing) play(playBtn);
 		else pause(playBtn);
 	}
-	const reloadNbSteps = () => { document.getElementById('nb-steps').textContent = '/' + steps.length; }
+	const reloadNbSteps = () => {
+		console.log(`current: ${currentStep} length: ${steps.length} total: ${steps.length + currentStep}`);
+		document.getElementById('nb-steps').textContent = '/' + (steps.length + currentStep); }
 	const reloadCurrentStep = () => { document.getElementById('current-step').textContent = currentStep; }
 	const restart = (stepsNState) => {
 		state = stepsNState.state;
@@ -124,10 +126,16 @@
 				let step = readStep(event.data);
 				steps.push(step);
 				reloadNbSteps();
-				if(currentStep == steps.length) nxt();
+				if(steps.length == 1) nxt();
 			}
 		}
 		socket.onerror = (err) => { console.error(err); }
+	}
+	const urlParams = new URLSearchParams(window.location.search);
+	const liveurl = urlParams.get('liveurl');
+	if(liveurl){
+		document.getElementById('server-to-connect').value = liveurl;
+		connectToServer();
 	}
 </script>
 </html>

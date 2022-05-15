@@ -3,36 +3,43 @@ from serialize import Serializable
 
 @unique
 class Faction(Enum):
-	NONE = 0
-	BLOOD = 1
-	MERCURY = 2
-	HORROR = 3
-	SPECTRUM = 4
-	ETHER = 5
+    NONE = 0
+    BLOOD = 1
+    MERCURY = 2
+    HORROR = 3
+    SPECTRUM = 4
+    ETHER = 5
 
-	@staticmethod
-	def allFactions():
-		return [ BLOOD, MERCURY, HORROR, SPECTRUM ]
+    @staticmethod
+    def allFactions():
+        return [ Faction.BLOOD, Faction.MERCURY, Faction.HORROR, Faction.SPECTRUM ]
 
 class Character(Serializable):
-	def __init__(self, name : str, faction : Faction, maxHP : int, atk : int, mov : int, rng : int, shi : int):
-		self.name = name
-		self.faction = faction
-		self.maxHP = maxHP
-		self.hp = maxHP
-		self.atk = atk
-		self.mov = mov
-		self.rng = rng
-		self.shi = shi
-		self.position = [None, None]
-	def serialize(self):
-		return {
-			"name" : name,
-			"faction" : faction,
-			"maxHP" : maxHP,
-			"hp" : maxHP,
-			"atk" : atk,
-			"mov" : mov,
-			"rng" : rng,
-			"shi" : shi
-		}
+    uid = ord('a')
+
+    def __init__(self, name : str, maxHP : int, softAtk : int, hardAtk : int, mov : int, rng : int, netWorth : int, flavor : str = ''):
+        self.name = name
+        self.maxHP = maxHP
+        self.hp = maxHP
+        self.softAtk = softAtk
+        self.hardAtk = hardAtk
+        self.mov = mov
+        self.rng = rng
+        self.position = [None, None]
+        self.netWorth = netWorth
+        self.flavor = flavor
+        self.cid = chr(Character.uid)
+        Character.uid += 1
+    def serialize(self):
+        return {
+            "name" : self.name,
+            "cid" : self.cid,
+            "maxHP" : self.maxHP,
+            "hp" : self.hp,
+            "softAtk" : self.softAtk,
+            "hardAtk" : self.hardAtk,
+            "mov" : self.mov,
+            "rng" : self.rng,
+            "netWorth" : self.netWorth,
+            "flavor" : self.flavor
+        }
