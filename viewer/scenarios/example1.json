@@ -4,30 +4,30 @@
 			"name" : "Team Red",
 			"characters": [
 				[
-					{ "name" : "Darth Vader", "cid" : "V" },
-					{ "name" : "Baron Vladimir Harkonnen", "cid" : "K" },
-					{ "name" : "the God-Pharaoh", "cid" : "B" },
-					{ "name" : "Lysander", "cid" : "L" }
+					{ "name" : "Darth Vader", "cid" : "V", "maxHP" : 100, "softAtk" : 10, "hardAtk" : 30, "mov" : 2, "rng": 2, "netWorth" : 1500, "flavor" : "" },
+					{ "name" : "Baron Vladimir Harkonnen", "cid" : "K", "maxHP" : 100, "softAtk" : 10, "hardAtk" : 30, "mov" : 2, "rng": 2, "netWorth" : 1500, "flavor" : "" },
+					{ "name" : "the God-Pharaoh", "cid" : "B", "maxHP" : 100, "softAtk" : 10, "hardAtk" : 30, "mov" : 2, "rng": 2, "netWorth" : 1500, "flavor" : "" },
+					{ "name" : "Lysander", "cid" : "L", "maxHP" : 100, "softAtk" : 10, "hardAtk" : 30, "mov" : 2, "rng": 2, "netWorth" : 1500, "flavor" : "" }
 				], [
-					{ "name" : "Sauron", "cid" : "S" },
-					{ "name" : "Hashenaad the Enemy", "cid" : "E" },
-					{ "name" : "Vogon Soldier", "cid" : "I" },
-					{ "name" : "Lord Voldemort", "cid" : "O" }
+					{ "name" : "Sauron", "cid" : "S", "maxHP" : 100, "softAtk" : 10, "hardAtk" : 30, "mov" : 2, "rng": 2, "netWorth" : 1500, "flavor" : "" },
+					{ "name" : "Hashenaad the Enemy", "cid" : "E", "maxHP" : 100, "softAtk" : 10, "hardAtk" : 30, "mov" : 2, "rng": 2, "netWorth" : 1500, "flavor" : "" },
+					{ "name" : "Vogon Soldier", "cid" : "I", "maxHP" : 100, "softAtk" : 10, "hardAtk" : 30, "mov" : 2, "rng": 2, "netWorth" : 1500, "flavor" : "" },
+					{ "name" : "Lord Voldemort", "cid" : "O", "maxHP" : 100, "softAtk" : 10, "hardAtk" : 30, "mov" : 2, "rng": 2, "netWorth" : 1500, "flavor" : "" }
 				]
 			]
 		}, {
 			"name" : "Team Blue",
 			"characters" : [
 				[
-					{ "name" : "Luke Skywalker", "cid" : "s" },
-					{ "name" : "Paul Atreides", "cid" : "f" },
-					{ "name" : "Liliana the Necromancer", "cid" : "i" },
-					{ "name" : "Dancer", "cid" : "w" }
+					{ "name" : "Luke Skywalker", "cid" : "s", "maxHP" : 100, "softAtk" : 10, "hardAtk" : 30, "mov" : 2, "rng": 2, "netWorth" : 1500, "flavor" : "" },
+					{ "name" : "Paul Atreides", "cid" : "f", "maxHP" : 100, "softAtk" : 10, "hardAtk" : 30, "mov" : 2, "rng": 2, "netWorth" : 1500, "flavor" : "" },
+					{ "name" : "Liliana the Necromancer", "cid" : "i", "maxHP" : 100, "softAtk" : 10, "hardAtk" : 30, "mov" : 2, "rng": 2, "netWorth" : 1500, "flavor" : "" },
+					{ "name" : "Dancer", "cid" : "w", "maxHP" : 100, "softAtk" : 10, "hardAtk" : 30, "mov" : 2, "rng": 2, "netWorth" : 1500, "flavor" : "" }
 				], [
-					{ "name" : "Gandalf the Grey", "cid" : "v" },
-					{ "name" : "Arachne", "cid" : "l" },
-					{ "name" : "Zaphod Beeblebrox", "cid" : "y" },
-					{ "name" : "Hagrid", "cid" : "k" }
+					{ "name" : "Gandalf the Grey", "cid" : "v", "maxHP" : 100, "softAtk" : 10, "hardAtk" : 30, "mov" : 2, "rng": 2, "netWorth" : 1500, "flavor" : "" },
+					{ "name" : "Arachne", "cid" : "l", "maxHP" : 100, "softAtk" : 10, "hardAtk" : 30, "mov" : 2, "rng": 2, "netWorth" : 1500, "flavor" : "" },
+					{ "name" : "Zaphod Beeblebrox", "cid" : "y", "maxHP" : 100, "softAtk" : 10, "hardAtk" : 30, "mov" : 2, "rng": 2, "netWorth" : 1500, "flavor" : "" },
+					{ "name" : "Hagrid", "cid" : "k", "maxHP" : 100, "softAtk" : 10, "hardAtk" : 30, "mov" : 2, "rng": 2, "netWorth" : 1500, "flavor" : "" }
 				]
 			]
 		}

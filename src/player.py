@@ -9,17 +9,26 @@ class Player:
         [ ActionCard.HARDATK ] * 4 +\
         [ ActionCard.SOFTATK ] * 4
 
-    def __init__(self, units, abilityDeck = Deck([])):
+    def __init__(self, abilityDeck = Deck.create([])):
         self.resources = []
         self.actions = []
         self.tokens = []
-        self.units = units
-        self.actionDeck = Deck(Player.startingAbilityDeck)
+        self.actionDeck = Deck.create(Player.startingAbilityDeck)
         self.abilityDeck = abilityDeck
 
     def useActionCard(self, cardValue):
         self.actions.remove(cardValue)
         self.actionDeck.discard(cardValue)
+
+    def drawAction(self):
+        cardDrawn = self.actionDeck.draw()
+        self.actions.append(cardDrawn)
+        return cardDrawn
+
+    def drawResource(self, resourceDeck):
+        cardDrawn = resourceDeck.draw()
+        self.resources.append(cardDrawn)
+        return cardDrawn
 
     #virtual
     def getAbilityDeck(self):

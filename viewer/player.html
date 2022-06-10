@@ -34,7 +34,6 @@
 <script>
 	var steps = [];
 	var inverts = [];
-	var state = null;
 	var playing = false;
 	var initialized = false;
 	var playLock = undefined;
@@ -48,16 +47,16 @@
 		const step = steps.shift();
 		if(!step) return false;
 		currentStep++; document.getElementById('current-step').textContent = currentStep;
-		inverts.unshift(invert(step, state, false));
-		state = apply(step, false);
+		bwstep = apply(step, false);
+		inverts.unshift( bwstep );
 		return true;
 	}
 	const pre = () => {
 		const inver = inverts.shift();
 		if(!inver) return false;
 		currentStep--; document.getElementById('current-step').textContent = currentStep;
-		steps.unshift(invert(inver, state, true));
-		state = apply(inver, true);
+		step = apply(inver, true);
+		steps.unshift( step );
 		return true;
 	}
 	const playLoop = (playBtn) => { const ret = nxt(); if(!ret){ pause(playBtn); } }
@@ -79,8 +78,8 @@
 		else pause(playBtn);
 	}
 	const reloadNbSteps = () => {
-		console.log(`current: ${currentStep} length: ${steps.length} total: ${steps.length + currentStep}`);
-		document.getElementById('nb-steps').textContent = '/' + (steps.length + currentStep); }
+		document.getElementById('nb-steps').textContent = '/' + (steps.length + currentStep); 
+	}
 	const reloadCurrentStep = () => { document.getElementById('current-step').textContent = currentStep; }
 	const restart = (stepsNState) => {
 		state = stepsNState.state;

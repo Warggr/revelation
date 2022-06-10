@@ -1,7 +1,7 @@
 div#board {
 	width: 100%;
 	display: grid;
-	grid-template-columns: repeat(12, minmax(0, 1fr));
+	grid-template-columns: repeat(10, minmax(0, 1fr));
 	grid-template-rows: repeat(2, 50%);
 	grid-auto-flow: row;
 }
@@ -22,4 +22,35 @@ div.character.team-1 {
 
 div.character.team-2 {
 	background: lightblue;
+}
+
+div.character > h1 {
+	font-size: inherit;
+}
+
+div.character > div.stats > div {
+	display: inline-block;
+	margin: 0 5px;
+}
+
+div.character > div.stats > div.hp::after {
+	content: 'HP';
+}
+div.character > div.stats > div.maxHP::before {
+	content: '/';
+}
+div.character > div.stats > div.softAtk::after {
+	content: 'SX';
+}
+div.character > div.stats > div.hardAtk::after {
+	content: 'HX';
+}
+div.character > div.stats > div.mov::after {
+	content: 'MV';
+}
+div.character > div.stats > div.rng::after {
+	content: 'RG';
+}
+div.character > div.stats > div.netWorth::after {
+	content: '$';
 }

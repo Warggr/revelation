@@ -3,15 +3,20 @@ from enum import Enum, unique
 
 @unique
 class ActionCard(Enum):
-	DEFENSE = 1
-	SOFTATK = 2
-	HARDATK = 3
+	DEFENSE = 'Defense'
+	SOFTATK = 'Soft Attack'
+	HARDATK = 'Hard Attack'
 
 class Deck:
-	def __init__(self, cards):
+	def __init__(self, cards, discards):
 		self.cards = cards
-		random.shuffle(self.cards)
-		self.discard = []
+		self.discard = discards
+	@staticmethod
+	def create(cards):
+		random.shuffle(cards)
+		return Deck(cards, [])
+	def copy(self):
+		return Deck( self.cards[:], self.discard[:] )
 	def discard(card):
 		self.discard.append(card)
 	def draw(self):

@@ -1,29 +1,128 @@
-function invert(step, state, backwards) {
-	switch(step.action){
-		case 'pass': return { 'action' : 'pass' };
-		case 'move': return { 'action' : 'move', 'target' : step.target, 'frm' : step.to, 'to' : step.frm, 'isCOF' : step.isCOF };
-	}
+const ARMY_WIDTH = 3;
+const HALF_BOARD_WIDTH = ARMY_WIDTH + 2;
+const FULL_BOARD_WIDTH = 2* HALF_BOARD_WIDTH;
+
+function discard(name){
+	let allResources = [...resourceLists[iActive].children];
+	let allSuitableResources = allResources.filter( el => (el.textContent == name ) );
+	allSuitableResources[0].remove();
 }
+
+function draw(name){
+	let resource = document.createElement('li');
+	resource.textContent = name;
+	resourceLists[iActive].appendChild(resource);	
+}
+
+function teamClass(iTeam){
+	return 'teamid-' + teamNames[iTeam].toLowerCase().replaceAll(' ', '-')
+}
+
+function characterFactory(char, iTeam){
+	let charDom = document.createElement('div');
+	charDom.id = 'cid-' + char.cid;
+	charDom.classList.add( teamClass(iTeam) );
+	charDom.classList.add('character');
+	charDom.classList.add('team-' + (iTeam+1));
+	charDom.innerHTML = 
+		`<h1>${char.name}</h1><div class="stats"><div class="hp">${char.hp}</div><div class="maxHP">${char.maxHP}</div>`+
+		`<div class="atk softAtk">${char.softAtk}</div><div class="atk hardAtk">${char.hardAtk}</div><div class="mov">${char.mov}</div><div class="rng">${char.rng}</div>`+
+		`<div class="netWorth">${char.netWorth}</div><i>${char.flavor}</i>`;
+	return charDom;
+}
+
+function bluePrintCharacter(charDom){
+	let stats = charDom.children[1];
+	return {
+		hp : Number( stats.children[0].textContent ),
+		maxHP : Number( stats.children[1].textContent ),
+		softAtk : Number( stats.children[2].textContent ),
+		hardAtk : Number( stats.children[3].textContent ),
+		mov : Number( stats.children[4].textContent ),
+		rng : Number( stats.children[5].textContent ),
+		netWorth : Number( stats.children[6].textContent ),
+		flavor : stats.children[7].textContent
+	};
+}
+
 function apply(step, backwards) {
 	switch(step.action){
-		case 'pass': return;
+		case 'pass': return { 'action' : 'pass' };
 		case 'move': {
-			let fieldFrom = boardDom.children[ step.frm[1] + 12*step.frm[0] ];
-			let fieldTo = boardDom.children[ step.to[1] + 12*step.to[0] ];
+			let fieldFrom = boardDom.children[ step.frm[1] + FULL_BOARD_WIDTH*step.frm[0] ];
+			let fieldTo = boardDom.children[ step.to[1] + FULL_BOARD_WIDTH*step.to[0] ];
 			let unit = fieldFrom.firstChild;
 			if(unit.id != 'cid-' + step.target) console.warn('Target is named ' + unit.id + ' instead of cid-' + step.target);
 			fieldTo.appendChild(unit);
 			if(step.isCOF){
 				fieldFrom.appendChild(fieldTo.firstChild);
 			}
+
+			return { 'action' : 'move', 'target' : step.target, 'frm' : step.to, 'to' : step.frm, 'isCOF' : step.isCOF };			
 		}
+		case 'draw': {
+			let textContent = step.clss + ' - ' + step.value;
+			if(!backwards) draw(textContent);
+			else discard(textContent);
+			return step;
+		}
+		case 'atk': {
+			if(!backwards){
+				discard('action - ' + step.cardLost.toUpperCase());
+
+				let victim = boardDom.children[ step.object[1] + FULL_BOARD_WIDTH*step.object[0] ].firstChild;
+				victim.children[1].children[0].textContent = step.setLife;
+				if(step.delete){
+					step.deleted = bluePrintCharacter(victim);
+					victim.remove();
+				}
+				iActive = 1 - iActive;
+				return step;
+			} else {
+				iActive = 1 - iActive;
+				let charDom = undefined;
+				if(step.delete){
+					charDom = characterFactory(step.deleted, 1 - iActive);
+					boardDom.children[ step.object[1] + FULL_BOARD_WIDTH*step.object[0] ].appendChild(charDom);
+					delete step.deleted;
+				} else {
+					charDom = boardDom.children[ step.object[1] + FULL_BOARD_WIDTH*step.object[0] ].firstChild;
+				}
+				charDom.children[1].children[0].textContent = step.setLife + step.lostLife;
+				draw('action - ' + step.cardLost.toUpperCase());
+				return step;
+			}
+		}
+		case 'def': {
+			let subject = boardDom.children[ step.subject[1] + FULL_BOARD_WIDTH*step.object[0] ];
+			if(!backwards){
+				discard('action - ' + step.cardLost.toUpperCase());
+				subject.children[1].children[0].textContent = step.permanent;
+				iActive = 1 - iActive;
+			} else {
+				iActive = 1 - iActive;
+				subject.children[1].children[0].textContent = step.permanent - 50;
+				draw('action - ' + step.cardLost.toUpperCase());
+			}
+			return step;
+		}
+		default:
+			console.error('Step type ' + step.action + ' is not implemented');
 	}
 }
 
+var teamNames = [];
 var boardDom = [];
+var resourceLists = [];
 var screen = null;
+var iActive = 0;
 
 function createState(teams){
+	for(let team of teams)
+		for(let row of team.characters)
+			for(let char of row)
+				if(!char.hp) char.hp = char.maxHP;
+
 	let outerScreen = document.getElementById('screen');
 	outerScreen.textContent = '';
 
@@ -39,7 +138,7 @@ function createState(teams){
 
 	for(let i = 0; i < 2; i++){
 		let row = [];
-		for(let j = 0; j < 12; j++){
+		for(let j = 0; j < FULL_BOARD_WIDTH; j++){
 			let td = document.createElement('div');
 			td.classList.add('board-field');
 			boardDom.appendChild(td);
@@ -50,27 +149,24 @@ function createState(teams){
 	let headers = [];
 
 	for(let i=0; i<2; i++){
-		let teamClass = 'teamid-' + teams[i].name.toLowerCase().replaceAll(' ', '-');
+		teamNames[i] = teams[i].name;
 
 		let header = document.createElement('div');
-		header.textContent = teams[i].name;
+		header.innerHTML = `<h3>${teams[i].name}</h3>`;
+		let resourceList = document.createElement('ul');
+		resourceList.classList.add('resource-list');
+		resourceLists.push(resourceList);
+		header.appendChild(resourceList);
 		header.style.cssText += 'flex:1;'
-		header.classList.add(teamClass);
+		header.classList.add(teamClass(i));
+		header.classList.add('header');
+		header.classList.add('teamIndex-' + i);
 		headers.push(header);
 
 		for(let j=0; j<2; j++)
-			for(let k=0; k<4; k++){
-				let charDom = document.createElement('div');
-				let char = teams[i].characters[j][k];
-				charDom.id = 'cid-' + teams[i].characters[j][k].cid;
-				charDom.classList.add(teamClass);
-				charDom.classList.add('character');
-				charDom.classList.add('team-' + (i+1));
-				charDom.innerHTML = 
-					`<h1>${char.name}</h1><div class="stats"><span>${char.hp}</span> max.<span>${char.maxHP}</span>`+
-					`<span>${char.softAtk}</span><span>${char.hardAtk}</span><span>${char.mov} MOV</span><span>${char.rng} RNG</span>`+
-					`<span>${char.netWorth}$</span><i>${char.flavor}</i>`;
-				boardDom.children[k + 1 + 6*i + 12*j].appendChild(charDom);
+			for(let k=0; k<ARMY_WIDTH; k++){
+				let charDom = characterFactory( teams[i].characters[j][k], i );
+				boardDom.children[k + 1 + HALF_BOARD_WIDTH*i + FULL_BOARD_WIDTH*j].appendChild(charDom);
 		}
 	}
 

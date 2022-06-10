@@ -11,23 +11,38 @@ from player import Player
 from state import Step
 
 class Logger:
+    def liveServer(self) -> 'Logger':
+        return LiveServerAndLogger(self)
+    def logToTerminal(self) -> 'Logger':
+        return PrintLogger(self)
+    def __enter__(self):
+        return self
+    def __exit__(self, type, value, traceback):
+        return
+
+class BaseLogger(Logger):
     def __init__(self, players : tuple[Player, Player]):
         self.players = players
         self.steps : list[Step] = []
-    def __enter__(self):
-        return self
     def addStep(self, step : Step):
         self.steps.append(step)
     def all(self):
         return { "teams" : self.players, "steps" : self.steps }
     def __exit__(self, type, value, traceback):
-        now = datetime.datetime.now()
-        file = open(now.strftime('%m.%d-%H:%M') + '-replay.json', 'x')
-        JSONlib.dump(f, self.all())
+        if type is None:
+            now = datetime.datetime.now()
+            file = open(now.strftime('%m.%d-%H:%M') + '-replay.json', 'x')
+            JSONlib.dump(f, self.all())
 
-class LiveServerAndLogger(Logger):
-    def __init__(self, players):
-        super().__init__(players)
+class Decorator(Logger):
+    def __init__(self, parent):
+        self.parent = parent
+    def all(self):
+        return self.parent.all()
+
+class LiveServerAndLogger(Decorator):
+    def __init__(self, parent):
+        super().__init__(parent)
         self.connected = False
         self.lockConnectionStatus = Lock()
         self.messageQueue = Queue()
@@ -62,7 +77,7 @@ class LiveServerAndLogger(Logger):
                 await websocket.send( JSONlib.dumps(step, cls=WSJSONEncoder) )
 
     def addStep(self, step : Step):
-        super().addStep(step)
+        self.parent.addStep(step)
         with self.lockConnectionStatus:
             if self.connected:
                 self.messageQueue.put(step)
@@ -75,3 +90,12 @@ class LiveServerAndLogger(Logger):
                 self.loop.call_soon_threadsafe(self.loop.stop)
 
         self.serverThread.join()
+        self.parent.__exit__(type, value, traceback)
+
+class PrintLogger(Decorator):
+    def __init__(self, parent):
+        super().__init__(parent)
+        print('Log will be printed')
+    def addStep(self, step : Step):
+        self.parent.addStep(step)
+        print(step)
