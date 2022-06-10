@@ -67,14 +67,16 @@ class State:
         assert self.timestep == Timestep.BEGIN
         newState = self.copy()
         newState.timestep = Timestep.DISCARDED
+        newState.players = newState.players.copy()
+        newState.players[self.iActive] = copy.copy(newState.players[self.iActive])
         if decision == ActionOrResource.ACTION:
-            newState.players = newState.players.copy()
-            newState.players[self.iActive] = copy.copy(newState.players[self.iActive])
+            newState.players[self.iActive].actions = newState.players[self.iActive].actions.copy()
             newState.players[self.iActive].actionDeck = newState.players[self.iActive].actionDeck.copy()
             cardDrawn = newState.players[self.iActive].drawAction()
             return ( newState, Step( typ='draw', clss='action', value=cardDrawn ) )
         else:
             newState.resDeck = newState.resDeck.copy()
+            newState.players[self.iActive].resources = newState.players[self.iActive].resources.copy()
             cardDrawn = newState.players[self.iActive].drawResource(newState.resDeck)
             return ( newState, Step( typ='draw', clss='resource', value=cardDrawn ) )
 
