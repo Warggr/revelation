@@ -107,7 +107,7 @@ function apply(step, backwards) {
 			}
 		}
 		case 'def': {
-			let subject = boardDom.children[ step.subject[1] + FULL_BOARD_WIDTH*step.object[0] ];
+			let subject = boardDom.children[ step.subject[1] + FULL_BOARD_WIDTH*step.subject[0] ];
 			if(!backwards){
 				discard('action - ' + step.cardLost.toUpperCase());
 				subject.children[1].children[0].textContent = step.permanent;
