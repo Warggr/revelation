@@ -73,12 +73,12 @@ class State:
             newState.players[self.iActive].actions = newState.players[self.iActive].actions.copy()
             newState.players[self.iActive].actionDeck = newState.players[self.iActive].actionDeck.copy()
             cardDrawn = newState.players[self.iActive].drawAction()
-            return ( newState, Step( typ='draw', clss='action', value=cardDrawn ) )
+            return ( newState, Step( typ='draw', clss='action', value=cardDrawn, newDeckSize=newState.players[self.iActive].actionDeck.sizeconfig() ) )
         else:
             newState.resDeck = newState.resDeck.copy()
             newState.players[self.iActive].resources = newState.players[self.iActive].resources.copy()
             cardDrawn = newState.players[self.iActive].drawResource(newState.resDeck)
-            return ( newState, Step( typ='draw', clss='resource', value=cardDrawn ) )
+            return ( newState, Step( typ='draw', clss='resource', value=cardDrawn, newDeckSize=newState.resDeck.sizeconfig() ) )
 
     def checkConsistency(self):
         for team in self.aliveUnits:
@@ -217,3 +217,10 @@ class State:
             return self.stepAct(decision)
         elif self.timestep == Timestep.ACTED:
             return self.endTurn()
+
+    def serialize(self):
+        return {
+            "resourceDeck" : self.resDeck.sizeconfig(),
+            "players" : [ player.serialize() for player in self.players ],
+            "board": [ [ (char.serialize() if char else None ) for char in row ] for row in self.board ]
+        }

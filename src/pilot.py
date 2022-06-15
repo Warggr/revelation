@@ -46,6 +46,25 @@ armies = [
             ["Berserk"            , 100, 30, 20, 2, 1, 415.30, "+10 to the damage for each 20 HP lost" ],
             ["Northmen officer"   , 100, 10, 10, 2, 1, 355.30 ]
         ]
+    ], [
+        "Slow Near East", [
+            ["Mounted archers"    , 60, 30, 10, 1, 3, 534.90, "Ranged attack (Arc 3)" ],
+            ["Captives"           , 20, 20, 10, 1, 1, 288.70 ],
+            ["Captives"           , 20, 20, 10, 1, 1, 288.70 ],
+            ["Saracens"           , 80, 50, 20, 1, 1, 454.90, "Defense 20(light)" ],
+            ["Canons"             , 60, 70, 0, 0, 4, 551.60, "Ranged attack(Straight 4)" ],
+            ["Arab officer"       , 100, 10, 10, 1, 1, 355.30 ]
+        ]
+    ], [
+        "Slow Europe", [
+            ["Crossbowman"        , 40, 40, 20, 1, 3, 489.10, "Ranged attack(straight 3)" ],
+            ["Armored knight"     , 100, 60, 30, 1, 1, 449.90, "Defense 20(light)" ],
+            ["Fanatics"           , 20, 20, 10, 1, 1, 288.70 ],
+            ["Fanatics"           , 20, 20, 10, 1, 1, 288.70 ],
+            ["Fanatics"           , 20, 20, 10, 1, 1, 288.70 ],
+            ["Knight"             , 90, 50, 10, 0, 1, 520.50, "Defense 20(light)" ],
+            ["Lord officer"       , 100, 10, 10, 1, 1, 355.30 ]
+        ]
     ]
 ]
 

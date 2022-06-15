@@ -136,10 +136,11 @@ class SearchAgent(Agent):
                 if myUnit is not None and manhattanDistance(myUnit.position, posVictim) < minDistance:
                     minDistance = manhattanDistance( myUnit.position, posVictim )
             enemy = oldState.getBoardField( posVictim )
+            ally = oldState.getBoardField( step.kwargs['subject'] )
             nbTurnsBeforeAttack = (minDistance - enemy.rng)
             if nbTurnsBeforeAttack <= 0:
                 nbTurnsBeforeAttack = 1
-            danger = math.ceil( lostHP * enemy.mov / nbTurnsBeforeAttack )
+            danger = lostHP * 2 + math.ceil( enemy.mov / nbTurnsBeforeAttack ) # - lostLife
             return danger
         elif step.type == 'def':
             return 50
@@ -164,7 +165,7 @@ class SearchAgent(Agent):
         self.plans = self.plans[1:]
         return ret
     def onBegin(self, state : 'State'):
-        (state, decisions, heuristic) = self.planAhead( self.myId, state, 2)
+        (state, decisions, heuristic) = self.planAhead( self.myId, state, 2 )
         print('Found', state, decisions, heuristic)
         self.plans = decisions
     def planAhead(self, myId : int, state : 'State', maxDepth : int):
@@ -180,9 +181,9 @@ class SearchAgent(Agent):
             active = stack.pop()
             state = active[0]
 
-            print('nbPaths is', nbPaths)
-            if nbPaths > 10000:
-                raise Exception()
+            #print('nbPaths is', nbPaths)
+            #if nbPaths > 10000:
+                #raise Exception()
             #print("unloading step of type ", state.timestep, '@', active[3])
             #print('maxHeur is', maxHeur)
 #            print('with cards:', [ len(i.actionDeck.cards) for i in state.players ])
@@ -205,7 +206,6 @@ class SearchAgent(Agent):
                             (newState, step) = state.stepMov( decision )
                             stack.append( (newState, active[1] + [ decision ], active[2] + self.evaluateStep( myId, state, step ), active[3] ) )
                             #nbChildren += 1
-                #print('Move action had', nbChildren, 'children')
             elif state.timestep == Timestep.MOVEDlast:
                 decision = AbilityDecision()
                 (newState, step) = state.stepAbil( decision )
@@ -237,7 +237,6 @@ class SearchAgent(Agent):
                                 stack.append( (newState, active[1] + [ ret ], active[2] + self.evaluateStep( myId, state, step ), active[3]) )
                                 #print('Appending attack to stack', len(stack))
                                 #nbChildren += 1
-                #print('Ability action has', nbChildren, 'children')
             elif state.timestep == Timestep.ACTED:
                 (newState, step) = state.endTurn()
                 #print(active[3], maxDepth)
@@ -266,5 +265,4 @@ class SearchAgent(Agent):
                         #print(newState.timestep)
                         stack.append( ( newState, active[1], active[2] - heuristic, active[3] + 2 ) )
         print(nbPaths, 'possible futures found')
-        #raise Exception()
         return ( bestState, bestMoves, maxHeur )

@@ -8,10 +8,12 @@ from logger import BaseLogger
 class Game:
     def __init__(self, teams : tuple[Team, Team], agents : tuple[Agent, Agent]):
         self.state = State.createStart(teams)
-        self.teams = teams
+        self.teamNames = [ team.name for team in teams ]
         self.agents = agents
+    def serialize(self):
+        return { "teamNames" : self.teamNames }
     def play(self, isLiveServer : bool = False, logToTerminal : bool = False) -> bool:
-        logger = BaseLogger(self.teams)
+        logger = BaseLogger(self.state, self)
         if isLiveServer:
             logger = logger.liveServer()
         if logToTerminal:

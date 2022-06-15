@@ -24,3 +24,7 @@ class Deck:
 			self.cards = self.discard
 			random.shuffle(self.cards)
 		return self.cards.pop()
+	def size(self):
+		return len(self.cards)
+	def sizeconfig(self):
+		return (len(self.cards), len(self.discard))

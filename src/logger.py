@@ -21,13 +21,14 @@ class Logger:
         return
 
 class BaseLogger(Logger):
-    def __init__(self, players : tuple[Player, Player]):
-        self.players = players
+    def __init__(self, state : 'State', game : 'Game'):
+        self.state = state
+        self.game = game
         self.steps : list[Step] = []
     def addStep(self, step : Step):
         self.steps.append(step)
     def all(self):
-        return { "teams" : self.players, "steps" : self.steps }
+        return { "state" : self.state.serialize(), "steps" : self.steps, "game" : self.game.serialize() }
     def __exit__(self, type, value, traceback):
         if type is None:
             now = datetime.datetime.now()

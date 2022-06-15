@@ -6,6 +6,10 @@ function discard(name){
 	let allResources = [...resourceLists[iActive].children];
 	let allSuitableResources = allResources.filter( el => (el.textContent == name ) );
 	allSuitableResources[0].remove();
+
+	let discardedCard = document.createElement('span');
+	discardedCard.innerHTML = name;
+	document.getElementsByClassName('action-deck')[iActive].children[2].appendChild(discardedCard);
 }
 
 function draw(name){
@@ -25,7 +29,7 @@ function characterFactory(char, iTeam){
 	charDom.classList.add('character');
 	charDom.classList.add('team-' + (iTeam+1));
 	charDom.innerHTML = 
-		`<h1>${char.name}</h1><div class="stats"><div class="hp">${char.hp}</div><div class="maxHP">${char.maxHP}</div>`+
+		`<h1>${char.name}</h1><div class="stats"><div class="HP">${char.HP}</div><div class="maxHP">${char.maxHP}</div>`+
 		`<div class="atk softAtk">${char.softAtk}</div><div class="atk hardAtk">${char.hardAtk}</div><div class="mov">${char.mov}</div><div class="rng">${char.rng}</div>`+
 		`<div class="netWorth">${char.netWorth}</div><i>${char.flavor}</i>`;
 	return charDom;
@@ -34,7 +38,7 @@ function characterFactory(char, iTeam){
 function bluePrintCharacter(charDom){
 	let stats = charDom.children[1];
 	return {
-		hp : Number( stats.children[0].textContent ),
+		HP : Number( stats.children[0].textContent ),
 		maxHP : Number( stats.children[1].textContent ),
 		softAtk : Number( stats.children[2].textContent ),
 		hardAtk : Number( stats.children[3].textContent ),
@@ -61,9 +65,18 @@ function apply(step, backwards) {
 			return { 'action' : 'move', 'target' : step.target, 'frm' : step.to, 'to' : step.frm, 'isCOF' : step.isCOF };			
 		}
 		case 'draw': {
+			let deck = document.getElementsByClassName('action-deck')[iActive];
+			console.log(deck.children);
+			let oldDeckConfig = [ deck.children[0].textContent, deck.children[2].childElementCount ];
 			let textContent = step.clss + ' - ' + step.value;
+
 			if(!backwards) draw(textContent);
 			else discard(textContent);
+
+			deck.children[0].textContent = step.newDeckSize[0];
+			if(step.newDeckSize[1] == 0) deck.children[2].innerHTML = '';
+			if(step.newDeckSize[1] != deck.children[2].childElementCount) console.log(`Warning: Discarded card count does not match (${step.newDeckSize[1]} required, ${deck.children[2].childElementCount} found)`);
+			step.newDeckSize = oldDeckConfig;
 			return step;
 		}
 		case 'atk': {
@@ -114,15 +127,12 @@ function apply(step, backwards) {
 var teamNames = [];
 var boardDom = [];
 var resourceLists = [];
+var actionDecks = [];
 var screen = null;
 var iActive = 0;
 
-function createState(teams){
-	for(let team of teams)
-		for(let row of team.characters)
-			for(let char of row)
-				if(!char.hp) char.hp = char.maxHP;
-
+function createState(state){
+	/* Initialize the screen */
 	let outerScreen = document.getElementById('screen');
 	outerScreen.textContent = '';
 
@@ -136,50 +146,61 @@ function createState(teams){
 	boardDom.style.flex = 2;
 	screen.appendChild(boardDom);
 
+	/* Initialize the board */
 	for(let i = 0; i < 2; i++){
-		let row = [];
+		//let row = [];
 		for(let j = 0; j < FULL_BOARD_WIDTH; j++){
 			let td = document.createElement('div');
 			td.classList.add('board-field');
+			//row.push(td);
+			if(state.board[i][j]){
+				let charDom = characterFactory( state.board[i][j], (j < HALF_BOARD_WIDTH ? 0 : 1) );
+				td.appendChild(charDom);
+			}
 			boardDom.appendChild(td);
-			row.push(td);
 		}
 	}
 
+	/* Initialize the headers */
 	let headers = [];
 
 	for(let i=0; i<2; i++){
-		teamNames[i] = teams[i].name;
-
 		let header = document.createElement('div');
-		header.innerHTML = `<h3>${teams[i].name}</h3>`;
-		let resourceList = document.createElement('ul');
-		resourceList.classList.add('resource-list');
-		resourceLists.push(resourceList);
-		header.appendChild(resourceList);
+		header.innerHTML = `<h3>${teamNames[i]}</h3>`;
 		header.style.cssText += 'flex:1;'
 		header.classList.add(teamClass(i));
 		header.classList.add('header');
 		header.classList.add('teamIndex-' + i);
 		headers.push(header);
 
-		for(let j=0; j<2; j++)
-			for(let k=0; k<ARMY_WIDTH; k++){
-				let charDom = characterFactory( teams[i].characters[j][k], i );
-				boardDom.children[k + 1 + HALF_BOARD_WIDTH*i + FULL_BOARD_WIDTH*j].appendChild(charDom);
-		}
+		let resourceList = document.createElement('ul');
+		resourceList.classList.add('resource-list');
+		resourceLists.push(resourceList);
+		header.appendChild(resourceList);
+
+		let actionDeck = document.createElement('div');
+		actionDeck.classList.add('action-deck');
+		actionDeck.innerHTML = `<span>${ state.players[i].actionDeckSize[0] }</span>cards<br/>Discard pile:<ul></ul>`;
+		header.appendChild(actionDeck);
 	}
 
 	screen.prepend(headers[0]);
 	screen.append(headers[1]);
+
+	let resourceDeck = document.createElement('div');
+	resourceDeck.id = 'resource-deck';
+	resourceDeck.innerHTML = `<h3>Resource deck</h3><span>${ state.resourceDeck[0] }</span> cards<br/>Discard pile:<ul></ul>`;
+	screen.prepend(resourceDeck);
 
 	return null;
 }
 
 function readGame(content){
 	let ret = JSON.parse(content);
-	let teams = ret.teams;
-	let state = createState(teams);
+	console.log(ret);
+	teamNames = ret.game.teamNames;
+	let state_summary = ret.state;
+	let state = createState(state_summary);
 
 	return { state : state, steps : ret.steps }
 }

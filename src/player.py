@@ -16,6 +16,11 @@ class Player:
         self.actionDeck = Deck.create(Player.startingAbilityDeck)
         self.abilityDeck = abilityDeck
 
+    def serialize(self):
+        return {
+            "actionDeckSize" : self.actionDeck.sizeconfig()
+        }
+
     def useActionCard(self, cardValue):
         self.actions.remove(cardValue)
         self.actionDeck.discard(cardValue)
