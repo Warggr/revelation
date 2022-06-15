@@ -1,78 +1,18 @@
-from typing import Union
-from enum import Enum, unique
-from constants import MAX_RESOURCES, MAX_ACTIONS, Timestep
-from card import ActionCard
-from character import Character
+#include "agent.hpp"
+#include "constants.hpp"
 
-import math
+class HumanAgent: public Agent {
+    HumanAgent() {
+        //self.name = input("Hi! Please enter your name: ")
+    }
 
-@unique
-class ActionOrResource(Enum):
-    ACTION = True
-    RESOURCES = False
-
-class MoveDecision:
-    def __init__(self, frm : tuple[int, int], to : tuple[int, int]):
-        self.frm = frm
-        self.to = to
-
-class ActionDecision:
-    def __init__(self, card : ActionCard, subject : Character, object : Union[Character,None] = None ):
-        self.card = card
-        self.subject = subject
-        self.object = object
-
-class AbilityDecision:
-    def __init__(self):
-        self.type = 'pass'
-
-class Agent:
-    """
-    class Agent represents a decision-maker. It is an abstract class that can be implemented by an UI that interfaces with a human, or by an AI.
-    """
-    def __init__(self, myId):
-        self.myId = myId
-
-    def getMyPlayer(self, state : 'State') -> 'Player':
-        return state.players[ self.myId ]
-
-    def getDrawAction(self, state : 'State') -> ActionOrResource:
-        raise NotImplementedError
-
-    def onBegin(self, state : 'State'):
-        pass
-
-    def getMovement(self, state : 'State') -> MoveDecision:
-        raise NotImplementedError
-
-    def getAbility(self, state : 'State') -> AbilityDecision:
-        return AbilityDecision()
-
-    def getAction(self, state : 'State') -> ActionDecision:
-        raise NotImplementedError
-
-    def drawAndDiscardStep(self):
-        x : ActionOrResource = self.getDrawAction()
-        if x == ActionOrResource.RESOURCES:
-            self.resources += self.game.resDeck.draw()
-            if len(self.resources) > MAX_RESOURCES:
-                self.chooseAndDiscardResource()
-        else:
-            self.resources += self.actDeck.draw()
-            if len(self.actions) > MAX_ACTIONS:
-                self.chooseAndDiscardAction()
-
-class HumanAgent(Agent):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.name = input("Hi! Please enter your name: ")
-
-    def chooseCharacter(self, state : 'State'):
+    Character* chooseCharacter(const State& state) override {
         for i, char in enumerate(state.aliveUnits[ self.myId ]):
             if char is not None:
                 print(f'[{i}]: {char.name}')
         iSel = int(input('Enter which character to select: '))
         return state.aliveUnits[ self.myId ][iSel]
+    }
 
     def getDrawAction(self, state : 'State') -> ActionOrResource:
         iSel = input('Choose [1] draw action or [2] draw resource: ')

@@ -1,11 +1,4 @@
-import random
-from enum import Enum, unique
 
-@unique
-class ActionCard(Enum):
-	DEFENSE = 'Defense'
-	SOFTATK = 'Soft Attack'
-	HARDATK = 'Hard Attack'
 
 class Deck:
 	def __init__(self, cards, discards):

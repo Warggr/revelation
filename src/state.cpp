@@ -1,30 +1,20 @@
-from player import Player
+/*from player import Player
 from team import Team
 from character import Character
 from constants import Timestep, FULL_BOARD_WIDTH, HALF_BOARD_WIDTH, Faction
 from card import Deck, ActionCard
 from serialize import Serializable
-from agent import ActionOrResource
-import copy
+from agent import ActionOrResource*/
 
-class Step(Serializable):
-    def __init__(self, typ, **kwargs):
-        self.type = typ
-        self.kwargs = kwargs
-    def __repr__(self):
-        return f'Type: {self.type}; { self.kwargs }'
+
+struct Step /*: public Serializable */ {
+    
+};
+
+/*class Step(Serializable):
     def serialize(self):
-        return { 'action' : self.type, **self.kwargs }
+        return { 'action' : self.type, **self.kwargs }*/
 
-class State:
-    def __init__(self, board : list[list[Character | None]], units : tuple[list[Character],  list[Character]], players : list[Player], resDeck : Deck, timestep : Timestep):
-        self.board = board
-        self.players = players
-        self.resDeck = resDeck
-        self.aliveUnits = units
-        self.nbAliveUnits = [ len(army) for army in units ]
-        self.iActive = 0
-        self.timestep = timestep
 
     @staticmethod
     def createStart(teams : tuple[Team, Team]) -> 'State':
