@@ -6,7 +6,7 @@ from agent import Agent, MoveDecision, ActionDecision, ActionOrResource
 from logger import BaseLogger
 
 class Game:
-    def __init__(self, teams : tuple[Team, Team], agents : tuple[Agent, Agent]):
+    def __init__(self, teams, agents):
         self.state = State.createStart(teams)
         self.teamNames = [ team.name for team in teams ]
         self.agents = agents

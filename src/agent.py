@@ -12,12 +12,12 @@ class ActionOrResource(Enum):
     RESOURCES = False
 
 class MoveDecision:
-    def __init__(self, frm : tuple[int, int], to : tuple[int, int]):
+    def __init__(self, frm, to):
         self.frm = frm
         self.to = to
 
 class ActionDecision:
-    def __init__(self, card : ActionCard, subject : Character, object : Union[Character,None] = None ):
+    def __init__(self, card : ActionCard, subject : Character, object = None ):
         self.card = card
         self.subject = subject
         self.object = object

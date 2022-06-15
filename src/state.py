@@ -17,7 +17,7 @@ class Step(Serializable):
         return { 'action' : self.type, **self.kwargs }
 
 class State:
-    def __init__(self, board : list[list[Character | None]], units : tuple[list[Character],  list[Character]], players : list[Player], resDeck : Deck, timestep : Timestep):
+    def __init__(self, board, units, players, resDeck, timestep):
         self.board = board
         self.players = players
         self.resDeck = resDeck
@@ -27,7 +27,7 @@ class State:
         self.timestep = timestep
 
     @staticmethod
-    def createStart(teams : tuple[Team, Team]) -> 'State':
+    def createStart(teams) -> 'State':
         board = [ [None] * FULL_BOARD_WIDTH for _ in range(2) ]
         alive = [ [], [] ]
         for (i, team) in enumerate(teams):
@@ -177,7 +177,7 @@ class State:
         ret.timestep = Timestep.BEGIN
         return (ret, Step(typ='pass', message='End of turn'))
 
-    def allMovementsForCharacter(self, character : Character) -> list[tuple[int, int]]:
+    def allMovementsForCharacter(self, character : Character):
         ret = []
         for i in range( max(character.position[1] - character.mov, 0), min(character.position[1] + character.mov + 1, FULL_BOARD_WIDTH) ):
             ret.append( ( character.position[0], i ) )
