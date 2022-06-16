@@ -143,6 +143,13 @@ class State:
             return (newState, Step(typ='pass', message='No action chosen'))
         newState.board = [ row[:] for row in self.board ]
         newState.aliveUnits = [ row[:] for row in self.aliveUnits ]
+
+        newState.players = newState.players.copy()
+        newState.players[self.iActive] = copy.copy(newState.players[self.iActive])
+        newState.players[self.iActive].actionDeck = newState.players[self.iActive].actionDeck.copy()
+        newState.players[self.iActive].actions = newState.players[self.iActive].actions.copy()
+        newState.players[self.iActive].discard(decision.card)
+
         if decision.card == ActionCard.DEFENSE:
             hero = decision.subject.copy()
             newState.setBoardField( hero.position, hero )
@@ -179,7 +186,9 @@ class State:
 
     def allMovementsForCharacter(self, character : Character):
         ret = []
-        for i in range( max(character.position[1] - character.mov, 0), min(character.position[1] + character.mov + 1, FULL_BOARD_WIDTH) ):
+        for i in range( max(character.position[1] - character.mov, 0), character.position[1] ):
+            ret.append( ( character.position[0], i ) )
+        for i in range( character.position[1] + 1, min(character.position[1] + character.mov + 1, FULL_BOARD_WIDTH) ):
             ret.append( ( character.position[0], i ) )
         for i in range( max(character.position[1] - character.mov + 1, 0), min(character.position[1] + character.mov, FULL_BOARD_WIDTH) ):
             ret.append( ( 1 - character.position[0], i ) )

@@ -25,3 +25,5 @@ class Game:
                     self.agents[self.state.iActive].onBegin( self.state )
                 (self.state, step) = self.state.advance(self.agents[self.state.iActive])
                 logger.addStep(step)
+            print('Finished! Exiting logger...')
+        print('Finished, logger exited!')

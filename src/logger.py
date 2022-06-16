@@ -32,8 +32,8 @@ class BaseLogger(Logger):
     def __exit__(self, type, value, traceback):
         if type is None:
             now = datetime.datetime.now()
-            file = open(now.strftime('%m.%d-%H:%M') + '-replay.json', 'x')
-            JSONlib.dump(f, self.all())
+            file = open(now.strftime('%m.%d-%H:%M:%S') + '-replay.json', 'x')
+            JSONlib.dump(self.all(), file, cls=WSJSONEncoder)
 
 class Decorator(Logger):
     def __init__(self, parent):
@@ -100,3 +100,5 @@ class PrintLogger(Decorator):
     def addStep(self, step : Step):
         self.parent.addStep(step)
         print(step)
+    def __exit__(self, type, value, traceback):
+        self.parent.__exit__(type, value, traceback)

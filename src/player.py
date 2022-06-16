@@ -35,6 +35,13 @@ class Player:
         self.resources.append(cardDrawn)
         return cardDrawn
 
+    def discard(self, card):
+        if card not in self.actions:
+            print('Self.actions:', self.actions)
+            print('Card', card)
+        #self.actions.remove(card)
+        self.actionDeck.discard(card)
+
     #virtual
     def getAbilityDeck(self):
         return self.abilityDeck

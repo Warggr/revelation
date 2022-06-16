@@ -21,6 +21,8 @@ class ActionDecision:
         self.card = card
         self.subject = subject
         self.object = object
+    def copy(self):
+        return ActionDecision(self.card, self.subject, self.object)
 
 class AbilityDecision:
     def __init__(self):
@@ -165,10 +167,11 @@ class SearchAgent(Agent):
         self.plans = self.plans[1:]
         return ret
     def onBegin(self, state : 'State'):
-        (state, decisions, heuristic) = self.planAhead( self.myId, state, 2 )
+        assert state.iActive == self.myId
+        (state, decisions, heuristic) = self.planAhead( state, 2 )
         print('Found', state, decisions, heuristic)
         self.plans = decisions
-    def planAhead(self, myId : int, state : 'State', maxDepth : int):
+    def planAhead(self, state : 'State', maxDepth : int):
         #print('Starting minmax with nbPaths = 0')
         nbPaths = 0
         maxHeur = None
@@ -192,49 +195,49 @@ class SearchAgent(Agent):
             if state.timestep == Timestep.BEGIN:
                 decision = ActionOrResource.ACTION
                 (newState, step) = state.stepDraw( decision )
-                stack.append( (newState, active[1] + [ decision ], active[2] + self.evaluateStep( myId, state, step ), active[3] ) )
+                stack.append( (newState, active[1] + [ decision ], active[2] + self.evaluateStep( state.iActive, state, step ), active[3] ) )
             elif state.timestep == Timestep.DISCARDED or state.timestep == Timestep.MOVEDfirst:
                 (newState, step) = state.stepMov( None )
-                stack.append( (newState, active[1] + [ None ], active[2] + self.evaluateStep( myId, state, step ), active[3] ) )
+                stack.append( (newState, active[1] + [ None ], active[2] + self.evaluateStep( state.iActive, state, step ), active[3] ) )
                 #nbChildren = 1
-                for charSel in state.aliveUnits[ myId ]:
+                for charSel in state.aliveUnits[ state.iActive ]:
                     if charSel is not None:
                         # print( 'Examining character', charSel.cid, 'at', charSel.position)
                         possibleMovs = state.allMovementsForCharacter(charSel)
                         for movSel in possibleMovs:
                             decision = MoveDecision( charSel.position, movSel )
                             (newState, step) = state.stepMov( decision )
-                            stack.append( (newState, active[1] + [ decision ], active[2] + self.evaluateStep( myId, state, step ), active[3] ) )
+                            stack.append( (newState, active[1] + [ decision ], active[2] + self.evaluateStep( state.iActive, state, step ), active[3] ) )
                             #nbChildren += 1
             elif state.timestep == Timestep.MOVEDlast:
                 decision = AbilityDecision()
                 (newState, step) = state.stepAbil( decision )
-                stack.append( (newState, active[1] + [ decision ], active[2] + self.evaluateStep( myId, state, step ), active[3] ) )
+                stack.append( (newState, active[1] + [ decision ], active[2] + self.evaluateStep( state.iActive, state, step ), active[3] ) )
             elif state.timestep == Timestep.ABILITYCHOSEN:
                 (newState, step) = state.stepAct(None)
-                stack.append( (newState, active[1] + [ None ], active[2] + self.evaluateStep( myId, state, step ), active[3]) ) # the "pass" option
+                stack.append( (newState, active[1] + [ None ], active[2] + self.evaluateStep( state.iActive, state, step ), active[3]) ) # the "pass" option
                 #print('Appending to stack "pass"', len(stack))
-                cards = state.players[ myId ].actions
                 ret = ActionDecision(None, None, None)
                 #nbChildren = 0
-                for card in cards:
+                for card in state.players[ state.iActive ].actions:
                     ret.card = card
                     if card == ActionCard.DEFENSE:
-                        for subject in state.aliveUnits[ myId ]:
+                        for subject in state.aliveUnits[ state.iActive ]:
                             if subject is not None:
                                 ret.subject = subject
+                                ret.object = None
                                 (newState, step) = state.stepAct( ret )
-                                stack.append( (newState, active[1] + [ ret ], active[2] + self.evaluateStep( myId, state, step ), active[3]) )
+                                stack.append( (newState, active[1] + [ ret.copy() ], active[2] + self.evaluateStep( state.iActive, state, step ), active[3]) )
                                 #print('Appending defense to stack', len(stack))
                                 #nbChildren += 1
                     else:
                         allPossibleAttacks = state.allAttacks()
                         for aggressor in allPossibleAttacks:
                             for victim in allPossibleAttacks[aggressor]:
-                                ret.subject = state.aliveUnits[ myId ][ aggressor ]
+                                ret.subject = state.aliveUnits[ state.iActive ][ aggressor ]
                                 ret.object = victim
                                 (newState, step) = state.stepAct( ret )
-                                stack.append( (newState, active[1] + [ ret ], active[2] + self.evaluateStep( myId, state, step ), active[3]) )
+                                stack.append( (newState, active[1] + [ ret.copy() ], active[2] + self.evaluateStep( state.iActive, state, step ), active[3]) )
                                 #print('Appending attack to stack', len(stack))
                                 #nbChildren += 1
             elif state.timestep == Timestep.ACTED:
@@ -260,7 +263,7 @@ class SearchAgent(Agent):
                         print('MINNING')
                         #print(len(stack))
                         #print(active[2], ', tolerate', minTolerated, '-', maxHeurTemp)
-                        (newState, decisions, heuristic) = self.planAhead( 1 - myId, newState, 0 )
+                        (newState, decisions, heuristic) = self.planAhead( newState, 0 )
                         print('RETURN TO MAXING')
                         #print(newState.timestep)
                         stack.append( ( newState, active[1], active[2] - heuristic, active[3] + 2 ) )
