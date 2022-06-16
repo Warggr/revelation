@@ -28,6 +28,7 @@ class Player:
     def drawAction(self):
         cardDrawn = self.actionDeck.draw()
         self.actions.append(cardDrawn)
+        #print('Drew', cardDrawn, ', now have', self.actions)
         return cardDrawn
 
     def drawResource(self, resourceDeck):
@@ -39,7 +40,7 @@ class Player:
         if card not in self.actions:
             print('Self.actions:', self.actions)
             print('Card', card)
-        #self.actions.remove(card)
+        self.actions.remove(card)
         self.actionDeck.discard(card)
 
     #virtual

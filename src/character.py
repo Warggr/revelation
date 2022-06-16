@@ -27,7 +27,7 @@ class Character(Serializable):
         return power
     def buff(self):
         self.tempHP = self.tempHP + self.maxHP
-        self.HP += 50
+        self.HP = min(self.maxHP, self.HP + 50)
         return (self.HP, self.tempHP)
 
     def serialize(self):
