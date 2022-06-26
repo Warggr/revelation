@@ -7,7 +7,7 @@ function discard(name){
 	let allSuitableResources = allResources.filter( el => (el.textContent == name ) );
 	allSuitableResources[0].remove();
 
-	let discardedCard = document.createElement('span');
+	let discardedCard = document.createElement('li');
 	discardedCard.innerHTML = name;
 	document.getElementsByClassName('action-deck')[iActive].children[2].appendChild(discardedCard);
 }
@@ -50,8 +50,13 @@ function bluePrintCharacter(charDom){
 }
 
 function apply(step, backwards) {
+	console.log(step);
 	switch(step.action){
 		case 'pass': return { 'action' : 'pass' };
+		case 'eot' : {
+			iActive = 1 - iActive;
+			return { 'action' : 'eot' };
+		}
 		case 'move': {
 			let fieldFrom = boardDom.children[ step.frm[1] + FULL_BOARD_WIDTH*step.frm[0] ];
 			let fieldTo = boardDom.children[ step.to[1] + FULL_BOARD_WIDTH*step.to[0] ];
@@ -73,9 +78,10 @@ function apply(step, backwards) {
 			if(!backwards) draw(textContent);
 			else discard(textContent);
 
+			console.log(step.newDeckSize);
 			deck.children[0].textContent = step.newDeckSize[0];
 			if(step.newDeckSize[1] == 0) deck.children[2].innerHTML = '';
-			if(step.newDeckSize[1] != deck.children[2].childElementCount) console.log(`Warning: Discarded card count does not match (${step.newDeckSize[1]} required, ${deck.children[2].childElementCount} found)`);
+			if(step.newDeckSize[1] != deck.children[2].childElementCount) console.warn(`Discarded card count does not match (${step.newDeckSize[1]} required, ${deck.children[2].childElementCount} found)`);
 			step.newDeckSize = oldDeckConfig;
 			return step;
 		}
@@ -89,10 +95,8 @@ function apply(step, backwards) {
 					step.deleted = bluePrintCharacter(victim);
 					victim.remove();
 				}
-				iActive = 1 - iActive;
 				return step;
 			} else {
-				iActive = 1 - iActive;
 				let charDom = undefined;
 				if(step.delete){
 					charDom = characterFactory(step.deleted, 1 - iActive);
@@ -107,13 +111,13 @@ function apply(step, backwards) {
 			}
 		}
 		case 'def': {
-			let subject = boardDom.children[ step.subject[1] + FULL_BOARD_WIDTH*step.subject[0] ];
+			let subject = boardDom.children[ step.subject[1] + FULL_BOARD_WIDTH*step.subject[0] ].firstChild;
+			console.log(subject);
+			console.log(step);
 			if(!backwards){
 				discard('action - ' + step.cardLost.toUpperCase());
 				subject.children[1].children[0].textContent = step.permanent;
-				iActive = 1 - iActive;
 			} else {
-				iActive = 1 - iActive;
 				subject.children[1].children[0].textContent = step.permanent - 50;
 				draw('action - ' + step.cardLost.toUpperCase());
 			}

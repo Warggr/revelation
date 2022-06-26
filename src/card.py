@@ -28,6 +28,7 @@ class Deck:
 	def draw(self):
 		if not self.drawPile:
 			self.drawPile = self.discardPile
+			self.discardPile = []
 			random.seed(self.seed)
 			random.shuffle(self.drawPile)
 			self.seed = random.randint(0, 100000)

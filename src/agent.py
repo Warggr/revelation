@@ -1,6 +1,6 @@
 from typing import Union
 from enum import Enum, unique
-from constants import MAX_RESOURCES, MAX_ACTIONS, Timestep
+from constants import MAX_RESOURCES, MAX_ACTIONS, Timestep, Direction
 from card import ActionCard
 from character import Character
 
@@ -12,17 +12,19 @@ class ActionOrResource(Enum):
     RESOURCES = False
 
 class MoveDecision:
-    def __init__(self, frm, to):
-        self.frm = frm
+    def __init__(self, frm, moves, to):
+        assert isinstance(frm, tuple) and isinstance(to, tuple)
+        self.frm = frm # we save the position, not the character, because the character might get invalidated
+        self.moves = moves
         self.to = to
 
 class ActionDecision:
-    def __init__(self, card : ActionCard, subject : Character, object = None ):
+    def __init__(self, card : ActionCard, subjectPos, objectPos = None ):
         self.card = card
-        self.subject = subject
-        self.object = object
+        self.subjectPos = subjectPos
+        self.objectPos = objectPos
     def copy(self):
-        return ActionDecision(self.card, self.subject, self.object)
+        return ActionDecision(self.card, self.subjectPos, self.objectPos)
 
 class AbilityDecision:
     def __init__(self):
@@ -67,7 +69,6 @@ class Agent:
 class HumanAgent(Agent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.name = input("Hi! Please enter your name: ")
 
     def chooseCharacter(self, state : 'State'):
         for i, char in enumerate(state.aliveUnits[ self.myId ]):
@@ -81,13 +82,22 @@ class HumanAgent(Agent):
         return ActionOrResource.ACTION if iSel == '1' else ActionOrResource.RESOURCES
 
     def getMovement(self, state : 'State') -> MoveDecision:
-        charSel = self.chooseCharacter(state)
-        possibleMovs = state.allMovementsForCharacter(charSel)
-        for i, mov in enumerate(possibleMovs):
-            print(f'[{i}]: to ({mov[0]}, {mov[1]})')
-        iSel = int(input('Enter which position to select: '))
+        ARROWS = '^<>v'
+        assert ARROWS[Direction.LEFT.value] == '<' and ARROWS[Direction.RIGHT.value] == '>'
+        while True:
+            charSel = self.chooseCharacter(state)
+            possibleMovs = state.allMovementsForCharacter(charSel)
+            if len(possibleMovs) == 0:
+                print('No moves available for this unit. Choose another one.')
+            else:
+                for i, mov in enumerate(possibleMovs):
+                    movString = ', '.join([ ARROWS[m.value] for m in mov[0] ]);
+                    spaces = ' ' * 3 * ( charSel.mov - len(mov[0]) )
+                    print(f'[{i}]: { movString + spaces } -> { mov[1] }')
+                break
+        iSel = int(input('Enter which move to select: '))
         movSel = possibleMovs[iSel]
-        return MoveDecision(charSel.position, movSel)
+        return MoveDecision(charSel.position, movSel[0], movSel[1])
 
     def getAction(self, state : 'State') -> ActionDecision:
         ret = ActionDecision(None, None, None)
@@ -118,8 +128,8 @@ class HumanAgent(Agent):
                         array.append( [ key, enemy ] )
                         i += 1
                 iSel = int(input('Enter which attack to select: '))
-                ret.subject = state.aliveUnits[ self.myId ][ array[iSel - 1][0] ]
-                ret.object = array[iSel - 1][1]
+                ret.subjectPos = state.aliveUnits[ self.myId ][ array[iSel - 1][0] ].position
+                ret.object = array[iSel - 1][1].position
             return ret
 
 def manhattanDistance( pos1, pos2 ):
@@ -167,9 +177,12 @@ class SearchAgent(Agent):
         self.plans = self.plans[1:]
         return ret
     def onBegin(self, state : 'State'):
+        #print('----ON BEGIN----')
         assert state.iActive == self.myId
-        (state, decisions, heuristic) = self.planAhead( state, 2 )
-        print('Found', state, decisions, heuristic)
+        (state, decisions, heuristic) = self.planAhead( state, 0 )
+        #print('Found', state, decisions, heuristic)
+        #decision = [ dec for dec in decisions if isinstance(dec, ActionDecision) ][0]
+        #print('ActionDecision:', decision.card)
         self.plans = decisions
     def planAhead(self, state : 'State', maxDepth : int):
         #print('Starting minmax with nbPaths = 0')
@@ -205,7 +218,7 @@ class SearchAgent(Agent):
                         # print( 'Examining character', charSel.cid, 'at', charSel.position)
                         possibleMovs = state.allMovementsForCharacter(charSel)
                         for movSel in possibleMovs:
-                            decision = MoveDecision( charSel.position, movSel )
+                            decision = MoveDecision( charSel.position, movSel[0], movSel[1] )
                             (newState, step) = state.stepMov( decision )
                             stack.append( (newState, active[1] + [ decision ], active[2] + self.evaluateStep( state.iActive, state, step ), active[3] ) )
                             #nbChildren += 1
@@ -224,7 +237,7 @@ class SearchAgent(Agent):
                     if card == ActionCard.DEFENSE:
                         for subject in state.aliveUnits[ state.iActive ]:
                             if subject is not None:
-                                ret.subject = subject
+                                ret.subjectPos = subject.position
                                 ret.object = None
                                 (newState, step) = state.stepAct( ret )
                                 stack.append( (newState, active[1] + [ ret.copy() ], active[2] + self.evaluateStep( state.iActive, state, step ), active[3]) )
@@ -234,25 +247,15 @@ class SearchAgent(Agent):
                         allPossibleAttacks = state.allAttacks()
                         for aggressor in allPossibleAttacks:
                             for victim in allPossibleAttacks[aggressor]:
-                                ret.subject = state.aliveUnits[ state.iActive ][ aggressor ]
-                                ret.object = victim
+                                ret.subjectPos = state.aliveUnits[ state.iActive ][ aggressor ].position
+                                ret.objectPos = victim.position
                                 (newState, step) = state.stepAct( ret )
                                 stack.append( (newState, active[1] + [ ret.copy() ], active[2] + self.evaluateStep( state.iActive, state, step ), active[3]) )
                                 #print('Appending attack to stack', len(stack))
                                 #nbChildren += 1
             elif state.timestep == Timestep.ACTED:
-                (newState, step) = state.endTurn()
-                #print(active[3], maxDepth)
-                if active[3] == maxDepth:
-                    nbPaths += 1
-                    #print('One path found! Heuristic:', active[2], ', max', maxHeur)
-                    #print('Stacksize', len(stack))
-                    if maxHeur is None or active[2] > maxHeur:
-                        #print('Best path found! Heuristic:', active[2], ', max', maxHeur)
-                        bestMoves = active[1]
-                        bestState = newState
-                        maxHeur = active[2]
-                else:
+                (newState, step) = state.beginTurn()
+                if active[3] != maxDepth:
                     if active[2] >= minTolerated:
                         if active[2] > maxHeurTemp:
                             maxHeurTemp = active[2]
@@ -265,7 +268,19 @@ class SearchAgent(Agent):
                         #print(active[2], ', tolerate', minTolerated, '-', maxHeurTemp)
                         (newState, decisions, heuristic) = self.planAhead( newState, 0 )
                         print('RETURN TO MAXING')
-                        #print(newState.timestep)
-                        stack.append( ( newState, active[1], active[2] - heuristic, active[3] + 2 ) )
+                        #print(decisions, heuristic)
+                        active = ( newState, active[1], active[2] - heuristic, active[3] + 2 )
+                        if active[3] + 2 <= maxDepth:
+                            stack.append( active )
+                            continue
+                        #else fallthrough
+                nbPaths += 1
+                #print('One path found! Heuristic:', active[2], ', max', maxHeur)
+                #print('Stacksize', len(stack))
+                if maxHeur is None or active[2] > maxHeur:
+                    #print('Best path found! Heuristic:', active[2], ', max', maxHeur)
+                    bestMoves = active[1]
+                    bestState = newState
+                    maxHeur = active[2]
         print(nbPaths, 'possible futures found')
         return ( bestState, bestMoves, maxHeur )
