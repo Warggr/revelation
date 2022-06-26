@@ -28,7 +28,7 @@ class State:
         self.turnId = turnId
 
     @staticmethod
-    def createStart(teams) -> 'State':
+    def createStart(teams, seedBank=None) -> 'State':
         board = [ [None] * FULL_BOARD_WIDTH for _ in range(2) ]
         alive = [ [], [] ]
         for (i, team) in enumerate(teams):
@@ -256,14 +256,30 @@ class State:
 #        print(f' iActive : { self.iActive }, units : { [unit.name for unit in self.aliveUnits[ self.iActive ] ] }')
         for iChar, character in enumerate( self.aliveUnits[ self.iActive ] ):
             if character is not None:
-                created : bool = False
-                for row in range(2):
-                    deltaRow = abs( character.position[0] - row )
-                    for column in range( max(character.position[1] - character.rng + deltaRow, 0), min(character.position[1] + character.rng - deltaRow + 1, FULL_BOARD_WIDTH) ):
-                        if self.board[row][column] is not None and self.board[row][column].team != self.iActive:
-                            if not created:
-                                created = True
-                                ret[ iChar ] = []
+                ret[ iChar ] = []
+                if character.arcAtk:
+                    for row in range(2):
+                        deltaRow = abs( character.position[0] - row )
+                        for column in range( max(character.position[1] - character.rng + deltaRow, 0), min(character.position[1] + character.rng - deltaRow + 1, FULL_BOARD_WIDTH) ):
+                            if self.board[row][column] is not None and self.board[row][column].team != self.iActive:
+                                ret[ iChar ].append( self.board[row][column] )
+                else:
+                    row = character.position[0]
+                    if self.board[1-row][character.position[1]] is not None and self.board[1-row][character.position[1]].team != self.iActive:
+                        ret[ iChar ].append( self.board[1-row][character.position[1]] )
+                    for col in range( character.position[1] - 1, max(character.position[1] - character.rng - 1, -1), -1 ):
+                        if self.board[row][col] is not None:
+                            if self.board[row][col].team != self.iActive:
+                                ret[ iChar ].append( self.board[row][column] )
+                            break
+                        if col != character.position[1] - character.rng and self.board[row][1-col] is not None and self.board[row][1-col].team != self.iActive:
+                            ret[ iChar ].append( self.board[row][column] )
+                    for col in range( character.position[1] + 1, min(character.position[1] + character.rng + 1, FULL_BOARD_WIDTH), +1 ):
+                        if self.board[row][col] is not None:
+                            if self.board[row][col].team != self.iActive:
+                                ret[ iChar ].append( self.board[row][column] )
+                            break
+                        if col != character.position[1] + character.rng and self.board[row][1-col] is not None and self.board[row][1-col].team != self.iActive:
                             ret[ iChar ].append( self.board[row][column] )
         return ret
 

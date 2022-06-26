@@ -5,20 +5,21 @@ from team import Team
 from agent import SearchAgent, HumanAgent
 from character import Character
 from constants import ARMY_WIDTH
+import random
 
 armies = [
     [
         "Near East", [
-            ["Mounted archers"    , 60, 30, 10, 3, 3, 534.90, "Ranged attack (Arc 3)" ],
+            ["Mounted archers"    , 60, 30, 10, 3, 3, 534.90, True ],
             ["Captives"           , 20, 20, 10, 2, 1, 288.70 ],
             ["Captives"           , 20, 20, 10, 2, 1, 288.70 ],
             ["Saracens"           , 80, 50, 20, 2, 1, 454.90, "Defense 20(light)" ],
-            ["Canons"             , 60, 70, 0, 1, 4, 551.60, "Ranged attack(Straight 4)" ],
+            ["Canons"             , 60, 70, 0, 1, 4, 551.60, False ],
             ["Arab officer"       , 100, 10, 10, 2, 1, 355.30 ]
         ]
     ], [
         "Europe", [
-            ["Crossbowman"        , 40, 40, 20, 2, 3, 489.10, "Ranged attack(straight 3)" ],
+            ["Crossbowman"        , 40, 40, 20, 2, 3, 489.10, False ],
             ["Armored knight"     , 100, 60, 30, 1, 1, 449.90, "Defense 20(light)" ],
             ["Fanatics"           , 20, 20, 10, 2, 1, 288.70 ],
             ["Fanatics"           , 20, 20, 10, 2, 1, 288.70 ],
@@ -28,17 +29,17 @@ armies = [
         ]
     ], [
         "Far East", [
-            ["Powder bombs"       , 50, 30, 0, 2, 2, 386.80, "Ranged attack (Arc 2) Chooses 2 targets" ],
+            ["Powder bombs"       , 50, 30, 0, 2, 2, 386.80, True, "Chooses 2 targets" ],
             ["Ji Warriors"        , 40, 30, 10, 2, 1, 339.10 ],
             ["Ji Warriors"        , 40, 30, 10, 2, 1, 339.10 ],
             ["Ji Warriors"        , 40, 30, 10, 2, 1, 339.10 ],
-            ["Kyudoka"            , 80, 30, 20, 2, 3, 499.90, "Ranged attack (Arc 3) " ],
+            ["Kyudoka"            , 80, 30, 20, 2, 3, 499.90, True ],
             ["Ronin"              , 80, 50, 50, 2, 1, 499.90 ],
             ["Jutsu"              , 100, 10, 10, 2, 1, 355.30 ]
         ]
     ], [
         "Northmen", [
-            ["Slingers"           , 50, 30, 10, 2, 2, 401.80, "Ranged attack(straight 2)" ],
+            ["Slingers"           , 50, 30, 10, 2, 2, 401.80, False ],
             ["Reavers"            , 50, 30, 10, 2, 1, 349.30 ],
             ["Reavers"            , 50, 30, 10, 2, 1, 349.30 ],
             ["Reavers"            , 50, 30, 10, 2, 1, 349.30 ],
@@ -48,16 +49,16 @@ armies = [
         ]
     ], [
         "Slow Near East", [
-            ["Mounted archers"    , 60, 30, 10, 1, 3, 534.90, "Ranged attack (Arc 3)" ],
+            ["Mounted archers"    , 60, 30, 10, 1, 3, 534.90, True ],
             ["Captives"           , 20, 20, 10, 0, 1, 288.70 ],
             ["Captives"           , 20, 20, 10, 0, 1, 288.70 ],
             ["Saracens"           , 80, 50, 20, 0, 1, 454.90, "Defense 20(light)" ],
-            ["Canons"             , 60, 70, 0, 0, 4, 551.60, "Ranged attack(Straight 4)" ],
+            ["Canons"             , 60, 70, 0, 0, 4, 551.60, False ],
             ["Arab officer"       , 100, 10, 10, 0, 1, 355.30 ]
         ]
     ], [
         "Slow Europe", [
-            ["Crossbowman"        , 40, 40, 20, 1, 3, 489.10, "Ranged attack(straight 3)" ],
+            ["Crossbowman"        , 40, 40, 20, 1, 3, 489.10, False ],
             ["Armored knight"     , 100, 60, 30, 0, 1, 449.90, "Defense 20(light)" ],
             ["Fanatics"           , 20, 20, 10, 0, 1, 288.70 ],
             ["Fanatics"           , 20, 20, 10, 0, 1, 288.70 ],
@@ -68,7 +69,7 @@ armies = [
     ]
 ]
 
-teams = { 
+teams = {
     army[0] : Team(
         army[0],
         [
@@ -84,7 +85,7 @@ teams = {
 
 agents = ( SearchAgent(0), SearchAgent(1) )
 
-game = Game( (teams['Near East'], teams['Europe']), agents )
+game = Game( (teams['Near East'], teams['Europe']), agents, seed=424005392512 ) #, seed=SEED
 
 if __name__ == '__main__':
     game.play(isLiveServer=True, logToTerminal=True)

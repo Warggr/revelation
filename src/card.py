@@ -1,12 +1,19 @@
 import random
 from enum import Enum, unique
-from time import time
 
 @unique
 class ActionCard(Enum):
 	DEFENSE = 'Defense'
 	SOFTATK = 'Soft Attack'
 	HARDATK = 'Hard Attack'
+
+"""
+The general purpose of seeds is to make a random number generator deterministic. We need this twice:
+- to reproduce games. For this, each game contains a master seed.
+- to reproduce deck shuffling during the game. For this, each deck (as part of the state object) contains its own seed
+"""
+
+NB_SEEDS_NEEDED = 3
 
 class Deck:
 	def __init__(self, cards, discards, seed):
@@ -15,9 +22,6 @@ class Deck:
 		self.seed = seed
 	@staticmethod
 	def create(cards):
-		#thanks to https://stackoverflow.com/a/46443707
-		seed = int(time() * 256)
-		random.seed(seed)
 		random.shuffle(cards)
 		seed = random.randint(0, 100000)
 		return Deck(cards, [], seed)

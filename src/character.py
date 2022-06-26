@@ -4,7 +4,7 @@ import copy
 class Character(Serializable):
     uid = ord('a')
 
-    def __init__(self, teampos : int, name : str, maxHP : int, softAtk : int, hardAtk : int, mov : int, rng : int, netWorth : int, flavor : str = ''):
+    def __init__(self, teampos : int, name : str, maxHP : int, softAtk : int, hardAtk : int, mov : int, rng : int, netWorth : int, arcAtk : bool = True, flavor : str = ''):
         self.name = name
         self.teampos = teampos
         self.team = None
@@ -15,6 +15,7 @@ class Character(Serializable):
         self.hardAtk = hardAtk
         self.mov = mov
         self.rng = rng
+        self.arcAtk = arcAtk
         self.lastMoved = 0
         self.position = [None, None]
         self.netWorth = netWorth
@@ -55,7 +56,6 @@ class Character(Serializable):
             "cid" : self.cid,
             "maxHP" : self.maxHP,
             "HP" : self.HP,
-            "tempHP": self.tempHP,
             "softAtk" : self.softAtk,
             "hardAtk" : self.hardAtk,
             "mov" : self.mov,
