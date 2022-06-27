@@ -118,19 +118,19 @@ class State:
             newState.board = [ row.copy() for row in self.board ]
             newState.aliveUnits = [ row.copy() for row in self.aliveUnits ]
 
-            # mover is always an old-reference, until the moment where it is inserted
-            mover = newState.getBoardField(decision.frm)
+            # mover is always a new-reference, moved is an old-reference
+            mover = newState.getBoardField(decision.frm).copy()
             mover.turnMoved = newState.turnId
             newState.setBoardField(decision.frm, None)
             landingSpot = decision.to
             index = len(decision.moves)
             while True:
                 moved = newState.getBoardField(landingSpot)
-                newState.setBoardField(landingSpot, mover.copy())
+                newState.setBoardField(landingSpot, mover)
                 if moved is None:
                     break
                 index -= 1
-                mover = moved
+                mover = moved.copy()
                 landingSpot = getNeighbour( landingSpot, decision.moves[index].inverse() )
 
             #print(decision.frm, 'to', decision.to)

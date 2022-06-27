@@ -1,6 +1,6 @@
 from typing import Union
 from enum import Enum, unique
-from constants import MAX_RESOURCES, MAX_ACTIONS, Timestep, Direction
+from constants import MAX_RESOURCES, MAX_ACTIONS, Timestep, Direction, FULL_BOARD_WIDTH
 from card import ActionCard
 from character import Character
 
@@ -135,6 +135,25 @@ class HumanAgent(Agent):
 def manhattanDistance( pos1, pos2 ):
     return abs( pos1[0] - pos2[0] ) + abs( pos1[1] - pos2[1] )
 
+def hashPosition( pos ):
+    return chr( pos[0] * 10 + pos[1] + ord('a') )
+
+def hashBoard( myAliveUnits ):
+    return ''.join([ (hashPosition(unit.position) if (unit is not None) else ' ') for unit in myAliveUnits ])
+
+ARROWS = '^<>v'
+def printDecision( moveDecision ):
+    return '' + str(moveDecision.frm) + (', '.join([ ARROWS[m.value] for m in moveDecision.moves ])) + str(moveDecision.to)
+
+print('Board:')
+print('-' * (FULL_BOARD_WIDTH*2 + 1))
+for row in range(2):
+    rowstr = '|'
+    for col in range(FULL_BOARD_WIDTH):
+        rowstr += hashPosition((row, col)) + '|'
+    print(rowstr)
+    print('-' * (FULL_BOARD_WIDTH*2 + 1))
+
 class SearchAgent(Agent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -209,19 +228,40 @@ class SearchAgent(Agent):
                 decision = ActionOrResource.ACTION
                 (newState, step) = state.stepDraw( decision )
                 stack.append( (newState, active[1] + [ decision ], active[2] + self.evaluateStep( state.iActive, state, step ), active[3] ) )
-            elif state.timestep == Timestep.DISCARDED or state.timestep == Timestep.MOVEDfirst:
-                (newState, step) = state.stepMov( None )
-                stack.append( (newState, active[1] + [ None ], active[2] + self.evaluateStep( state.iActive, state, step ), active[3] ) )
-                #nbChildren = 1
-                for charSel in state.aliveUnits[ state.iActive ]:
-                    if charSel is not None:
-                        # print( 'Examining character', charSel.cid, 'at', charSel.position)
-                        possibleMovs = state.allMovementsForCharacter(charSel)
-                        for movSel in possibleMovs:
-                            decision = MoveDecision( charSel.position, movSel[0], movSel[1] )
-                            (newState, step) = state.stepMov( decision )
-                            stack.append( (newState, active[1] + [ decision ], active[2] + self.evaluateStep( state.iActive, state, step ), active[3] ) )
-                            #nbChildren += 1
+            elif state.timestep == Timestep.DISCARDED:
+                print('Begin allMov phase')
+                allPossibleMoves = {}
+                substack = [ (state, 2, []) ]
+                nbChildrenFiltered = 0
+                while substack: #not empty
+                    ( substate, nbMovRemaining, decisions ) = substack.pop()
+                    stateid = hashBoard(substate.aliveUnits[substate.iActive])
+                    #print('with', [ printDecision(decision) if decision else None for decision in decisions ], ', stateid would be ', stateid)
+                    if stateid not in allPossibleMoves:
+                        newSubState = substate.copy()
+                        decisionsCompleteList = decisions
+                        if nbMovRemaining != 0:
+                            decisionsCompleteList = decisions + [None]
+                            (newSubState, step) = newSubState.stepMov(None)
+                            assert step.type == 'pass'
+                        allPossibleMoves[ stateid ] = (newSubState, decisionsCompleteList)
+                    else:
+                        nbChildrenFiltered += 1
+                    if nbMovRemaining != 0:
+                        for charSel in substate.aliveUnits[ substate.iActive ]:
+                            if charSel is not None:
+                                possibleMovs = substate.allMovementsForCharacter(charSel)
+                                for movSel in possibleMovs:
+                                    decision = MoveDecision( charSel.position, movSel[0], movSel[1] )
+                                    (newState, step) = substate.stepMov( decision )
+                                    substack.append( (newState, nbMovRemaining - 1, decisions + [ decision ] ) )
+                                    #print('Packing', nbMovRemaining - 1, decisions + [ decision ])
+                for bundle in allPossibleMoves.values():
+                    (newState, decisions) = bundle
+                    heuristic_diff = 0 # TODO add step or state evaluation
+                    stack.append( (newState, active[1] + decisions, active[2] + heuristic_diff, active[3] ) )
+                print('End allMov phase! Same-state filtering kept', len(allPossibleMoves), 'out of', nbChildrenFiltered + len(allPossibleMoves) )
+
             elif state.timestep == Timestep.MOVEDlast:
                 decision = AbilityDecision()
                 (newState, step) = state.stepAbil( decision )
