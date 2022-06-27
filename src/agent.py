@@ -129,7 +129,7 @@ class HumanAgent(Agent):
                         i += 1
                 iSel = int(input('Enter which attack to select: '))
                 ret.subjectPos = state.aliveUnits[ self.myId ][ array[iSel - 1][0] ].position
-                ret.object = array[iSel - 1][1].position
+                ret.objectPos = array[iSel - 1][1].position
             return ret
 
 def manhattanDistance( pos1, pos2 ):

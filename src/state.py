@@ -260,9 +260,9 @@ class State:
                 if character.arcAtk:
                     for row in range(2):
                         deltaRow = abs( character.position[0] - row )
-                        for column in range( max(character.position[1] - character.rng + deltaRow, 0), min(character.position[1] + character.rng - deltaRow + 1, FULL_BOARD_WIDTH) ):
-                            if self.board[row][column] is not None and self.board[row][column].team != self.iActive:
-                                ret[ iChar ].append( self.board[row][column] )
+                        for col in range( max(character.position[1] - character.rng + deltaRow, 0), min(character.position[1] + character.rng - deltaRow + 1, FULL_BOARD_WIDTH) ):
+                            if self.board[row][col] is not None and self.board[row][col].team != self.iActive:
+                                ret[ iChar ].append( self.board[row][col] )
                 else:
                     row = character.position[0]
                     if self.board[1-row][character.position[1]] is not None and self.board[1-row][character.position[1]].team != self.iActive:
@@ -270,17 +270,19 @@ class State:
                     for col in range( character.position[1] - 1, max(character.position[1] - character.rng - 1, -1), -1 ):
                         if self.board[row][col] is not None:
                             if self.board[row][col].team != self.iActive:
-                                ret[ iChar ].append( self.board[row][column] )
+                                ret[ iChar ].append( self.board[row][col] )
                             break
                         if col != character.position[1] - character.rng and self.board[row][1-col] is not None and self.board[row][1-col].team != self.iActive:
-                            ret[ iChar ].append( self.board[row][column] )
+                            ret[ iChar ].append( self.board[row][1-col] )
                     for col in range( character.position[1] + 1, min(character.position[1] + character.rng + 1, FULL_BOARD_WIDTH), +1 ):
                         if self.board[row][col] is not None:
                             if self.board[row][col].team != self.iActive:
-                                ret[ iChar ].append( self.board[row][column] )
+                                ret[ iChar ].append( self.board[row][col] )
                             break
                         if col != character.position[1] + character.rng and self.board[row][1-col] is not None and self.board[row][1-col].team != self.iActive:
-                            ret[ iChar ].append( self.board[row][column] )
+                            ret[ iChar ].append( self.board[row][1-col] )
+                if ret[iChar] == []:
+                    del ret[iChar]
         return ret
 
     def advance(self, agent) -> 'State':
