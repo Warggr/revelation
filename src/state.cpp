@@ -8,7 +8,7 @@ from agent import ActionOrResource*/
 
 
 struct Step /*: public Serializable */ {
-    
+
 };
 
 /*class Step(Serializable):
@@ -16,8 +16,7 @@ struct Step /*: public Serializable */ {
         return { 'action' : self.type, **self.kwargs }*/
 
 
-    @staticmethod
-    def createStart(teams : tuple[Team, Team]) -> 'State':
+State State::createStart(Team teams[2]) {
         board = [ [None] * FULL_BOARD_WIDTH for _ in range(2) ]
         alive = [ [], [] ]
         for (i, team) in enumerate(teams):
@@ -35,6 +34,7 @@ struct Step /*: public Serializable */ {
         resDeck = Deck.create(startingResources)
 
         return State(board, alive, players, resDeck, Timestep.BEGIN)
+}
 
     def copy(self):
         #ret = State(self.board, self.aliveUnits, self.players, self.resDeck, self.timestep)

@@ -4,8 +4,13 @@
 //from card import ActionCard
 //from character import Character
 #include "position.hpp"
+#include "character.hpp"
 
 enum ActionOrResource { ACTION, RESOURCES };
+
+class ActionCard{
+
+};
 
 struct MoveDecision {
     position from;

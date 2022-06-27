@@ -1,3 +1,6 @@
+#ifndef REVELATION_CONSTANTS_H
+#define REVELATION_CONSTANTS_H
+
 constexpr int MAX_RESOURCES = 3;
 constexpr int MAX_ACTIONS = 4;
 constexpr int MAX_ABILITIES = 4;
@@ -18,3 +21,5 @@ enum Timestep {
 enum AtkType {
     HARD, SOFT
 };
+
+#endif //REVELATION_CONSTANTS_H

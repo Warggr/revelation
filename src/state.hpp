@@ -3,6 +3,9 @@
 
 #include "constants.hpp"
 #include "deck.hpp"
+#include "team.hpp"
+#include <vector>
+#include <tuple>
 
 class Character; class Player;
 
@@ -20,6 +23,8 @@ class State {
     {
         /*nbAliveUnits = [ len(army) for army in units ]*/
     }
+
+    static State createStart(Team teams[2]);
 };
 
 #endif //REVELATION_STATE_H
