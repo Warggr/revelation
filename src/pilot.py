@@ -52,7 +52,7 @@ armies = [
             ["Mounted archers"    , 60, 30, 10, 1, 3, 534.90, True ],
             ["Captives"           , 20, 20, 10, 0, 1, 288.70 ],
             ["Captives"           , 20, 20, 10, 0, 1, 288.70 ],
-            ["Saracens"           , 80, 50, 20, 0, 1, 454.90, "Defense 20(light)" ],
+            ["Saracens"           , 80, 50, 20, 1, 1, 454.90, "Defense 20(light)" ],
             ["Canons"             , 60, 70, 0, 0, 4, 551.60, False ],
             ["Arab officer"       , 100, 10, 10, 0, 1, 355.30 ]
         ]
@@ -74,18 +74,18 @@ teams = {
         army[0],
         [
             [
-                Character(i, *(army[1][row*ARMY_WIDTH + i])) 
+                Character(i, *(army[1][row*ARMY_WIDTH + i]))
                 for i in range(ARMY_WIDTH)
             ]
             for row in range(2)
         ]
-    ) 
-    for army in armies 
+    )
+    for army in armies
 }
 
 agents = ( SearchAgent(0), SearchAgent(1) )
 
-game = Game( (teams['Near East'], teams['Europe']), agents, seed=424005392512 ) #, seed=SEED
+game = Game( (teams['Near East'], teams['Europe']), agents ) #, seed=SEED
 
 if __name__ == '__main__':
     game.play(isLiveServer=True, logToTerminal=True)

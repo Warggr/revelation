@@ -13,8 +13,6 @@ The general purpose of seeds is to make a random number generator deterministic.
 - to reproduce deck shuffling during the game. For this, each deck (as part of the state object) contains its own seed
 """
 
-NB_SEEDS_NEEDED = 3
-
 class Deck:
 	def __init__(self, cards, discards, seed):
 		self.drawPile = cards
