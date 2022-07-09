@@ -5,7 +5,6 @@ from team import Team
 from agent import SearchAgent, HumanAgent
 from character import Character
 from constants import ARMY_WIDTH
-import random
 
 armies = [
     [

@@ -13,6 +13,7 @@ class Character(Serializable):
         self.defShieldHP = 0
         self.softAtk = softAtk
         self.hardAtk = hardAtk
+        self.maxAtk = max(softAtk, hardAtk) # save this so we don't recalculate it at every state evaluation
         self.mov = mov
         self.rng = rng
         self.arcAtk = arcAtk

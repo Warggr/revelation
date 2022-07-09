@@ -22,6 +22,10 @@ class State:
         self.players = players
         self.resDeck = resDeck
         self.aliveUnits = units
+        for team in self.aliveUnits:
+            team.sort(reverse=True, key=lambda crea: crea.maxAtk) # sorting units by their maximum attack (useful for faster heuristic calculations)
+            for i in range(len(team)):
+                team[i].teampos = i
         self.nbAliveUnits = [ len(army) for army in units ]
         self.iActive = 0
         self.timestep = timestep

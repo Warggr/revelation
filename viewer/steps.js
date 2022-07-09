@@ -53,9 +53,9 @@ function apply(step, backwards) {
 	console.log(step);
 	switch(step.action){
 		case 'pass': return { 'action' : 'pass' };
-		case 'eot' : {
+		case 'begin' : {
 			iActive = 1 - iActive;
-			return { 'action' : 'eot' };
+			return { 'action' : 'begin' };
 		}
 		case 'move': {
 			let fieldFrom = boardDom.children[ step.frm[1] + FULL_BOARD_WIDTH*step.frm[0] ];

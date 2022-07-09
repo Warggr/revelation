@@ -156,8 +156,6 @@ for row in range(2):
     print('-' * (FULL_BOARD_WIDTH*2 + 1))"""
 
 class ProgressLogger:
-    def closeSubtree(self):
-        pass
     def enterTurn(self):
         pass
     def exitTurn(self):
@@ -166,37 +164,60 @@ class ProgressLogger:
         pass
     def exit(self, timestep):
         pass
+    def message(self, *args, **kwargs):
+        print(*args, **kwargs)
+
+class SimpleIndentLogger(ProgressLogger):
+    def __init__(self):
+        self.indent = ''
+    def enterTurn(self):
+        self.indent += '    '
+    def exitTurn(self):
+        self.indent = self.indent[:-4]
+    def message(self, *args, **kwargs):
+        print(self.indent, *args, **kwargs)
 
 class ProgressBar(ProgressLogger):
     def __init__(self):
+        self.progressStack = []
         self.progress = []
+        self.buffer = ''
+    def message(self, *args, **kwargs):
+        pass # suppress output
     def enter(self, timestep, nbChildren):
         if timestep == Timestep.DISCARDED:
-            sys.stdout.write(f'[{nbChildren:4}\\   1]->')
+            self.buffer += (f'[{nbChildren:4}\\   1]->')
             #sys.stdout.flush()
             self.progress.append(0)
         elif timestep == Timestep.MOVEDlast:
             self.progress[-1] += 1
-            sys.stdout.write('\b' * 7 + f'{self.progress[-1]:4}]->')
+            self.buffer += ('\b' * 7 + f'{self.progress[-1]:4}]->')
             #sys.stdout.flush()
         elif timestep == Timestep.ABILITYCHOSEN:
-            sys.stdout.write(f'<{nbChildren:4}\\   1>->')
+            self.buffer += (f'<{nbChildren:4}\\   1>->')
             #sys.stdout.flush()
             self.progress.append(0)
         elif timestep == Timestep.ACTED:
             self.progress[-1] += 1
-            sys.stdout.write('\b' * 7 + f'{self.progress[-1]:4}>->')
+            self.buffer += ('\b' * 7 + f'{self.progress[-1]:4}>->')
             #sys.stdout.flush()
     def exit(self, timestep):
         if timestep == Timestep.DISCARDED or timestep == Timestep.ABILITYCHOSEN:
-            sys.stdout.write('\b' * 13) # deleting my progress-frame
+            self.buffer += ('\b' * 13) # deleting my progress-frame
             self.progress.pop()
-            sys.stdout.flush()
+    def enterTurn(self):
+        self.progressStack.append(self.progress)
+        self.progress = []
+    def exitTurn(self):
+        self.buffer += '\b' * 13 * len(self.progress) # deleting progress-frames for all states in the turn which were not exited yet
+        self.progress = self.progressStack.pop()
+        sys.stdout.write(self.buffer)
+        sys.stdout.flush()
+        self.buffer = ''
 
 class AIAgent(Agent):
-    def __init__(self, myId, progressLoggerClass=ProgressBar, *args, **kwargs):
-        super().__init__(myId, *args, **kwargs)
-        self.progressLogger = progressLoggerClass()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.plans = []
     def getDrawAction(self, state : 'State'):
         ret = self.plans[0]
@@ -266,7 +287,7 @@ class AIAgent(Agent):
                 (newState, decisions) = bundle
                 heuristic_diff = 0 # TODO add step or state evaluation
                 putback.append( (newState, ac_decisionhistory + decisions, ac_heuristic + heuristic_diff, ac_depth, False ) )
-            #print(indent, 'End allMov phase! Same-state filtering kept', len(allPossibleMoves), 'out of', nbChildrenFiltered + len(allPossibleMoves) )
+            #print('End allMov phase! Same-state filtering kept', len(allPossibleMoves), 'out of', nbChildrenFiltered + len(allPossibleMoves) )
             return len(allPossibleMoves)
 
         elif state.timestep == Timestep.MOVEDlast:
@@ -311,10 +332,32 @@ class SearchAgent(AIAgent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
     @staticmethod
+    def evaluateMaxForState(state, playerId, nbTurnsRemaining):
+        myMaxAtk = 0
+        for unit in state.aliveUnits[ playerId ]:
+            if unit is not None:
+                myMaxAtk = unit.maxAtk
+                break
+        nbMaxDamage = myMaxAtk * nbTurnsRemaining
+        heuristic = 0
+        for enemy in state.aliveUnits[ 1 - playerId ]:
+            if unit is not None:
+                if unit.HP < nbMaxDamage:
+                    heuristic += unit.maxAtk * ( unit.HP + unit.maxHP )
+                    nbMaxDamage -= unit.HP
+                else:
+                    heuristic += unit.maxAtk * nbMaxDamage
+                    break
+        return heuristic
+    @staticmethod
     def evaluateStep(myId, oldState, step):
         if step.type == 'atk':
-            lostHP = step.kwargs[ 'lostLife' ]
-            minDistance = 30
+            obj = oldState.getBoardField( step.kwargs['object'] )
+            ret = step.kwargs[ 'lostLife' ] * obj.maxAtk
+            if 'delete' in step.kwargs:
+                ret += obj.maxAtk * obj.maxHP
+            return ret
+            """minDistance = 30
             posVictim = step.kwargs['object']
             for myUnit in oldState.aliveUnits[ myId ]:
                 if myUnit is not None and manhattanDistance(myUnit.position, posVictim) < minDistance:
@@ -325,9 +368,9 @@ class SearchAgent(AIAgent):
             if nbTurnsBeforeAttack <= 0:
                 nbTurnsBeforeAttack = 1
             danger = lostHP * 2 + math.ceil( enemy.mov / nbTurnsBeforeAttack ) # - lostLife
-            return danger
+            return danger """
         elif step.type == 'def':
-            return 50
+            return 50 * oldState.getBoardField( step.kwargs['subject'] ).maxAtk
         elif step.type == 'move':
             return -1
         else:
@@ -335,33 +378,46 @@ class SearchAgent(AIAgent):
     def onBegin(self, state : 'State'):
         #print('----ON BEGIN----')
         assert state.iActive == self.myId
-        (state, decisions, heuristic) = SearchAgent.planAhead( state,  [[]] )
+        (state, decisions, heuristic) = SearchAgent.planAhead( state,  [[[[]]]] )
         #print('Found', state, decisions, heuristic)
         #decision = [ dec for dec in decisions if isinstance(dec, ActionDecision) ][0]
         #print('ActionDecision:', decision.card)
         self.plans = decisions
     @staticmethod
-    def planAhead(state : 'State', maxDepth,  progressLogger=ProgressBar()):
+    def getDepthAsTuple(maxDepth):
+        myTurns, opponentsTurns = (1, 0)
+        if len(maxDepth) >= 1:
+            (opp, me) = SearchAgent.getDepthAsTuple(maxDepth[0])
+            myTurns += me
+            opponentsTurns += opp
+            if len(maxDepth) == 2:
+                (me, opp) = SearchAgent.getDepthAsTuple(maxDepth[1])
+                myTurns += me
+                opponentsTurns += opp
+        return ( myTurns, opponentsTurns )
+    @staticmethod
+    def planAhead(state : 'State', maxDepth, maxHeurAllowed = None, progressLogger=ProgressBar()):
         """
         Constructs all descendants of @param state. up to a level defined by @param maxDepth.
         Selects the one that is best for the active player (defined by state.iActive)
         Returns a tuple (state, decisions, heuristic) with the bext future state, the decisions that led to it, and the heuristic of that state.
 
-        For param maxDepth:
+        For @param maxDepth:
         - [] indicates that only my own turn will be considered
         - [ X ] my own turn will be considered, then the opponent will choose their best state with maxDepth=X
         - [ X, Y ] I will simulate my own turn, then the opponent will simulate their turn with maxDepth=X and return the result, then I will simulate the consequences of their turn with maxDepth=Y.
 
         For example, for a full-2-turns-ahead simulation, use maxDepth = [ [ [ [] ] ] ]
+
+        Specify @param maxHeurAllowed if you want the function to return directly if it reaches a certain heuristic.
         """
-        #print(indent, 'Starting planAhead with depth', maxDepth)
+        #print('Starting planAhead with depth', maxDepth)
         progressLogger.enterTurn()
-        nbPaths = 0
-        maxHeur = None
-        maxHeurTemp = -20
-        minTolerated = -20
+        #nbPaths = 0
         bestMoves = None
         bestState = None
+        maxHeur = None
+        worstOpponentsHeuristic = None
         stack = [ (state, [], 0, maxDepth, False) ] #state, decision history, heuristic, depth, second-pass
         while stack: #not empty
             stackframe = stack.pop()
@@ -378,26 +434,44 @@ class SearchAgent(AIAgent):
             else:
                 (newState, step) = state.beginTurn()
                 progressLogger.enter(state.timestep, 1)
+
                 if len(ac_depth) != 0:
-                    #print(indent, 'MINNING')
+                    progressLogger.message(ac_depth, '->', SearchAgent.getDepthAsTuple(ac_depth))
+                    (nbTurnsMe, nbTurnsOpponent) = SearchAgent.getDepthAsTuple(ac_depth)
+                    # we're using state.iActive and not newState.iActive because in newState, iActive has already switched to the opponent
+                    max_bound = ac_heuristic + SearchAgent.evaluateMaxForState(newState, 1 - state.iActive, nbTurnsOpponent)
+                    min_bound = ac_heuristic - SearchAgent.evaluateMaxForState(newState, state.iActive, nbTurnsMe)
+                    progressLogger.message(min_bound, ac_heuristic, max_bound)
+                    if maxHeurAllowed is not None and min_bound >= maxHeurAllowed:
+                        progressLogger.exitTurn()
+                        return (None, None, min_bound)
+                    if maxHeur is not None and max_bound <= maxHeur:
+                        continue
+
+                    progressLogger.message('MINNING with cut-off at', worstOpponentsHeuristic)
                     #print(len(stack))
-                    #print(heuristic, ', tolerate', minTolerated, '-', maxHeurTemp)
-                    (newState, decisions, heuristic) = SearchAgent.planAhead( newState, ac_depth[0], progressLogger )
-                    #print(indent, 'RETURN TO MAXING')
-                    #print(decisions, heuristic)
+                    (newState, _decisions, opponentsHeuristic) = SearchAgent.planAhead( newState, ac_depth[0], worstOpponentsHeuristic, progressLogger ) # we don't care about the decisions
+                    if newState is None: # this happens when the search was better than bestOpponentsHeuristic and was cut off
+                        progressLogger.message('Search cut off')
+                        continue
+                    if worstOpponentsHeuristic is None or opponentsHeuristic < worstOpponentsHeuristic:
+                        worstOpponentsHeuristic = opponentsHeuristic
+                    ac_heuristic -= opponentsHeuristic
+                    progressLogger.message('Search returned', opponentsHeuristic)
                     if len(ac_depth) == 2:
-                        active = ( newState, ac_decisionhistory, ac_heuristic - heuristic, ac_depth[1], progressLogger )
+                        active = ( newState, ac_decisionhistory, ac_heuristic, ac_depth[1], progressLogger )
                         stack.append( active )
                         continue
                     #else fallthrough
-                nbPaths += 1
+                #nbPaths += 1
                 #print('One path found! Heuristic:', active[2], ', max', maxHeur)
                 #print('Stacksize', len(stack))
+
                 if maxHeur is None or ac_heuristic > maxHeur:
                     #print('Best path found! Heuristic:', active[2], ', max', maxHeur)
                     bestMoves = ac_decisionhistory
                     bestState = newState
                     maxHeur = ac_heuristic
-        #print(indent, nbPaths, 'possible futures found')
+        #print(nbPaths, 'possible futures found')
         progressLogger.exitTurn()
         return ( bestState, bestMoves, maxHeur )
