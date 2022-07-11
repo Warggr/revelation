@@ -1,10 +1,13 @@
 //from serialize import Serializable
 #include "position.hpp"
 #include "constants.hpp"
+#include "nlohmann/json.hpp"
+#include "team.hpp"
 
-struct Character /*: public Serializable */ {
+struct character /*: public Serializable */ {
+public:
+    int team;
     static char s_uid;
-
     char uid;
     uint8_t teampos;
     const char* name;
@@ -18,12 +21,9 @@ struct Character /*: public Serializable */ {
     short int HP;
     position pos;
 
-    Character(uint8_t teampos, const char* name, short int maxHP, short softAtk, short hardAtk, uint8_t mov, uint8_t rng, float netWorth, const char* flavor):
-    teampos(teampos), name(name), maxHP(maxHP), HP(maxHP), softAtk(softAtk), hardAtk(hardAtk), mov(mov), rng(rng), netWorth(netWorth), flavor(flavor),
-    uid(s_uid++)
-    {};
-
-    uint8_t takeDmg(AtkType atkType, uint8_t power){
+    character(uint8_t teampos, const char *name, short maxHP, short softAtk, short hardAtk, uint8_t mov,
+              uint8_t rng, float netWorth, const char *flavor, position pos, int team);
+    uint8_t takeDmg(ActionCard atkType, uint8_t power){
         HP -= power;
         return power;
     }
@@ -31,6 +31,12 @@ struct Character /*: public Serializable */ {
         //tempHP += maxHP;
         HP += 50;
     }
+
+    void beginTurn() {
+
+    }
+
+    nlohmann::json to_json(nlohmann::json &j, const character &character) const;
 };
 
 /*    def serialize(self):

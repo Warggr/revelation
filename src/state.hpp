@@ -14,7 +14,7 @@ class State {
     Character*[2][NB_CHARACTERS] units;
     uint8_t[2] nbAliveUnits;
     Player*[2] players;
-    Deck resDeck;
+    Deck<ActionCard> resDeck;
     uint8_t iActive;
     Timestep timestep;
 

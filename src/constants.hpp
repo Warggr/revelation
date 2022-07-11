@@ -11,15 +11,19 @@ constexpr int FULL_BOARD_WIDTH = 2*HALF_BOARD_WIDTH;
 constexpr int NB_CHARACTERS = 2*ARMY_WIDTH;
 
 enum Faction {
-    NONE, BLOOD, MERCURY, HORROR, SPECTRUM, ETHER
+    NONE = 0, BLOOD = 1, MERCURY = 2, HORROR = 3, SPECTRUM = 4, ETHER = 5,
 };
 
 enum Timestep {
-    BEGIN, DREW, DISCARDED, MOVEDfirst, MOVEDlast, ABILITYCHOSEN, ACTED
+    BEGIN = 0, DREW = 1, DISCARDED = 2, MOVEDfirst = 3, MOVEDlast = 4, ABILITYCHOSEN = 5, ACTED = 6
 };
 
-enum AtkType {
-    HARD, SOFT
+enum ActionCard {
+    HARDATK , SOFTATK , DEFENSE
+};
+
+enum ActionOrResource {
+    ACTION = true, RESOURCES = false
 };
 
 #endif //REVELATION_CONSTANTS_H

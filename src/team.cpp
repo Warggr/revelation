@@ -1,9 +1,13 @@
-from character import Character
-from serialize import Serializable
+#include <nlohmann/json.hpp>
+#include "team.hpp"
+#include "character.cpp"
 
-class Team(Serializable):
-	def __init__(self, name : str, characters : list[Character]):
-		self.name = name
-		self.characters = characters
-	def serialize(self):
-		return { 'name' : self.name, 'characters' : self.characters }
+using json = nlohmann::json;
+
+json Team::to_json(json& j, const Team &team) {
+    j = json {{"name", team.name}};
+    j.push_back("characters");
+    for(int i = 0; i < team.characters.size(); i++) {
+        j.at("characters").insert(j.at("characters").begin(), team.characters[i].to_json(j, team.characters[i]));
+    }
+}

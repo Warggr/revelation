@@ -6,127 +6,145 @@ from card import Deck, ActionCard
 from serialize import Serializable
 from agent import ActionOrResource*/
 
+#include "team.hpp"
+#include "constants.hpp"
+#include "agent.hpp"
+#include "state.hpp"
+#include <assert.h>
+#include "step.hpp"
 
-struct Step /*: public Serializable */ {
-
-};
-
-/*class Step(Serializable):
-    def serialize(self):
-        return { 'action' : self.type, **self.kwargs }*/
-
-
-State State::createStart(Team teams[2]) {
-        board = [ [None] * FULL_BOARD_WIDTH for _ in range(2) ]
-        alive = [ [], [] ]
-        for (i, team) in enumerate(teams):
-            for (j, row) in enumerate(team.characters):
-                for (k, char) in enumerate(row):
-                    char.teampos = len(alive[i])
-                    alive[i].append(char)
-                    board[ j ][ k + 1 + HALF_BOARD_WIDTH*i ] = char
-                    char.position = ( j, k + 1 + HALF_BOARD_WIDTH*i )
-                    char.team = i
-
-        players = [ Player() for i in range(2) ]
-
-        startingResources = sum([[x] * 4 for x in Faction.allFactions()], []) + [ Faction.ETHER ]
-        resDeck = Deck.create(startingResources)
-
-        return State(board, alive, players, resDeck, Timestep.BEGIN)
+State::State(std::vector<std::vector<character>> board, std::vector<std::vector<character>> units,
+             std::vector<uint8_t> nbAliveUnits, std::vector<Player> players, Deck<ActionCard> resDeck, uint8_t iActive, Timestep timestep) : resDeck(resDeck) {
+    this->board = board;
+    this->nbAliveUnits = nbAliveUnits;
+    this->players = players;
+    this->resDeck = resDeck;
+    this->iActive = 0;
+    this->timestep = timestep;
+    this->units = units;
 }
 
-    def copy(self):
-        #ret = State(self.board, self.aliveUnits, self.players, self.resDeck, self.timestep)
-        #ret.iActive = self.iActive
-        #return ret
-        return copy.copy(self)
+template <typename T>
+State State::createStart(team teams[2]) {
+    std::vector<std::vector<character>> alive;
+    for(std::size_t i = 0; i < 2; i++ ) {
+        for(uint8_t j = 0; j < teams[i].characters.size(); j++) {
+            teams[i].characters[j].teampos = alive[i].size();
+            alive[i].push_back(teams[i].characters[j]);
+            board[ j ][ j + 1 + HALF_BOARD_WIDTH*i ] = teams[i].characters[j];
+            teams[i].characters[j].pos = position( i != 1, j + 1);
+            //teams[i].characters[j].team = i;
+        }
+    }
 
-    def getBoardField(self, coords):
-        return self.board[ coords[0] ][ coords[1] ]
-    def setBoardField(self, coords, value):
-        self.board[ coords[0] ][ coords[1] ] = value
-        if(value):
-            value.position = coords
-            self.aliveUnits[value.team][value.teampos] = value
+    for(std::size_t i = 0; i < players.size(); i++) {
+        for(std::size_t j = 0; j < 2; j++) {
+            players[j].drawAction();
+        }
+    }
+    /*Deck<ActionCard> deck;
+    Faction allFactions[] = {BLOOD, MERCURY, HORROR, SPECTRUM};
+    std::vector<T> cards;
+    for(std::size_t i = 0; i < 4; i++) {
+        cards.push_back();
+    }
+        startingResources = sum([[x] * 4 for x in Faction.allFactions()], []) + [ Faction.ETHER ]
+        resDeck = Deck.create(startingResources);*/
+    //return new State(board, alive, players, deck, BEGIN, 0);
+}
 
-    def isFinished(self):
-        return self.nbAliveUnits[0] == 0 or self.nbAliveUnits[1] == 0
+character State::getBoardField(position coords) {
+    return board[coords.row][coords.column];
+}
 
-    def stepDraw(self, decision : ActionOrResource):
-        assert self.timestep == Timestep.BEGIN
-        newState = self.copy()
-        newState.timestep = Timestep.DISCARDED
-        newState.players = newState.players.copy()
-        newState.players[self.iActive] = copy.copy(newState.players[self.iActive])
-        if decision == ActionOrResource.ACTION:
-            newState.players[self.iActive].actions = newState.players[self.iActive].actions.copy()
-            newState.players[self.iActive].actionDeck = newState.players[self.iActive].actionDeck.copy()
-            cardDrawn = newState.players[self.iActive].drawAction()
-            return ( newState, Step( typ='draw', clss='action', value=cardDrawn ) )
-        else:
-            newState.resDeck = newState.resDeck.copy()
-            newState.players[self.iActive].resources = newState.players[self.iActive].resources.copy()
-            cardDrawn = newState.players[self.iActive].drawResource(newState.resDeck)
-            return ( newState, Step( typ='draw', clss='resource', value=cardDrawn ) )
+void State::setBoardField(position coords, character value) {
+    board[coords.row][coords.column] = value;
+    if(&value != NULL) {
+        value.pos = coords;
+        units[value.team][value.teampos] = value;
+    }
+}
 
-    def checkConsistency(self):
-        for team in self.aliveUnits:
-            for char in team:
-                if char is not None and self.getBoardField( char.position ) is not char:
-                    print('!Error:', self.getBoardField( char.position ), '@', char.position, 'is not', char)
-                    print( [ [ (char.cid, char.position) for char in row ] for row in self.aliveUnits ] )
-                    print([ [ () if char is None else (char.cid, char.position) for char in row ] for row in self.board ])
-                    raise Exception()
+bool State::isFinished() {
+    return nbAliveUnits[0] == 0 || nbAliveUnits[1] == 0;
+}
 
-    def stepMov(self, decision : 'MoveDecision'):
-        self.checkConsistency()
-        newState = self.copy()
-        newState.checkConsistency()
-        if self.timestep == Timestep.DISCARDED:
-            newState.timestep = Timestep.MOVEDfirst
-        elif self.timestep == Timestep.MOVEDfirst:
-            newState.timestep = Timestep.MOVEDlast
-        else:
-            raise AssertionError()
-        if decision is None:
-            newState.timestep = Timestep.MOVEDlast
-            return ( newState, Step( typ='pass', message='Did not move' ) )
-        else:
-            #print("board is", [ [ () if char is None else (char.cid, char.position) for char in row ] for row in self.board ])
-            newState.board = [ row[:] for row in self.board ]
-            newState.aliveUnits = [ row[:] for row in self.aliveUnits ]
+std::tuple<State*, Step> State::stepDraw(ActionOrResource decision) {
+    assert(timestep == BEGIN);
+    this->checkConsistency();
+    State *newState = this;
+    newState->timestep = DISCARDED;
+    //newState.players = newState.players.copy()
+    //newState.players[self.iActive] = copy.copy(newState.players[self.iActive])
+    newState->checkConsistency();
+    ActionCard cardDrawn;
+    if(decision == ACTION) {
+        cardDrawn = newState->players[iActive].drawAction();
+        return { newState, Step("draw", "action", cardDrawn, newState->players[iActive].actionDeck.size())};
+    } else {
+        cardDrawn = newState->players[iActive].drawResource(newState->resDeck);
+        return { newState, Step("draw", "resource", cardDrawn, newState->resDeck.size())};
+    }
+}
 
-            #print('Moving:')
-            newState.checkConsistency()
+void State::checkConsistency() {
+    /*for team in self.aliveUnits:
+    for char in team:
+    if char is not None and self.getBoardField( char.position ) is not char:
+    print('!Error:', self.getBoardField( char.position ), '@', char.position, 'is not', char)
+    print( [ [ (char.cid, char.position) for char in row ] for row in self.aliveUnits ] )
+    print([ [ () if char is None else (char.cid, char.position) for char in row ] for row in self.board ])
+    raise Exception()}
+    def checkConsistency(self)*/
+    //TODO
+}
 
-            mover = newState.getBoardField(decision.frm)
-            moved = newState.getBoardField(decision.to)
-            moved = moved.copy() if moved else moved
-            mover = mover.copy() if mover else mover
-            newState.setBoardField(decision.frm, moved)
-            newState.setBoardField(decision.to, mover)
-            #print(decision.frm, 'to', decision.to)
-            #print("newState.board is", [ [ () if char is None else (char.cid, char.position) for char in row ] for row in newState.board ])
+std::tuple<State*, Step> State::stepMov(MoveDecision decision) {
+    this->checkConsistency();
+    State *newState = this;
+    newState->checkConsistency();
+    if(this->timestep == DISCARDED)
+        newState->timestep = MOVEDfirst;
+    else if(this->timestep == MOVEDfirst)
+        newState->timestep = MOVEDlast;
+    else
+        throw std::invalid_argument(("Invalid timestep"));
 
-            newState.checkConsistency()
+    if(&decision == NULL) {
+        newState->timestep = MOVEDlast;
+        return { newState, Step("pass", "Did not move" ) };
+    } else {
+        for(int i = 0; i < this->board.size(); i++)
+            newState->board[i] = this->board[i];
+        for(int i = 0; i < this->units.size(); i++)
+            newState->units[i] = this->units[i];
 
-            return ( newState, Step(
-                            typ='move', frm=decision.frm, to=decision.to, target=(self.getBoardField(decision.frm).cid), isCOF=(self.getBoardField(decision.to) != None) 
-                        )
-            )
+        newState->checkConsistency();
 
-    def stepAbil(self, decision : 'AbilityDecision'):
-        assert self.timestep == Timestep.MOVEDlast
-        newState = self.copy()
-        if decision.type == 'pass':
-            newState.timestep = Timestep.ABILITYCHOSEN
-            return (newState, Step(typ='pass', message='Abilities not implemented yet'))
-        else:
-            raise NotImplementedError()
+        character mover = newState->getBoardField(decision.from);
+        character moved = newState->getBoardField(decision.to);
+        newState->setBoardField(decision.from, moved);
+        newState->setBoardField(decision.to, mover);
+
+        newState->checkConsistency();
+
+        return { newState, Step("move", decision.from, decision.to, this->getBoardField(decision.from).s_uid, this->getBoardField(decision.to)) };
+    }
+}
+
+std::tuple<State*, Step> State::stepAbil(AbilityDecision decision) {
+    this->timestep = MOVEDlast;
+    State* newState = this;
+    if(decision.type == "pass") {
+        newState->timestep = ABILITYCHOSEN;
+        return { newState, Step("pass", "Abilities not implemented yet") };
+    } else {
+        std::logic_error("Not implemented yet");
+    }
+}
 
     def stepAct(self, decision : 'ActionDecision'):
-        assert self.timestep == Timestep.ABILITYCHOSEN
+         self.timestep == Timestep.ABILITYCHOSEN
         newState = self.copy()
         newState.timestep = Timestep.ACTED
         if decision is None:
@@ -161,7 +179,7 @@ State State::createStart(Team teams[2]) {
             return (newState, ret)
 
     def endTurn(self):
-        assert self.timestep == Timestep.ACTED
+         self.timestep == Timestep.ACTED
         ret = self.copy()
         ret.iActive = 1 - ret.iActive
         ret.timestep = Timestep.BEGIN
@@ -176,7 +194,7 @@ State State::createStart(Team teams[2]) {
         return ret
 
     def allAttacks(self):
-        assert self.timestep == Timestep.ABILITYCHOSEN
+         self.timestep == Timestep.ABILITYCHOSEN
         ret = {}
 #        print(f' iActive : { self.iActive }, units : { [unit.name for unit in self.aliveUnits[ self.iActive ] ] }')
         for iChar, character in enumerate( self.aliveUnits[ self.iActive ] ):

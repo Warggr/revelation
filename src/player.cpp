@@ -1,35 +1,42 @@
-from enum import Enum, unique
-from card import ActionCard, Deck
+//
+// Created by Diana Amirova on 03.07.22.
+//
 
-class Player:
-    """
-    Is part of the @class State object. It remembers the state of a player (resources, etc.) at a certain point in time.
-    """
-    startingAbilityDeck = [ ActionCard.DEFENSE ] * 2 +\
-        [ ActionCard.HARDATK ] * 4 +\
-        [ ActionCard.SOFTATK ] * 4
+#include "player.hpp"
+#include "Deck.hpp"
+#include <iostream>
+#include "constants.hpp"
 
-    def __init__(self, abilityDeck = Deck.create([])):
-        self.resources = []
-        self.actions = []
-        self.tokens = []
-        self.actionDeck = Deck.create(Player.startingAbilityDeck)
-        self.abilityDeck = abilityDeck
+Player::Player(std::vector<ActionCard> abilityCheck): actionDeck(actionDeck), resourceDeck(resourceDeck) {
+    this->abilityCheck = abilityCheck;
+    this->actionDeck = Deck<ActionCard> { this->startingAbilityDeck };
+}
 
-    def useActionCard(self, cardValue):
-        self.actions.remove(cardValue)
-        self.actionDeck.discard(cardValue)
+ActionCard Player::drawAction() {
+    ActionCard cardDrawn = actionDeck.draw();
+    actions.insert(actions.end(), cardDrawn);
+    return cardDrawn;
+}
 
-    def drawAction(self):
-        cardDrawn = self.actionDeck.draw()
-        self.actions.append(cardDrawn)
-        return cardDrawn
+ActionCard Player::drawResource(Deck<ActionCard> resourceDeck) {
+    ActionCard cardDrawn = resourceDeck.draw();
+    resources.insert(resources.end(), cardDrawn);
+    return cardDrawn;
+}
 
-    def drawResource(self, resourceDeck):
-        cardDrawn = resourceDeck.draw()
-        self.resources.append(cardDrawn)
-        return cardDrawn
+void Player::discard(ActionCard card) {
+    if(std::find(actions.begin(), actions.end(), card) != actions.end()) {
+        std::cout << "Actions: \n";
+        for(ActionCard i: actions)
+            std::cout << i << ' , ';
+        std::cout << "Card " << card;
+    }
+    std::remove(actions.begin(), actions.end(), card);
+    actionDeck.discard(card);
+}
 
-    #virtual
-    def getAbilityDeck(self):
-        return self.abilityDeck
+void Player::useActionCard(ActionCard cardValue) {
+    std::remove(actions.begin(), actions.end(), cardValue);
+    actionDeck.discard(cardValue);
+}
+
