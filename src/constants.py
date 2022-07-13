@@ -20,6 +20,7 @@ class Faction(Enum):
 ARMY_WIDTH = 3
 HALF_BOARD_WIDTH = ARMY_WIDTH + 2
 FULL_BOARD_WIDTH = 2*HALF_BOARD_WIDTH
+ARMY_SIZE = 2*ARMY_WIDTH
 
 @unique
 class Timestep(Enum):

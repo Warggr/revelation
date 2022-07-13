@@ -1,11 +1,29 @@
 from player import Player
 from team import Team
 from character import Character
-from constants import Timestep, FULL_BOARD_WIDTH, HALF_BOARD_WIDTH, Faction, Direction, getNeighbour
+from constants import Timestep, FULL_BOARD_WIDTH, HALF_BOARD_WIDTH, ARMY_SIZE, Faction, Direction, getNeighbour
 from card import Deck, ActionCard
 from serialize import Serializable
 from agent import ActionOrResource
 import copy
+
+EMPTY_FIELD = None
+DEAD_UNIT = None
+
+class BoardTile:
+    def __init__(self, team, index):
+        self.team = team
+        self.index = index
+    def __eq__(self, other):
+        return other.team == self.team and other.index == self.index
+    def __repr__(self):
+        return f't{self.team}-i{self.index}'
+
+def isEmpty(field):
+    return (field is EMPTY_FIELD)
+
+def isDead(crea):
+    return (crea is DEAD_UNIT)
 
 class Step(Serializable):
     def __init__(self, typ, **kwargs):
@@ -22,27 +40,28 @@ class State:
         self.players = players
         self.resDeck = resDeck
         self.aliveUnits = units
-        for team in self.aliveUnits:
-            team.sort(reverse=True, key=lambda crea: crea.maxAtk) # sorting units by their maximum attack (useful for faster heuristic calculations)
-            for i in range(len(team)):
-                team[i].teampos = i
-        self.nbAliveUnits = [ len(army) for army in units ]
+        self.nbAliveUnits = [ ARMY_SIZE ] * 2
         self.iActive = 0
         self.timestep = timestep
         self.turnId = turnId
 
     @staticmethod
-    def createStart(teams, seedBank=None) -> 'State':
-        board = [ [None] * FULL_BOARD_WIDTH for _ in range(2) ]
+    def createStart(teams) -> 'State':
+        board = [ [EMPTY_FIELD] * FULL_BOARD_WIDTH for _ in range(2) ]
         alive = [ [], [] ]
         for (i, team) in enumerate(teams):
             for (j, row) in enumerate(team.characters):
                 for (k, char) in enumerate(row):
                     char.teampos = len(alive[i])
                     alive[i].append(char)
-                    board[ j ][ k + 1 + HALF_BOARD_WIDTH*i ] = char
                     char.position = ( j, k + 1 + HALF_BOARD_WIDTH*i )
                     char.team = i
+
+        for iTeam, team in enumerate(alive):
+            team.sort(reverse=True, key=lambda crea: crea.maxAtk) # sorting units by their maximum attack (useful for faster heuristic calculations)
+            for iChar, char in enumerate(team):
+                char.teampos = iChar
+                board[char.position[0]][char.position[1]] = BoardTile(iTeam, iChar)
 
         players = [ Player() for i in range(2) ]
 
@@ -56,21 +75,21 @@ class State:
         return State(board, alive, players, resDeck, Timestep.BEGIN, 0)
 
     def copy(self):
-        #ret = State(self.board, self.aliveUnits, self.players, self.resDeck, self.timestep)
-        #ret.iActive = self.iActive
-        #return ret
         return copy.copy(self)
 
     def getBoardField(self, coords):
         return self.board[ coords[0] ][ coords[1] ]
+    def getBoardFieldDeref(self, coords):
+        ptr = self.getBoardField(coords)
+        if isEmpty(ptr):
+            return False
+        return self.aliveUnits[ptr.team][ptr.index]
     def setBoardField(self, coords, value):
-        #self.checkConsistency()
-        #assert self.getBoardField(coords) is None
         self.board[ coords[0] ][ coords[1] ] = value
-        if(value):
-            value.position = coords
-            self.aliveUnits[value.team][value.teampos] = value
-        #self.checkConsistency()
+    def setBoardFieldDeref(self, coords, value):
+        self.setBoardField(coords, value)
+        if not isEmpty(value):
+            self.aliveUnits[value.team][value.index].position = coords
 
     def isFinished(self):
         return self.nbAliveUnits[0] == 0 or self.nbAliveUnits[1] == 0
@@ -95,13 +114,14 @@ class State:
             return ( newState, Step( typ='draw', clss='resource', value=cardDrawn, newDeckSize=newState.resDeck.sizeconfig() ) )
 
     def checkConsistency(self):
-        for team in self.aliveUnits:
-            for char in team:
-                if char is not None and self.getBoardField( char.position ) is not char:
-                    print('!Error:', self.getBoardField( char.position ), '@', char.position, 'is not', char)
-                    print( [ [ (char.cid, char.position) if char else None for char in row ] for row in self.aliveUnits ] )
-                    print([ [ () if char is None else (char.cid, char.position) for char in row ] for row in self.board ])
+        for iTeam, team in enumerate(self.aliveUnits):
+            for index in range(ARMY_SIZE):
+                if not isDead(team[index]) and self.getBoardField( team[index].position ) != BoardTile(iTeam, index):
+                    print(f'!Error: {team[index].cid} @ {index},team{iTeam} has position {team[index].position}, which itself contains a reference to {self.getBoardField( team[index].position )}')
+                    print( [ [ None if isDead(char) else (char.cid, char.position) for char in row ] for row in self.aliveUnits ] )
+                    print([ [ () if isEmpty(char) else (char.team, char.index) for char in row ] for row in self.board ])
                     raise Exception()
+        pass
 
     def stepMov(self, decision : 'MoveDecision'):
         self.checkConsistency()
@@ -120,30 +140,38 @@ class State:
             #print("board is", [ [ () if char is None else (char.cid, char.position) for char in row ] for row in self.board ])
             # Invalidating
             newState.board = [ row.copy() for row in self.board ]
-            newState.aliveUnits = [ row.copy() for row in self.aliveUnits ]
+            newState.aliveUnits = newState.aliveUnits.copy()
+            newState.aliveUnits[self.iActive] = newState.aliveUnits[self.iActive].copy()
+            newState.checkConsistency()
+            self.checkConsistency()
 
-            # mover is always a new-reference, moved is an old-reference
-            mover = newState.getBoardField(decision.frm).copy()
+            # mover is always a new-reference
+            moverTile = newState.getBoardField(decision.frm)
+            mover = newState.aliveUnits[self.iActive][moverTile.index].copy()
+            newState.aliveUnits[self.iActive][moverTile.index] = mover
             mover.turnMoved = newState.turnId
-            newState.setBoardField(decision.frm, None)
+
+            newState.setBoardField(decision.frm, EMPTY_FIELD)
+
             landingSpot = decision.to
             index = len(decision.moves)
             while True:
-                moved = newState.getBoardField(landingSpot)
-                newState.setBoardField(landingSpot, mover)
-                if moved is None:
+                movedTile = newState.getBoardField(landingSpot)
+                newState.setBoardField(landingSpot, moverTile)
+                newState.aliveUnits[self.iActive][moverTile.index].position = landingSpot
+                if isEmpty(movedTile):
                     break
                 index -= 1
-                mover = moved.copy()
+                assert movedTile.team == self.iActive
+                moverTile = movedTile
+                newState.aliveUnits[self.iActive][moverTile.index] = newState.aliveUnits[self.iActive][moverTile.index].copy()
                 landingSpot = getNeighbour( landingSpot, decision.moves[index].inverse() )
 
             #print(decision.frm, 'to', decision.to)
             #print("newState.board is", [ [ () if char is None else (char.cid, char.position) for char in row ] for row in newState.board ])
 
-            newState.checkConsistency()
-
             return ( newState, Step(
-                            typ='move', frm=decision.frm, to=decision.to, target=(self.getBoardField(decision.frm).cid), 
+                            typ='move', frm=decision.frm, to=decision.to, target=(self.getBoardFieldDeref(decision.frm).cid), 
                             moves=decision.moves, firstCOF=index
                     ) )
 
@@ -164,7 +192,6 @@ class State:
             return (newState, Step(typ='pass', message='No action chosen'))
 
         # Invalidating
-        newState.board = [ row.copy() for row in self.board ]
         newState.aliveUnits = [ row.copy() for row in self.aliveUnits ]
         newState.players = newState.players.copy()
         newState.players[self.iActive] = copy.copy(newState.players[self.iActive])
@@ -173,8 +200,9 @@ class State:
 
         newState.players[self.iActive].discard(decision.card)
 
-        hero = newState.getBoardField(decision.subjectPos).copy()
-        newState.setBoardField( hero.position, hero )
+        heroIndex = newState.getBoardField(decision.subjectPos).index
+        assert newState.getBoardField(decision.subjectPos).team == self.iActive
+        hero = newState.aliveUnits[self.iActive][heroIndex] = newState.aliveUnits[self.iActive][heroIndex].copy()
         newState.checkConsistency()
         if decision.card == ActionCard.DEFENSE:
             newShieldHP = hero.buff()
@@ -182,7 +210,9 @@ class State:
         else:
             hero.turnAttacked = newState.turnId
             setLife = 0
-            victim = newState.getBoardField(decision.objectPos).copy()
+            victimIndex = newState.getBoardField(decision.objectPos).index
+            assert newState.getBoardField(decision.objectPos).team == 1 - self.iActive
+            victim = newState.aliveUnits[1 - self.iActive][victimIndex] = newState.aliveUnits[1 - self.iActive][victimIndex].copy()
             if decision.card == ActionCard.SOFTATK:
                 lostLife = victim.takeDmg(False, hero.getAtk(False, newState.turnId))
                 ret = Step(typ='atk', cardLost='softAtk', subject=decision.subjectPos, object=decision.objectPos, setLife=victim.HP, lostLife=lostLife)
@@ -192,13 +222,12 @@ class State:
             else:
                 raise AssertionError('decision.card is neither hard, soft, nor defense')
             if victim.HP <= 0:
+                newState.board = [ row.copy() for row in self.board ]
                 newState.nbAliveUnits = self.nbAliveUnits.copy()
                 newState.nbAliveUnits[ 1 - self.iActive ] -= 1
                 ret.kwargs['delete'] = True
-                newState.setBoardField( victim.position, None)
-                newState.aliveUnits[ 1 - self.iActive ][ victim.teampos ] = None
-            else:
-                newState.setBoardField( victim.position, victim )
+                newState.setBoardField( victim.position, EMPTY_FIELD)
+                newState.aliveUnits[ 1 - self.iActive ][ victim.teampos ] = DEAD_UNIT
             newState.checkConsistency()
             return (newState, ret)
 
@@ -214,10 +243,8 @@ class State:
                 clone = unit.beginTurn()
                 if clone is not unit:
                     if not dirty:
-                        ret.board = [ row.copy() for row in ret.board ]
                         ret.aliveUnits = [ row.copy() for row in ret.aliveUnits ]
                         dirty = True
-                    ret.setBoardField(clone.position, clone)
                     ret.aliveUnits[ret.iActive][i] = clone
         ret.checkConsistency()
         return (ret, Step(typ='beginturn'))
@@ -229,13 +256,12 @@ class State:
         stack = [ (character.position, False, []) ]
         boardOfBools = [ [ False for i in range(FULL_BOARD_WIDTH) ] for j in range(2) ] # whether that field has already been passed in the current iteration or not
         while stack: # not empty
-            active = stack.pop()
-            pos = active[0]
-            if active[1] is False: # first time we pass this
-                if active[2]: # do not select the empty list, aka "staying in place"
-                    ret.append( (active[2], active[0]) )
-                if len(active[2]) < character.mov:
-                    stack.append( (active[0], True, active[2]) )
+            (pos, secondPass, movs) = stack.pop()
+            if not secondPass:
+                if movs: # do not select the empty list, aka "staying in place"
+                    ret.append( (movs, pos) )
+                if len(movs) < character.mov:
+                    stack.append( (pos, True, movs) )
                     boardOfBools[pos[0]][pos[1]] = True
                     neighbours = []
                     if pos[1] != 0:
@@ -243,13 +269,13 @@ class State:
                     if pos[1] != FULL_BOARD_WIDTH-1:
                         neighbours.append( (Direction.RIGHT, getNeighbour(pos, Direction.RIGHT)) )
                     neighbours.append( ((Direction.DOWN if pos[0] == 0 else Direction.UP), (1 - pos[0], pos[1])) )
-                    for neighbour in neighbours:
-                        if boardOfBools[neighbour[1][0]][neighbour[1][1]]:
+                    for (direction, position) in neighbours:
+                        if boardOfBools[position[0]][position[1]]:
                             continue
-                        resident = self.getBoardField(neighbour[1])
-                        if resident is not None and resident.team != character.team:
+                        resident = self.getBoardField(position)
+                        if not isEmpty(resident) and resident.team != character.team:
                             continue
-                        stack.append( (neighbour[1], False, active[2] + [ neighbour[0] ]) )
+                        stack.append( (position, False, movs + [ direction ]) )
             else: # second pass
                 boardOfBools[pos[0]][pos[1]] = False
         return ret
@@ -259,32 +285,40 @@ class State:
         ret = {}
 #        print(f' iActive : { self.iActive }, units : { [unit.name for unit in self.aliveUnits[ self.iActive ] ] }')
         for iChar, character in enumerate( self.aliveUnits[ self.iActive ] ):
-            if character is not None:
+            if not isDead(character):
                 ret[ iChar ] = []
                 if character.arcAtk:
                     for row in range(2):
                         deltaRow = abs( character.position[0] - row )
                         for col in range( max(character.position[1] - character.rng + deltaRow, 0), min(character.position[1] + character.rng - deltaRow + 1, FULL_BOARD_WIDTH) ):
-                            if self.board[row][col] is not None and self.board[row][col].team != self.iActive:
-                                ret[ iChar ].append( self.board[row][col] )
+                            tile = self.board[row][col]
+                            if not isEmpty(tile) and tile.team != self.iActive:
+                                ret[ iChar ].append( tile.index )
                 else:
                     row = character.position[0]
-                    if self.board[1-row][character.position[1]] is not None and self.board[1-row][character.position[1]].team != self.iActive:
-                        ret[ iChar ].append( self.board[1-row][character.position[1]] )
+                    tile = self.board[1-row][character.position[1]]
+                    if not isEmpty(tile) and tile.team != self.iActive:
+                        ret[ iChar ].append( tile.index )
                     for col in range( character.position[1] - 1, max(character.position[1] - character.rng - 1, -1), -1 ):
-                        if self.board[row][col] is not None:
-                            if self.board[row][col].team != self.iActive:
-                                ret[ iChar ].append( self.board[row][col] )
+                        tile = self.board[row][col]
+                        if not isEmpty(tile):
+                            if tile.team != self.iActive:
+                                ret[ iChar ].append( tile.index )
                             break
-                        if col != character.position[1] - character.rng and self.board[row][1-col] is not None and self.board[row][1-col].team != self.iActive:
-                            ret[ iChar ].append( self.board[row][1-col] )
+                        if col != character.position[1] - character.rng:
+                            tile = self.board[row][1-col]
+                            if not isEmpty(tile) and tile.team != self.iActive:
+                                ret[ iChar ].append( tile.index )
                     for col in range( character.position[1] + 1, min(character.position[1] + character.rng + 1, FULL_BOARD_WIDTH), +1 ):
-                        if self.board[row][col] is not None:
-                            if self.board[row][col].team != self.iActive:
-                                ret[ iChar ].append( self.board[row][col] )
+                        tile = self.board[row][col]
+                        if not isEmpty(tile):
+                            if tile.team != self.iActive:
+                                ret[ iChar ].append( tile.index )
                             break
-                        if col != character.position[1] + character.rng and self.board[row][1-col] is not None and self.board[row][1-col].team != self.iActive:
-                            ret[ iChar ].append( self.board[row][1-col] )
+                        if col != character.position[1] - character.rng:
+                            tile = self.board[row][1-col]
+                            if not isEmpty(tile) and tile.team != self.iActive:
+                                ret[ iChar ].append( tile.index )
                 if ret[iChar] == []:
                     del ret[iChar]
         return ret

@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import sys
 from game import Game
 from team import Team
 from agent import SearchAgent, HumanAgent
@@ -82,7 +83,15 @@ teams = {
     for army in armies
 }
 
-agents = ( SearchAgent(0), SearchAgent(1) )
+agentTypes = (
+    HumanAgent if len(sys.argv) > 1 and sys.argv[1] == '-h' else SearchAgent,
+    HumanAgent if len(sys.argv) > 2 and sys.argv[2] == '-h' else SearchAgent,
+)
+
+agents = (
+    agentTypes[0](0), 
+    agentTypes[1](1) 
+)
 
 game = Game( (teams['Near East'], teams['Europe']), agents ) #, seed=SEED
 

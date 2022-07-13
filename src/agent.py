@@ -108,10 +108,12 @@ class HumanAgent(Agent):
         for i, card in enumerate(cards):
             print(f'[{i + 1}]: {card}')
         iSel = int(input('Choose a card, any card (or 0 to skip): '))
+        print('Read', iSel)
         if iSel == 0:
             return None
         else:
             ret.card = cards[iSel - 1]
+            print(ret.card)
             if card == ActionCard.DEFENSE:
                 ret.subject = self.chooseCharacter(state)
             else:
@@ -123,14 +125,15 @@ class HumanAgent(Agent):
                 for key in allPossibleAttacks:
                     unit = state.aliveUnits[ self.myId ][ key ]
                     print(f'{ unit.name }')
-                    for enemy in allPossibleAttacks[key]:
-                        startCharacter = '└' if enemy == allPossibleAttacks[key][-1] else '├';
+                    for enemyIndex in allPossibleAttacks[key]:
+                        enemy = state.aliveUnits[ 1 - self.myId ][enemyIndex]
+                        startCharacter = '└' if enemyIndex == allPossibleAttacks[key][-1] else '├';
                         print(f'[{ i }]{ startCharacter }─{ enemy.name }')
                         array.append( [ key, enemy ] )
                         i += 1
-                iSel = int(input('Enter which attack to select: '))
-                ret.subjectPos = state.aliveUnits[ self.myId ][ array[iSel - 1][0] ].position
-                ret.objectPos = array[iSel - 1][1].position
+                iSel = int(input('Enter which attack to select: ')) - 1
+                ret.subjectPos = state.aliveUnits[ self.myId ][ array[iSel][0] ].position
+                ret.objectPos = array[iSel][1].position
             return ret
 
 def manhattanDistance( pos1, pos2 ):
@@ -244,7 +247,7 @@ class AIAgent(Agent):
         #print('ActionDecision:', decision.card)
         self.plans = decisions
     @staticmethod
-    def pushChildStates(stackframe, putback):
+    def pushChildStates(stackframe, putback, stateCache):
         """
         Creates all children states of state (the first element in the @param stackframe) and adds them into the data structure @param putback.
         @returns the number of children inserted this way.
@@ -318,7 +321,7 @@ class AIAgent(Agent):
                     for aggressor in allPossibleAttacks:
                         for victim in allPossibleAttacks[aggressor]:
                             ret.subjectPos = state.aliveUnits[ state.iActive ][ aggressor ].position
-                            ret.objectPos = victim.position
+                            ret.objectPos = state.aliveUnits[ 1 - state.iActive ][ victim ].position
                             (newState, step) = state.stepAct( ret )
                             putback.append( (newState, ac_decisionhistory + [ ret.copy() ], ac_heuristic + SearchAgent.evaluateStep( state.iActive, state, step ), ac_depth, False) )
                             #print('Appending attack to stack', len(stack))
@@ -352,7 +355,7 @@ class SearchAgent(AIAgent):
     @staticmethod
     def evaluateStep(myId, oldState, step):
         if step.type == 'atk':
-            obj = oldState.getBoardField( step.kwargs['object'] )
+            obj = oldState.getBoardFieldDeref( step.kwargs['object'] )
             ret = step.kwargs[ 'lostLife' ] * obj.maxAtk
             if 'delete' in step.kwargs:
                 ret += obj.maxAtk * obj.maxHP
@@ -370,7 +373,7 @@ class SearchAgent(AIAgent):
             danger = lostHP * 2 + math.ceil( enemy.mov / nbTurnsBeforeAttack ) # - lostLife
             return danger """
         elif step.type == 'def':
-            return 50 * oldState.getBoardField( step.kwargs['subject'] ).maxAtk
+            return 50 * oldState.getBoardFieldDeref( step.kwargs['subject'] ).maxAtk
         elif step.type == 'move':
             return -1
         else:
@@ -396,7 +399,7 @@ class SearchAgent(AIAgent):
                 opponentsTurns += opp
         return ( myTurns, opponentsTurns )
     @staticmethod
-    def planAhead(state : 'State', maxDepth, maxHeurAllowed = None, progressLogger=ProgressBar()):
+    def planAhead(state : 'State', maxDepth, maxHeurAllowed = None, progressLogger=ProgressBar(), stateCache = {}):
         """
         Constructs all descendants of @param state. up to a level defined by @param maxDepth.
         Selects the one that is best for the active player (defined by state.iActive)
@@ -429,7 +432,7 @@ class SearchAgent(AIAgent):
                 stack.append((state, None, None, None, True))
 
             if state.timestep != Timestep.ACTED:
-                nbChildren = AIAgent.pushChildStates(stackframe, stack)
+                nbChildren = AIAgent.pushChildStates(stackframe, stack, stateCache)
                 progressLogger.enter(state.timestep, nbChildren)
             else:
                 (newState, step) = state.beginTurn()
