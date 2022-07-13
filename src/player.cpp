@@ -9,7 +9,7 @@
 
 Player::Player(std::vector<ActionCard> abilityCheck): actionDeck(actionDeck), resourceDeck(resourceDeck) {
     this->abilityCheck = abilityCheck;
-    this->actionDeck = Deck<ActionCard> { this->startingAbilityDeck };
+    this->actionDeck = Deck<ActionCard>::create(this->startingAbilityDeck);
 }
 
 ActionCard Player::drawAction() {
