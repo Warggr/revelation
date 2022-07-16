@@ -53,3 +53,12 @@ def getNeighbour(position, direction):
         return ( position[0], position[1] + 1 )
     else:
         raise AssertionError
+
+EMPTY_FIELD = None
+DEAD_UNIT = None
+
+def isEmpty(field):
+    return (field is None)
+
+def isDead(crea):
+    return (crea is None)

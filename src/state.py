@@ -1,29 +1,22 @@
 from player import Player
 from team import Team
 from character import Character
-from constants import Timestep, FULL_BOARD_WIDTH, HALF_BOARD_WIDTH, ARMY_SIZE, Faction, Direction, getNeighbour
+from constants import Timestep, FULL_BOARD_WIDTH, HALF_BOARD_WIDTH, ARMY_SIZE, Faction, Direction, getNeighbour, DEAD_UNIT, EMPTY_FIELD, isEmpty, isDead
 from card import Deck, ActionCard
 from serialize import Serializable
 from agent import ActionOrResource
 import copy
-
-EMPTY_FIELD = None
-DEAD_UNIT = None
 
 class BoardTile:
     def __init__(self, team, index):
         self.team = team
         self.index = index
     def __eq__(self, other):
+        if isDead(other):
+            return False
         return other.team == self.team and other.index == self.index
     def __repr__(self):
         return f't{self.team}-i{self.index}'
-
-def isEmpty(field):
-    return (field is EMPTY_FIELD)
-
-def isDead(crea):
-    return (crea is DEAD_UNIT)
 
 class Step(Serializable):
     def __init__(self, typ, **kwargs):
