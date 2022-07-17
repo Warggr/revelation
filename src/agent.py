@@ -238,14 +238,6 @@ class AIAgent(Agent):
         ret = self.plans[0]
         self.plans = self.plans[1:]
         return ret
-    def onBegin(self, state : 'State'):
-        #print('----ON BEGIN----')
-        assert state.iActive == self.myId
-        (state, decisions, heuristic) = self.planAhead( state,  [[]] )
-        #print('Found', state, decisions, heuristic)
-        #decision = [ dec for dec in decisions if isinstance(dec, ActionDecision) ][0]
-        #print('ActionDecision:', decision.card)
-        self.plans = decisions
     @staticmethod
     def pushChildStates(stackframe, putback, stateCache):
         """
@@ -331,6 +323,51 @@ class AIAgent(Agent):
         elif timestep == Timestep.ACTED:
             raise Exception('Timestep.ACTED (aka end of turns) are supposed to be handled differently')
 
+# interface / fully abstract class
+class DepthPolicy:
+    def enterOpponentsTurn(self):
+        pass
+    def enterOwnTurn(self):
+        pass
+    def asTuple(self):
+        pass
+
+class FixedDepthPolicy(DepthPolicy):
+    """
+    Search up to a fixed depth described by a set of parenthesis.
+        - [] indicates that only my own turn will be considered
+        - [ X ] my own turn will be considered, then the opponent will choose their best state with maxDepth=X
+        - [ X, Y ] I will simulate my own turn, then the opponent will simulate their turn with maxDepth=X and return the result, then I will simulate the consequences of their turn with maxDepth=Y.
+
+        For example, for a full-2-turns-ahead simulation, use maxDepth = [ [ [ [] ] ] ]
+    """
+    def __init__(self, parentheses):
+        self.parentheses = parentheses
+    def enterOpponentsTurn(self):
+        if len(self.parentheses) < 1:
+            return None
+        else:
+            return FixedDepthPolicy(self.parentheses[0])
+    def enterOwnTurn(self):
+        if len(self.parentheses) < 2:
+            return 2
+        else:
+            return FixedDepthPolicy(self.parentheses[1])
+    @staticmethod
+    def _asTuple(parentheses):
+        myTurns, opponentsTurns = (1, 0)
+        if len(parentheses) >= 1:
+            (opp, me) = FixedDepthPolicy._asTuple(parentheses[0])
+            myTurns += me
+            opponentsTurns += opp
+            if len(parentheses) == 2:
+                (me, opp) = FixedDepthPolicy._asTuple(parentheses[1])
+                myTurns += me
+                opponentsTurns += opp
+        return ( myTurns, opponentsTurns )
+    def asTuple(self):
+        return FixedDepthPolicy._asTuple(self.parentheses)
+
 class SearchAgent(AIAgent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -360,18 +397,6 @@ class SearchAgent(AIAgent):
             if 'delete' in step.kwargs:
                 ret += obj.maxAtk * obj.maxHP
             return ret
-            """minDistance = 30
-            posVictim = step.kwargs['object']
-            for myUnit in oldState.aliveUnits[ myId ]:
-                if myUnit is not None and manhattanDistance(myUnit.position, posVictim) < minDistance:
-                    minDistance = manhattanDistance( myUnit.position, posVictim )
-            enemy = oldState.getBoardField( posVictim )
-            ally = oldState.getBoardField( step.kwargs['subject'] )
-            nbTurnsBeforeAttack = (minDistance - enemy.rng)
-            if nbTurnsBeforeAttack <= 0:
-                nbTurnsBeforeAttack = 1
-            danger = lostHP * 2 + math.ceil( enemy.mov / nbTurnsBeforeAttack ) # - lostLife
-            return danger """
         elif step.type == 'def':
             return 50 * oldState.getBoardFieldDeref( step.kwargs['subject'] ).maxAtk
         elif step.type == 'move':
@@ -381,47 +406,27 @@ class SearchAgent(AIAgent):
     def onBegin(self, state : 'State'):
         #print('----ON BEGIN----')
         assert state.iActive == self.myId
-        (state, decisions, heuristic) = SearchAgent.planAhead( state,  [[[[]]]] )
+        (state, decisions, heuristic) = SearchAgent.planAhead( state, FixedDepthPolicy( [[[[]]]] ) )
         #print('Found', state, decisions, heuristic)
         #decision = [ dec for dec in decisions if isinstance(dec, ActionDecision) ][0]
         #print('ActionDecision:', decision.card)
         self.plans = decisions
     @staticmethod
-    def getDepthAsTuple(maxDepth):
-        myTurns, opponentsTurns = (1, 0)
-        if len(maxDepth) >= 1:
-            (opp, me) = SearchAgent.getDepthAsTuple(maxDepth[0])
-            myTurns += me
-            opponentsTurns += opp
-            if len(maxDepth) == 2:
-                (me, opp) = SearchAgent.getDepthAsTuple(maxDepth[1])
-                myTurns += me
-                opponentsTurns += opp
-        return ( myTurns, opponentsTurns )
-    @staticmethod
-    def planAhead(state : 'State', maxDepth, maxHeurAllowed = None, progressLogger=ProgressBar(), stateCache = {}):
+    def planAhead(state : 'State', depthPolicy, maxHeurAllowed = None, progressLogger=ProgressBar(), stateCache = {}):
         """
-        Constructs all descendants of @param state. up to a level defined by @param maxDepth.
+        Constructs all descendants of @param state. up to a level defined by @param depthPolicy.
         Selects the one that is best for the active player (defined by state.iActive)
         Returns a tuple (state, decisions, heuristic) with the bext future state, the decisions that led to it, and the heuristic of that state.
 
-        For @param maxDepth:
-        - [] indicates that only my own turn will be considered
-        - [ X ] my own turn will be considered, then the opponent will choose their best state with maxDepth=X
-        - [ X, Y ] I will simulate my own turn, then the opponent will simulate their turn with maxDepth=X and return the result, then I will simulate the consequences of their turn with maxDepth=Y.
-
-        For example, for a full-2-turns-ahead simulation, use maxDepth = [ [ [ [] ] ] ]
-
         Specify @param maxHeurAllowed if you want the function to return directly if it reaches a certain heuristic.
         """
-        #print('Starting planAhead with depth', maxDepth)
         progressLogger.enterTurn()
         #nbPaths = 0
         bestMoves = None
         bestState = None
         maxHeur = None
         worstOpponentsHeuristic = None
-        stack = [ (state, [], 0, maxDepth, False) ] #state, decision history, heuristic, depth, second-pass
+        stack = [ (state, [], 0, depthPolicy, False) ] #state, decision history, heuristic, depth, second-pass
         while stack: #not empty
             stackframe = stack.pop()
             (state, ac_decisionhistory, ac_heuristic, ac_depth, pass2) = stackframe
@@ -438,9 +443,10 @@ class SearchAgent(AIAgent):
                 (newState, step) = state.beginTurn()
                 progressLogger.enter(state.timestep, 1)
 
-                if len(ac_depth) != 0:
-                    progressLogger.message(ac_depth, '->', SearchAgent.getDepthAsTuple(ac_depth))
-                    (nbTurnsMe, nbTurnsOpponent) = SearchAgent.getDepthAsTuple(ac_depth)
+                subDepth = ac_depth.enterOpponentsTurn()
+                if subDepth is not None:
+                    progressLogger.message(ac_depth, '->', ac_depth.asTuple())
+                    (nbTurnsMe, nbTurnsOpponent) = ac_depth.asTuple()
                     # we're using state.iActive and not newState.iActive because in newState, iActive has already switched to the opponent
                     max_bound = ac_heuristic + SearchAgent.evaluateMaxForState(newState, 1 - state.iActive, nbTurnsOpponent)
                     min_bound = ac_heuristic - SearchAgent.evaluateMaxForState(newState, state.iActive, nbTurnsMe)
@@ -453,7 +459,7 @@ class SearchAgent(AIAgent):
 
                     progressLogger.message('MINNING with cut-off at', worstOpponentsHeuristic)
                     #print(len(stack))
-                    (newState, _decisions, opponentsHeuristic) = SearchAgent.planAhead( newState, ac_depth[0], worstOpponentsHeuristic, progressLogger ) # we don't care about the decisions
+                    (newState, _decisions, opponentsHeuristic) = SearchAgent.planAhead( newState, subDepth, worstOpponentsHeuristic, progressLogger ) # we don't care about the decisions
                     if newState is None: # this happens when the search was better than bestOpponentsHeuristic and was cut off
                         progressLogger.message('Search cut off')
                         continue
@@ -461,8 +467,9 @@ class SearchAgent(AIAgent):
                         worstOpponentsHeuristic = opponentsHeuristic
                     ac_heuristic -= opponentsHeuristic
                     progressLogger.message('Search returned', opponentsHeuristic)
-                    if len(ac_depth) == 2:
-                        active = ( newState, ac_decisionhistory, ac_heuristic, ac_depth[1], progressLogger )
+                    subsubDepth = ac_depth.enterOwnTurn()
+                    if subsubDepth is not None:
+                        active = ( newState, ac_decisionhistory, ac_heuristic, subsubDepth, progressLogger )
                         stack.append( active )
                         continue
                     #else fallthrough
