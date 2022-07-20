@@ -25,12 +25,12 @@ ARMY_SIZE = 2*ARMY_WIDTH
 @unique
 class Timestep(Enum):
     BEGIN = 0
-    DREW = 1
-    DISCARDED = 2
-    MOVEDfirst = 3
-    MOVEDlast = 4
-    ABILITYCHOSEN = 5
-    ACTED = 6
+    DREW = BEGIN + 1
+    DISCARDED = DREW + 1
+    MOVEDfirst = DISCARDED + 1
+    MOVEDlast = MOVEDfirst + 1
+    ABILITYCHOSEN = MOVEDlast + 1
+    ACTED = ABILITYCHOSEN + 1
 
 @unique
 class Direction(Enum):

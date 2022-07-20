@@ -328,8 +328,10 @@ class DepthPolicy:
     def enterOpponentsTurn(self):
         pass
     def enterOwnTurn(self):
-        pass
+        return None # depth policies by default do not allow simulating my own turn after the opponent's simulation
     def asTuple(self):
+        pass
+    def informNbChildren(self, nbChildren, timestepLevel):
         pass
 
 class FixedDepthPolicy(DepthPolicy):
@@ -367,6 +369,71 @@ class FixedDepthPolicy(DepthPolicy):
         return ( myTurns, opponentsTurns )
     def asTuple(self):
         return FixedDepthPolicy._asTuple(self.parentheses)
+
+class AdaptiveDepthPolicy(DepthPolicy):
+    usedLevelsMap = [ 0, -1, 1, -1, 2, 3 ]
+    nbUsedLevels = 4
+
+    def __init__(self, maxNodes = 1000000):
+        self.maxNodes = maxNodes
+        self.nodes = 1
+        self.sumChildren = [ 0 ] * AdaptiveDepthPolicy.nbUsedLevels
+        self.nbChildren = [ 0 ] * AdaptiveDepthPolicy.nbUsedLevels
+        self.currentChildrenCount = [ 0 ] * AdaptiveDepthPolicy.nbUsedLevels
+        self.currentLevel = -1
+    def informNbChildren(self, nbChildren, timestepLevel):
+        # print(timestepLevel.value, '->', AdaptiveDepthPolicy.usedLevelsMap[ timestepLevel.value ], '->', nbChildren)
+        timestepLevel = AdaptiveDepthPolicy.usedLevelsMap[ timestepLevel.value ]
+        if timestepLevel == self.currentLevel + 1:
+            pass
+        elif timestepLevel == self.currentLevel:
+            self.sumChildren[ timestepLevel ] += self.currentChildrenCount[ timestepLevel ]
+            self.nbChildren[ timestepLevel ] += 1
+        elif timestepLevel == self.currentLevel - 1:
+            self.sumChildren[ timestepLevel ] += self.sumChildren[ self.currentLevel ] + self.currentChildrenCount[ self.currentLevel ] + 1
+            self.nbChildren[ timestepLevel ] += 1
+            self.sumChildren[ self.currentLevel ] = 0
+            self.nbChildren[ self.currentLevel ] = 0
+        else:
+            raise AssertionError()
+        self.currentLevel = timestepLevel
+        self.currentChildrenCount[ timestepLevel ] = nbChildren
+        # print('currentChildrenCount:', self.currentChildrenCount)
+        # print('sumChildren:', self.sumChildren)
+        # print('nbChildren:', self.nbChildren)
+        # print('Current level:', self.currentLevel)
+        # input()
+    def estimateNbBranches(self):
+        # print('currentChildrenCount:', self.currentChildrenCount)
+        # print('sumChildren:', self.sumChildren)
+        # print('nbChildren:', self.nbChildren)
+        # print('Current level:', self.currentLevel)
+        nbBranches = self.currentChildrenCount[ self.currentLevel ]
+        for i in range(self.currentLevel, 0, -1):
+            # print(f'( {nbBranches} + {self.sumChildren[ i ]} ) * ( {self.currentChildrenCount[ i - 1 ]} / ({self.nbChildren[i]} + 1) )', end='')
+            nbBranches = ( nbBranches + self.sumChildren[ i ] ) * ( self.currentChildrenCount[ i - 1 ] / (self.nbChildren[i] + 1) ) + 1
+            # print(f' =: {nbBranches}')
+        return nbBranches
+    def enterOpponentsTurn(self):
+        #print('To enter or not to enter, that is the question...')
+        nodes = self.estimateNbBranches()
+        # print('MaxNodes', self.maxNodes, 'at this depth there were', nodes)
+        if self.maxNodes <= 1.5 * (nodes ** 2):
+            return None
+        else:
+            # print('Entering!')
+            # print('currentChildrenCount:', self.currentChildrenCount)
+            # print('sumChildren:', self.sumChildren)
+            # print('nbChildren:', self.nbChildren)
+            # print('Current level:', self.currentLevel)
+            return AdaptiveDepthPolicy(self.maxNodes / nodes)
+    def asTuple(self):
+        log = 0
+        i = self.maxNodes
+        while i > 1:
+            i = i // self.nodes - 1
+            log += 1
+        return ( log // 2 + log % 2, log // 2 )
 
 class SearchAgent(AIAgent):
     def __init__(self, *args, **kwargs):
@@ -406,7 +473,7 @@ class SearchAgent(AIAgent):
     def onBegin(self, state : 'State'):
         #print('----ON BEGIN----')
         assert state.iActive == self.myId
-        (state, decisions, heuristic) = SearchAgent.planAhead( state, FixedDepthPolicy( [[[[]]]] ) )
+        (state, decisions, heuristic) = SearchAgent.planAhead( state, AdaptiveDepthPolicy() )
         #print('Found', state, decisions, heuristic)
         #decision = [ dec for dec in decisions if isinstance(dec, ActionDecision) ][0]
         #print('ActionDecision:', decision.card)
@@ -439,6 +506,7 @@ class SearchAgent(AIAgent):
             if state.timestep != Timestep.ACTED:
                 nbChildren = AIAgent.pushChildStates(stackframe, stack, stateCache)
                 progressLogger.enter(state.timestep, nbChildren)
+                ac_depth.informNbChildren(nbChildren, state.timestep)
             else:
                 (newState, step) = state.beginTurn()
                 progressLogger.enter(state.timestep, 1)
