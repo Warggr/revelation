@@ -103,7 +103,7 @@ std::tuple<State*, Step> State::stepDraw(ActionOrResource decision) {
     newState->checkConsistency();
     Faction cardDrawn;
     if(decision == ACTION) {
-        cardDrawn = newState->players[iActive].drawAction();
+        cardDrawn = newState->players[iActive].drawAction<Faction>();
         return { newState, Step("draw", "action", cardDrawn, newState->players[iActive].actionDeck.sizeconfig())};
     } else {
         cardDrawn = newState->players[iActive].drawResource<Faction>(newState->resDeck);
@@ -139,7 +139,7 @@ position State::getNeighbour(position pos, Direction dir) {
 
 std::tuple<State*, Step> State::stepMov(MoveDecision decision) {
     this->checkConsistency();
-    State *newState = this;
+    State *newState = new State(this->board, this->units, this->players, this->resDeck, this->timestep, this->turnID);
     newState->checkConsistency();
     if(this->timestep == DISCARDED)
         newState->timestep = MOVEDfirst;
@@ -192,7 +192,7 @@ std::tuple<State*, Step> State::stepMov(MoveDecision decision) {
 
 std::tuple<State*, Step> State::stepAbil(AbilityDecision decision) {
     this->timestep = MOVEDlast;
-    State* newState = this;
+    State *newState = new State(this->board, this->units, this->players, this->resDeck, this->timestep, this->turnID);
     if(decision.type == "pass") {
         newState->timestep = ABILITYCHOSEN;
         return { newState, Step("pass", "Abilities not implemented yet") };
@@ -249,7 +249,7 @@ std::tuple<State, Step> State::beginTurn() {
     this->checkConsistency();
     assert(this->timestep == ACTED);
 
-    State* ret = this;
+    State *ret = new State(this->board, this->units, this->players, this->resDeck, this->timestep, this->turnID);
     ret->iActive--;
     ret->timestep = BEGIN;
     bool dirty = false;
@@ -301,23 +301,28 @@ json State::to_json(nlohmann::basic_json<> &j, const State &state) {
     return j;
 }
 
-def beginTurn(self):
-self.checkConsistency()
-assert self.timestep == Timestep.ACTED
-        ret = self.copy()
-ret.iActive = 1 - ret.iActive
-ret.timestep = Timestep.BEGIN
-dirty = False
-for (i, unit) in enumerate(ret.aliveUnits[ret.iActive]):
-if unit is not None:
-clone = unit.beginTurn()
-if clone is not unit:
-if not dirty:
-ret.aliveUnits = [ row.copy() for row in ret.aliveUnits ]
-dirty = True
-ret.aliveUnits[ret.iActive][i] = clone
-        ret.checkConsistency()
-return (ret, Step(typ='beginturn'))
+std::tuple<State *, Step> State::beginTurn() {
+    this->checkConsistency();
+    assert(this->timestep == ACTED);
+    State *ret = new State(this->board, this->units, this->players, this->resDeck, this->timestep, this->turnID);
+    ret->iActive = 1 - ret->iActive;
+    ret->timestep = BEGIN;
+    bool dirty = false;
+    for(int i = 0; i < ret->units[ret->iActive].size(); i++) {
+        character unit = ret->units[ret->iActive][i];
+        if( /*TODO */ ) {
+                character clone = unit.beginTurn();
+                if(clone.s_uid != unit.s_uid) {
+                    if(!dirty) {
+                        dirty = true;
+                    }
+                    ret->nbAliveUnits[ret->iActive][i] = clone;
+                }
+        }
+    }
+    ret->checkConsistency();
+    return std::make_tuple(ret, Step("beginturn"));
+}
 
 def allMovementsForCharacter(self, character : Character):
 if self.timestep == Timestep.MOVEDfirst and character.turnMoved == self.turnId:

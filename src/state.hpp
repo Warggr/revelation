@@ -40,6 +40,7 @@ public:
     position getNeighbour(position pos, Direction dir);
     std::tuple<State*, Step> beginTurn();
     std::tuple<State*, Step> advance(Agent agent);
+    allMovementsForCharacter(character character);
     json to_json(nlohmann::basic_json<> &j, const State &state);
 };
 
