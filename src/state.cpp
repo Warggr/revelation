@@ -12,79 +12,104 @@ from agent import ActionOrResource*/
 #include "state.hpp"
 #include <assert.h>
 #include "step.hpp"
+#include <memory>
+#include <tkDecls.h>
+#define REPEAT(x) x, x, x, x
 
-State::State(std::vector<std::vector<character>> board, std::vector<std::vector<character>> units,
-             std::vector<uint8_t> nbAliveUnits, std::vector<Player> players, Deck<ActionCard> resDeck, uint8_t iActive, Timestep timestep) : resDeck(resDeck) {
+State::State(std::vector<std::vector<BoardTile>> board, std::vector<std::vector<character>> units, std::vector<Player> players, Deck<Faction> resDeck, Timestep timestep, int turnID) : resDeck(resDeck), board(board) {
     this->board = board;
-    this->nbAliveUnits = nbAliveUnits;
+    this->nbAliveUnits.reserve(ARMY_SIZE * 2);
     this->players = players;
     this->resDeck = resDeck;
     this->iActive = 0;
     this->timestep = timestep;
     this->units = units;
+    this->turnID = turnID;
 }
 
-template <typename T>
-State State::createStart(team teams[2]) {
+State State::createStart(Team teams[2]) {
     std::vector<std::vector<character>> alive;
     for(std::size_t i = 0; i < 2; i++ ) {
-        for(uint8_t j = 0; j < teams[i].characters.size(); j++) {
-            teams[i].characters[j].teampos = alive[i].size();
-            alive[i].push_back(teams[i].characters[j]);
-            board[ j ][ j + 1 + HALF_BOARD_WIDTH*i ] = teams[i].characters[j];
-            teams[i].characters[j].pos = position( i != 1, j + 1);
-            //teams[i].characters[j].team = i;
+        for(std::size_t j = 0; j < teams[i].characters.size(); j++) {
+            for(std::size_t k = 0; k < teams[i].characters[j].size(); k++) {
+                character ch = teams[i].characters[j].at(k);
+                ch.teampos = alive[i].size();
+                alive[i].push_back(ch);
+                ch.pos = position( j, k + 1 + HALF_BOARD_WIDTH);
+                ch.team = i;
+            }
+        }
+    }
+
+    for(std::size_t i = 0; i < alive.size(); i++) {
+        auto sortLambda = [] (character const& one, character const& two) -> bool{
+            return one.maxAtk > two.maxAtk;
+        };
+
+        std::sort(alive[i].begin(), alive[i].end(), sortLambda);
+        std::vector<character> characters = alive[i];
+
+        for(std::size_t j = 0; j < characters.size(); j++) {
+            characters[j].teampos = j;
+            board[characters[j].pos.row][characters[j].pos.column] = BoardTile(i, j);
         }
     }
 
     for(std::size_t i = 0; i < players.size(); i++) {
         for(std::size_t j = 0; j < 2; j++) {
-            players[j].drawAction();
+            this->players[j].drawAction();
         }
     }
-    /*Deck<ActionCard> deck;
-    Faction allFactions[] = {BLOOD, MERCURY, HORROR, SPECTRUM};
-    std::vector<T> cards;
-    for(std::size_t i = 0; i < 4; i++) {
-        cards.push_back();
-    }
-        startingResources = sum([[x] * 4 for x in Faction.allFactions()], []) + [ Faction.ETHER ]
-        resDeck = Deck.create(startingResources);*/
-    //return new State(board, alive, players, deck, BEGIN, 0);
+
+    std::initializer_list<Faction> startingResources= { REPEAT(NONE), REPEAT(BLOOD), REPEAT(MERCURY), REPEAT(HORROR), REPEAT(SPECTRUM), REPEAT(ETHER), ETHER};
+    Deck<Faction> resDeck = Deck<Faction>::create(startingResources);
+    return State(board, alive, players, resDeck, BEGIN, 0);
 }
 
-character State::getBoardField(position coords) {
-    return board[coords.row][coords.column];
+BoardTile* State::getBoardField(position coords) {
+    return &board[coords.row][coords.column];
 }
 
-void State::setBoardField(position coords, character value) {
-    board[coords.row][coords.column] = value;
-    if(&value != NULL) {
-        value.pos = coords;
-        units[value.team][value.teampos] = value;
-    }
+character* State::getBoardFieldDeref(position coords) {
+    BoardTile* ptr = this->getBoardField(coords);
+    if(ptr == NULL)
+        return nullptr;
+    else
+        return &this->units[ptr->team][ptr->index];
+}
+
+void State::setBoardField(position coords, BoardTile* value) {
+    BoardTile tmp = BoardTile(value->team, value->index);
+    board[coords.row][coords.column] = tmp;
+}
+
+void State::setBoardFieldDeref(position coords, BoardTile* value) {
+    this->setBoardField(coords, value);
+    if(&value != NULL)
+        this->units[value->team][value->index].pos = coords;
 }
 
 bool State::isFinished() {
-    return nbAliveUnits[0] == 0 || nbAliveUnits[1] == 0;
+    return this->nbAliveUnits[0] == 0 || this->nbAliveUnits[1] == 0;
 }
 
 std::tuple<State*, Step> State::stepDraw(ActionOrResource decision) {
     assert(timestep == BEGIN);
     this->checkConsistency();
-    State *newState = this;
+    State *newState = new State(this->board, this->units, this->players, this->resDeck, this->timestep, this->turnID);
     newState->timestep = DISCARDED;
     //newState.players = newState.players.copy()
     //newState.players[self.iActive] = copy.copy(newState.players[self.iActive])
     newState->checkConsistency();
-    ActionCard cardDrawn;
+    Faction cardDrawn;
     if(decision == ACTION) {
         cardDrawn = newState->players[iActive].drawAction();
-        return { newState, Step("draw", "action", cardDrawn, newState->players[iActive].actionDeck.size())};
+        return { newState, Step("draw", "action", cardDrawn, newState->players[iActive].actionDeck.sizeconfig())};
     } else {
-        cardDrawn = newState->players[iActive].drawResource(newState->resDeck);
-        return { newState, Step("draw", "resource", cardDrawn, newState->resDeck.size())};
+        cardDrawn = newState->players[iActive].drawResource<Faction>(newState->resDeck);
+        return { newState, Step("draw", "resource", cardDrawn, newState->resDeck.sizeconfig())};
     }
+
 }
 
 void State::checkConsistency() {
@@ -97,6 +122,19 @@ void State::checkConsistency() {
     raise Exception()}
     def checkConsistency(self)*/
     //TODO
+}
+
+position State::getNeighbour(position pos, Direction dir) {
+    if(dir == UP)
+        return position(pos.row - 1, pos.column);
+    if(dir == DOWN)
+        return position(pos.row + 1, pos.column);
+    if(dir == LEFT)
+        return position(pos.row, pos.column - 1);
+    if(dir == RIGHT)
+        return position(pos.row, pos.column + 1);
+    else
+        std::invalid_argument("Invalid direction!");
 }
 
 std::tuple<State*, Step> State::stepMov(MoveDecision decision) {
@@ -114,21 +152,41 @@ std::tuple<State*, Step> State::stepMov(MoveDecision decision) {
         newState->timestep = MOVEDlast;
         return { newState, Step("pass", "Did not move" ) };
     } else {
-        for(int i = 0; i < this->board.size(); i++)
+        /*for(int i = 0; i < this->board.size(); i++)
             newState->board[i] = this->board[i];
         for(int i = 0; i < this->units.size(); i++)
-            newState->units[i] = this->units[i];
+            newState->units[i] = this->units[i];*/
 
         newState->checkConsistency();
+        this->checkConsistency();
 
-        character mover = newState->getBoardField(decision.from);
-        character moved = newState->getBoardField(decision.to);
-        newState->setBoardField(decision.from, moved);
-        newState->setBoardField(decision.to, mover);
+        BoardTile* moverTile = newState->getBoardField(decision.from);
+        character mover = newState->units[this->iActive][moverTile->index];
+        newState->units[this->iActive][moverTile->index] = mover;
+        mover.turnMoved = newState->turnID;
 
+        newState->setBoardField(decision.from, NULL);
+
+        position landingSpot = decision.to;
+        int size = decision.moves.size();
+        while(1) {
+            BoardTile* movedTile = newState->getBoardField(landingSpot);
+            newState->setBoardField(landingSpot, moverTile);
+            newState->units[this->iActive][moverTile->index].pos = landingSpot;
+
+            if(&movedTile == NULL)
+                break;
+            size--;
+
+            assert(movedTile->team == this->iActive);
+            moverTile = movedTile;
+            // TODO: unknown direction
+            landingSpot = this->getNeighbour(landingSpot, Direction(3 - decision.moves[size]));
+
+        }
         newState->checkConsistency();
 
-        return { newState, Step("move", decision.from, decision.to, this->getBoardField(decision.from).s_uid, this->getBoardField(decision.to)) };
+        return { newState, Step("move", decision.from, decision.to, this->getBoardFieldDeref(decision.from).uid, decision.moves, size )};
     }
 }
 
@@ -143,85 +201,195 @@ std::tuple<State*, Step> State::stepAbil(AbilityDecision decision) {
     }
 }
 
-    def stepAct(self, decision : 'ActionDecision'):
-         self.timestep == Timestep.ABILITYCHOSEN
-        newState = self.copy()
-        newState.timestep = Timestep.ACTED
-        if decision is None:
-            return (newState, Step(typ='pass', message='No action chosen'))
-        newState.board = [ row[:] for row in self.board ]
-        newState.aliveUnits = [ row[:] for row in self.aliveUnits ]
-        if decision.card == ActionCard.DEFENSE:
-            hero = decision.subject.copy()
-            newState.setBoardField( hero.position, hero )
-            (newHP, newTempHP) = hero.buff()
-            return (newState, Step(typ='def', cardLost='defense', subject=decision.subject.position, temporary=newTempHP, permanent=newHP))
-        else:
-            setLife = 0
-            victim = decision.object.copy()
-            if decision.card == ActionCard.SOFTATK:
-                lostLife = victim.takeDmg('soft', decision.subject.softAtk)
-                ret = Step(typ='atk', cardLost='softAtk', subject=decision.subject.position, object=decision.object.position, setLife=victim.HP, lostLife=lostLife)
-            elif decision.card == ActionCard.HARDATK:
-                lostLife = victim.takeDmg('hard', decision.subject.hardAtk)
-                ret = Step(typ='atk', cardLost='hardAtk', subject=decision.subject.position, object=decision.object.position, setLife=victim.HP, lostLife=lostLife)
-            else:
-                raise AssertionError('decision.card is neither hard, soft, nor defense')
-            if victim.HP <= 0:
-                newState.setBoardField( victim.position, None )
-                newState.nbAliveUnits = self.nbAliveUnits[:]
-                newState.nbAliveUnits[ 1 - self.iActive ] -= 1
-                newState.aliveUnits = self.aliveUnits[:]
-                newState.aliveUnits[ 1 - self.iActive ] = [ unit if unit is not None and unit.cid != victim.cid else None for unit in newState.aliveUnits[ 1 - self.iActive ] ]
-                ret.kwargs['delete'] = True
-            else:
-                newState.setBoardField( victim.position, victim )
-            return (newState, ret)
+std::tuple<State *, Step> State::stepAct(ActionDecision decision) {
+    assert(this->timestep == ABILITYCHOSEN);
+    State* newState = this;
+    newState->timestep = ACTED;
+    if(&decision == NULL) {
+        return { newState, Step("pass", "No action chosen") };
+    }
 
-    def endTurn(self):
-         self.timestep == Timestep.ACTED
+    newState->players[this->iActive].discard(decision.card);
+    int heroIndex = newState->getBoardField((decision.subjectPos)).index;
+    assert(newState->getBoardField(decision.subjectPos).team == this->iActive);
+    character hero = newState->units[this->iActive][heroIndex];
+    newState->checkConsistency();
+    if(decision.card == DEFENSE) {
+        short newShieldHP = hero.buff();
+        //TODO: cardLost ist ein string?
+        return std::make_tuple(newState, Step("def", ));
+    } else {
+        hero.turnAttacked = newState->turnID;
+        int setLife = 0;
+        int victimIndex = newState->getBoardField(decision.objectPos).index;
+
+        assert(newState->getBoardField(decision.subjectPos).team == 1 - this->iActive);
+
+        character victim = newState->units[1- this->iActive][victimIndex];
+        if(decision.card == SOFTATK) {
+
+        } else if(decision.card == HARDATK) {
+
+        } else {
+            std::invalid_argument("decision.card is neither hard, soft, nor defense");
+        }
+
+        if(victim.HP <= 0) {
+            // TODO: units (aliveUnits) character array? -1 für pointer?
+            // newState->units[1 - this->iActive] -= 1;
+
+
+        }
+    }
+
+    delete newState;
+}
+
+std::tuple<State, Step> State::beginTurn() {
+    this->checkConsistency();
+    assert(this->timestep == ACTED);
+
+    State* ret = this;
+    ret->iActive--;
+    ret->timestep = BEGIN;
+    bool dirty = false;
+
+    for(int i = 0; i < ret->units[ret->iActive].size(); i++) {
+        character unit = ret->units[ret->iActive][i];
+        if(&unit != NULL) {
+            std::tuple<State, Step> clone = unit.beginTurn();
+            //TODO: tuple ?? wie vergleicht man die?
+            if(std::tie(clone.)) {
+
+            }
+        }
+    }
+}
+
+std::tuple<State *, Step> State::advance(Agent agent) {
+    if(this->timestep == ACTED)
+        return this->beginTurn();
+    else if(this->timestep == BEGIN) {
+        ActionOrResource decision = agent.getDrawAction();
+        return this->stepDraw(decision);
+    }
+    else if(this->timestep == DISCARDED or this->timestep == MOVEDfirst) {
+        MoveDecision decision = agent.getMovement();
+        return this->stepMov(decision);
+    }
+    else if(this->timestep == MOVEDlast) {
+        AbilityDecision decision = agent.getAbility();
+        return this->stepAbil(decision);
+    }
+    if(this->timestep == ABILITYCHOSEN) {
+        ActionDecision decision = agent.getAction();
+        return this->stepAct(decision);
+    }
+}
+
+json State::to_json(nlohmann::basic_json<> &j, const State &state) {
+    j = json {{"resourceDeck", resDeck.sizeconfig()}};
+    j.push_back("players");
+    for(int i = 0; i < this->players.size(); i++) {
+        j.at("players").insert(j.at("characters").begin(), players[i].to_json());
+    }
+    j.push_back("board");
+    for(int i = 0; i < this->board.size(); i++) {
+        j.at("players").insert(j.at("characters").begin(), board[i].to_json());
+    }
+
+    return j;
+}
+
+def beginTurn(self):
+self.checkConsistency()
+assert self.timestep == Timestep.ACTED
         ret = self.copy()
-        ret.iActive = 1 - ret.iActive
-        ret.timestep = Timestep.BEGIN
-        return (ret, Step(typ='pass', message='End of turn'))
+ret.iActive = 1 - ret.iActive
+ret.timestep = Timestep.BEGIN
+dirty = False
+for (i, unit) in enumerate(ret.aliveUnits[ret.iActive]):
+if unit is not None:
+clone = unit.beginTurn()
+if clone is not unit:
+if not dirty:
+ret.aliveUnits = [ row.copy() for row in ret.aliveUnits ]
+dirty = True
+ret.aliveUnits[ret.iActive][i] = clone
+        ret.checkConsistency()
+return (ret, Step(typ='beginturn'))
 
-    def allMovementsForCharacter(self, character : Character) -> list[tuple[int, int]]:
-        ret = []
-        for i in range( max(character.position[1] - character.mov, 0), min(character.position[1] + character.mov + 1, FULL_BOARD_WIDTH) ):
-            ret.append( ( character.position[0], i ) )
-        for i in range( max(character.position[1] - character.mov + 1, 0), min(character.position[1] + character.mov, FULL_BOARD_WIDTH) ):
-            ret.append( ( 1 - character.position[0], i ) )
-        return ret
+def allMovementsForCharacter(self, character : Character):
+if self.timestep == Timestep.MOVEDfirst and character.turnMoved == self.turnId:
+return []
+ret = []
+stack = [ (character.position, False, []) ]
+boardOfBools = [ [ False for i in range(FULL_BOARD_WIDTH) ] for j in range(2) ] # whether that field has already been passed in the current iteration or not
+while stack: # not empty
+(pos, secondPass, movs) = stack.pop()
+if not secondPass:
+if movs: # do not select the empty list, aka "staying in place"
+ret.append( (movs, pos) )
+if len(movs) < character.mov:
+stack.append( (pos, True, movs) )
+boardOfBools[pos[0]][pos[1]] = True
+        neighbours = []
+if pos[1] != 0:
+neighbours.append( (Direction.LEFT, getNeighbour(pos, Direction.LEFT)) )
+if pos[1] != FULL_BOARD_WIDTH-1:
+neighbours.append( (Direction.RIGHT, getNeighbour(pos, Direction.RIGHT)) )
+neighbours.append( ((Direction.DOWN if pos[0] == 0 else Direction.UP), (1 - pos[0], pos[1])) )
+for (direction, position) in neighbours:
+if boardOfBools[position[0]][position[1]]:
+continue
+resident = self.getBoardField(position)
+if not isEmpty(resident) and resident.team != character.team:
+continue
+stack.append( (position, False, movs + [ direction ]) )
+else: # second pass
+boardOfBools[pos[0]][pos[1]] = False
+return ret
 
-    def allAttacks(self):
-         self.timestep == Timestep.ABILITYCHOSEN
+        def allAttacks(self):
+assert self.timestep == Timestep.ABILITYCHOSEN
         ret = {}
 #        print(f' iActive : { self.iActive }, units : { [unit.name for unit in self.aliveUnits[ self.iActive ] ] }')
-        for iChar, character in enumerate( self.aliveUnits[ self.iActive ] ):
-            if character is not None:
-                created : bool = False
-                for row in range(2):
-                    deltaRow = abs( character.position[0] - row )
-                    for column in range( max(character.position[1] - character.rng + deltaRow, 0), min(character.position[1] + character.rng - deltaRow + 1, FULL_BOARD_WIDTH) ):
-                        if self.board[row][column] is not None and self.board[row][column].team != self.iActive:
-                            if not created:
-                                created = True
-                                ret[ iChar ] = []
-                            ret[ iChar ].append( self.board[row][column] )
-        return ret
+for iChar, character in enumerate( self.aliveUnits[ self.iActive ] ):
+if not isDead(character):
+ret[ iChar ] = []
+if character.arcAtk:
+for row in range(2):
+deltaRow = abs( character.position[0] - row )
+for col in range( max(character.position[1] - character.rng + deltaRow, 0), min(character.position[1] + character.rng - deltaRow + 1, FULL_BOARD_WIDTH) ):
+tile = self.board[row][col]
+if not isEmpty(tile) and tile.team != self.iActive:
+ret[ iChar ].append( tile.index )
+else:
+row = character.position[0]
+tile = self.board[1-row][character.position[1]]
+if not isEmpty(tile) and tile.team != self.iActive:
+ret[ iChar ].append( tile.index )
+for col in range( character.position[1] - 1, max(character.position[1] - character.rng - 1, -1), -1 ):
+tile = self.board[row][col]
+if not isEmpty(tile):
+if tile.team != self.iActive:
+ret[ iChar ].append( tile.index )
+break
+if col != character.position[1] - character.rng:
+tile = self.board[row][1-col]
+if not isEmpty(tile) and tile.team != self.iActive:
+ret[ iChar ].append( tile.index )
+for col in range( character.position[1] + 1, min(character.position[1] + character.rng + 1, FULL_BOARD_WIDTH), +1 ):
+tile = self.board[row][col]
+if not isEmpty(tile):
+if tile.team != self.iActive:
+ret[ iChar ].append( tile.index )
+break
+if col != character.position[1] - character.rng:
+tile = self.board[row][1-col]
+if not isEmpty(tile) and tile.team != self.iActive:
+ret[ iChar ].append( tile.index )
+if ret[iChar] == []:
+del ret[iChar]
+return ret
 
-    def advance(self, agent) -> 'State':
-        if self.timestep == Timestep.BEGIN:
-            decision = agent.getDrawAction(self)
-            return self.stepDraw(decision)
-        elif self.timestep == Timestep.DISCARDED or self.timestep == Timestep.MOVEDfirst:
-            decision = agent.getMovement(self)
-            return self.stepMov(decision)
-        elif self.timestep == Timestep.MOVEDlast:
-            decision = agent.getAbility(self)
-            return self.stepAbil(decision)
-        elif self.timestep == Timestep.ABILITYCHOSEN:
-            decision = agent.getAction(self)
-            return self.stepAct(decision)
-        elif self.timestep == Timestep.ACTED:
-            return self.endTurn()

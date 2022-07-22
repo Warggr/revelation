@@ -3,8 +3,9 @@ set(PROJECT_VERSION_MAJOR 1)
 set(PROJECT_VERSION_MINOR 0)
 set(PROJECT_VERSION_PATCH 0)
 set(PROJECT_VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH})
+set(CMAKE_CXX_STANDARD 20)
 
-project(revelator VERSION ${PROJECT_VERSION} LANGUAGES CXX)
+project(revelation VERSION ${PROJECT_VERSION} LANGUAGES CXX)
 
 if ( ${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR} )
     message( FATAL_ERROR "In-source builds not allowed! Create a build directory and run CMake from there." )
@@ -130,6 +131,9 @@ set(WANTED_DEBUG_FLAGS "DBG_NONE" CACHE STRING "")
 set(RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+
+set(SOURCE_FILES main.cpp)
+add_executable(my_exec ${SOURCE_FILES})
 
 add_subdirectory(src)
 

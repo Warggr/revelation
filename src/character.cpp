@@ -1,11 +1,10 @@
 #include "character.hpp"
-#include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
 char character::s_uid = 'a';
 
 character::character(uint8_t teampos, const char *name, short maxHP, short softAtk, short hardAtk, uint8_t mov,
-                     uint8_t rng, float netWorth, const char *flavor, position pos, int team) : uid(s_uid++), pos(pos) {
+                     uint8_t rng, float netWorth, const char *flavor, int team) : uid(s_uid++), pos(pos) {
     this->teampos = teampos;
     this->name = name;
     this->maxHP = maxHP;
@@ -15,8 +14,11 @@ character::character(uint8_t teampos, const char *name, short maxHP, short softA
     this->rng = rng;
     this->netWorth = netWorth;
     this->flavor = flavor;
-    this->pos = pos;
     this->team = team;
+    this->maxAtk = std::max(softAtk, hardAtk);
+    this->pos = position(0,0);
+    this->turnMoved = NULL;
+    this->turnAttacked = NULL;
 }
 
 json character::to_json(json& j, const character &character) const {

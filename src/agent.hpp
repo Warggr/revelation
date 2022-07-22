@@ -1,34 +1,22 @@
-#ifndef REVELATION_AGENT_H
-#define REVELATION_AGENT_H
+#ifndef REVELATION_AGENT_HPP
+#define REVELATION_AGENT_HPP
 
 //from card import ActionCard
 //from character import Character
 #include "position.hpp"
+#include "player.hpp"
 #include "character.hpp"
-
-enum ActionOrResource { ACTION, RESOURCES };
-
-class ActionCard{
-
-};
+#include "deck.hpp"
 
 struct MoveDecision {
+public:
     position from;
     position to;
+    std::vector<Direction> moves;
 };
 
-struct ActionDecision {
-    ActionCard* card;
-    Character* subject;
-    Character* object;
-};
-
-struct AbilityDecision {};
-
-/*
-class Agent represents a decision-maker. It is an abstract class that can be implemented by an UI that interfaces with a human, or by an AI.
-*/
 class Agent {
+public:
     uint8_t myId;
 
     Player* getMyPlayer(const State& state) const {
@@ -54,4 +42,4 @@ class Agent {
 */
 };
 
-#endif //REVELATION_AGENT_H
+#endif //REVELATION_AGENT_HPP

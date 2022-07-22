@@ -7,7 +7,7 @@
 
 #include "string"
 #include "constants.hpp"
-#include "Deck.hpp"
+#include "deck.hpp"
 #include "../cmake-build-debug/_deps/json-src/single_include/nlohmann/json.hpp"
 #include "position.hpp"
 #include "character.hpp"
@@ -18,13 +18,18 @@ class Step {
     std::string type;
     std::string clss;
     ActionCard value;
-    int size;
+    std::tuple<int, int> size;
     std::string message;
+    char uid;
+    std::vector<Direction> moves;
+    int firstCOF;
 
 public:
-    Step(std::string type, std::string clss, ActionCard value, int size);
+    position from;
+    position to;
+    Step(std::string type, std::string clss, ActionCard value, std::tuple<int, int> size);
     Step(std::string type, std::string message);
-    Step(std::string type, position from, position to, char s_uid, character player);
+    Step(std::string type, position from, position to, char uid, std::vector<Direction> moves, int firstCOF);
     json to_json(nlohmann::basic_json<> &j, const Step &step);
 };
 

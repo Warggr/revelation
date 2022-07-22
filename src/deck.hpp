@@ -1,3 +1,6 @@
+#ifndef REVELATION_DECK_HPP
+#define REVELATION_DECK_HPP
+
 #pragma once
 
 #include <forward_list>
@@ -19,3 +22,5 @@ public:
     T draw();
     std::tuple<int, int> sizeconfig();
 };
+
+#endif REVELATION_DECK_HPP

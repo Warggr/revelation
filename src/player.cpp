@@ -1,7 +1,3 @@
-//
-// Created by Diana Amirova on 03.07.22.
-//
-
 #include "player.hpp"
 #include "Deck.hpp"
 #include <iostream>
@@ -10,24 +6,28 @@
 Player::Player(std::vector<ActionCard> abilityCheck): actionDeck(actionDeck), resourceDeck(resourceDeck) {
     this->abilityCheck = abilityCheck;
     this->actionDeck = Deck<ActionCard>::create(this->startingAbilityDeck);
+    this->startingAbilityDeck = std::initializer_list<ActionCard> { DEFENSE, DEFENSE, HARDATK, HARDATK, HARDATK, HARDATK, SOFTATK, SOFTATK, SOFTATK, SOFTATK };
 }
 
-ActionCard Player::drawAction() {
-    ActionCard cardDrawn = actionDeck.draw();
+template<typename T>
+auto Player::drawAction() {
+    T cardDrawn = actionDeck.draw();
     actions.insert(actions.end(), cardDrawn);
     return cardDrawn;
 }
 
-ActionCard Player::drawResource(Deck<ActionCard> resourceDeck) {
-    ActionCard cardDrawn = resourceDeck.draw();
+template<typename T>
+auto Player::drawResource(Deck<T> resourceDeck) {
+    T cardDrawn = resourceDeck.draw();
     resources.insert(resources.end(), cardDrawn);
     return cardDrawn;
 }
 
-void Player::discard(ActionCard card) {
+template<typename T>
+void Player::discard(T card) {
     if(std::find(actions.begin(), actions.end(), card) != actions.end()) {
         std::cout << "Actions: \n";
-        for(ActionCard i: actions)
+        for(T i: actions)
             std::cout << i << ' , ';
         std::cout << "Card " << card;
     }
@@ -35,7 +35,8 @@ void Player::discard(ActionCard card) {
     actionDeck.discard(card);
 }
 
-void Player::useActionCard(ActionCard cardValue) {
+template<typename T>
+void Player::useActionCard(T cardValue) {
     std::remove(actions.begin(), actions.end(), cardValue);
     actionDeck.discard(cardValue);
 }

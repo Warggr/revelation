@@ -1,42 +1,44 @@
 #include "agent.hpp"
-#include "state.hpp"
 #include "constants.hpp"
 #include <map>
+#include "iostream"
+
 
 class HumanAgent: public Agent {
     HumanAgent() {
         //name = input("Hi! Please enter your name: ")
     }
 
-    Character* chooseCharacter(const State& state) const {
+    character chooseCharacter(const State& state) const {
         for(uint i=0; i<NB_CHARACTERS; i++) 
-            if(state.aliveUnits[ myId ]){
-                std::cout << '[' << i << "]: " << state.aliveUnits[myId]->name << '\n';
+            if(&state.units[myId] != NULL){
+                std::cout << '[' << i << "]: " << state.units[myId]->name << '\n';
         }
+
         std::cout << "Enter which character to select: \n";
         int iSel = 0; std::cin >> iSel;
-        return state.aliveUnits[ myId ][iSel];
+        return state.units[myId][iSel];
     }
 
-    ActionOrResource getDrawAction(const State& state) const override {
+    ActionOrResource getDrawAction(const State& state) const {
         std::cout << "Choose [1] draw action or [2] draw resource: ";
         int iSel; std::cin >> iSel;
         return (iSel == 1) ? ActionOrResource::ACTION : ActionOrResource::RESOURCES;
     }
 
-    MoveDecision getMovement(const State& state) const override {
-        Character* charSel = chooseCharacter(state);
+    MoveDecision getMovement(const State& state) const {
+        character charSel = chooseCharacter(state);
         std::vector<position> possibleMovs = state.allMovementsForCharacter(charSel);
         for(int i = 0; i<possibleMovs.size(); i++)
             std::cout << '[' << i << "]: to " << possibleMovs[i] << '\n';
         std::cout << "Enter which position to select: \n";
         uint iSel; std::cin >> iSel;
         position movSel = possibleMovs[iSel];
-        return MoveDecision(charSel.position, movSel);
+        return MoveDecision(charSel.pos, movSel);
     }
 
     ActionDecision getAction(const State& state) const override {
-        ActionDecision ret(nullptr, nullptr, nullptr);
+        ActionDecision ret(nullptr, nullptr, nullptr, position(false, 0));
         std::vector<Card> cards = getMyPlayer(state).actions
         if(cards.size() == 0)
             return nullptr;
@@ -76,11 +78,9 @@ class HumanAgent: public Agent {
 };
 
 class SearchAgent: public Agent {
-
-
     SearchAgent(){
     };
-    int evaluateStep(myId, oldState, step){
+    int evaluateStep(int myId, State oldState, Step step){
         if(step.type == "atk":
             lostHP = step.kwargs[ "lostLife" ]
             minDistance = 30
@@ -169,7 +169,7 @@ class SearchAgent: public Agent {
                 stack.append( (newState, active[1] + [ None ], active[2] + evaluateStep( myId, state, step ), active[3]) ) // the "pass" option
                 //print("Appending to stack "pass"", len(stack))
                 cards = state.players[ myId ].actions
-                ret = ActionDecision(None, None, None)
+                ret = ActionDecision(None, None, None, position(false, 0))
                 //nbChildren = 0
                 for card in cards:
                     ret.card = card
