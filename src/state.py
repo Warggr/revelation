@@ -17,6 +17,8 @@ class BoardTile:
         return other.team == self.team and other.index == self.index
     def __repr__(self):
         return f't{self.team}-i{self.index}'
+    def serialize(self):
+        return [ self.team, self.index ]
 
 class Step(Serializable):
     def __init__(self, typ, **kwargs):
@@ -336,5 +338,6 @@ class State:
         return {
             "resourceDeck" : self.resDeck.sizeconfig(),
             "players" : [ player.serialize() for player in self.players ],
-            "board": [ [ (char.serialize() if char else None ) for char in row ] for row in self.board ]
+            "board": [ [ (tile.serialize() if not isEmpty(tile) else None ) for tile in row ] for row in self.board ],
+            "aliveUnits" : [ [ (char.serialize() if not isDead(char) else None ) for char in units ] for units in self.aliveUnits ]
         }
