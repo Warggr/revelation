@@ -10,30 +10,26 @@
 #include "deck.hpp"
 #include "constants.hpp"
 #include "initializer_list"
-#include
 
 class Player {
+    static constexpr std::initializer_list<ActionCard> startingAbilityDeck = { DEFENSE, DEFENSE, HARDATK, HARDATK, HARDATK, HARDATK, SOFTATK, SOFTATK, SOFTATK, SOFTATK };
     std::vector<ActionCard> abilityCheck;
     std::vector<ActionCard> actions;
-    std::vector<ActionCard> resources;
-    std::initializer_list<ActionCard> startingAbilityDeck;
+    std::vector<Faction> resources;
 
 public:
     Deck<ActionCard> actionDeck;
     Deck<ActionCard> resourceDeck;
-    Player(std::vector<ActionCard> abilitsyCheck);
+    Player(std::vector<ActionCard> abilityCheck);
 
-    template<typename T>
-    auto drawAction();
+    ActionCard drawAction();
 
-    template<typename T>
-    auto drawResource(Deck<T> resourceDeck);
+    Faction drawResource(Deck<Faction> resourceDeck);
 
-    template<typename T>
-    void discard(T card);
+    void discard(ActionCard card);
 
-    template<typename T>
-    void useActionCard(T cardValue);
+    void useActionCard(ActionCard cardValue);
 };
+
 
 #endif //REVELATION_PLAYER_HPP

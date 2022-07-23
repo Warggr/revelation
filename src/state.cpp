@@ -101,13 +101,13 @@ std::tuple<State*, Step> State::stepDraw(ActionOrResource decision) {
     //newState.players = newState.players.copy()
     //newState.players[self.iActive] = copy.copy(newState.players[self.iActive])
     newState->checkConsistency();
-    Faction cardDrawn;
+    std::variant<ActionCard, Faction> cardDrawn;
     if(decision == ACTION) {
-        cardDrawn = newState->players[iActive].drawAction<Faction>();
-        return { newState, Step("draw", "action", cardDrawn, newState->players[iActive].actionDeck.sizeconfig())};
+        cardDrawn = newState->players[iActive].drawAction();
+        return { newState, StepTwo("draw", "action", cardDrawn, newState->players[iActive].actionDeck.sizeconfig())};
     } else {
-        cardDrawn = newState->players[iActive].drawResource<Faction>(newState->resDeck);
-        return { newState, Step("draw", "resource", cardDrawn, newState->resDeck.sizeconfig())};
+        cardDrawn = newState->players[iActive].drawResource(newState->resDeck);
+        return { newState, StepTwo("draw", "resource", cardDrawn, newState->resDeck.sizeconfig())};
     }
 
 }
@@ -150,13 +150,8 @@ std::tuple<State*, Step> State::stepMov(MoveDecision decision) {
 
     if(&decision == NULL) {
         newState->timestep = MOVEDlast;
-        return { newState, Step("pass", "Did not move" ) };
+        return { newState, StepOne("pass", "Did not move" ) };
     } else {
-        /*for(int i = 0; i < this->board.size(); i++)
-            newState->board[i] = this->board[i];
-        for(int i = 0; i < this->units.size(); i++)
-            newState->units[i] = this->units[i];*/
-
         newState->checkConsistency();
         this->checkConsistency();
 
@@ -180,22 +175,20 @@ std::tuple<State*, Step> State::stepMov(MoveDecision decision) {
 
             assert(movedTile->team == this->iActive);
             moverTile = movedTile;
-            // TODO: unknown direction
             landingSpot = this->getNeighbour(landingSpot, Direction(3 - decision.moves[size]));
-
         }
         newState->checkConsistency();
 
-        return { newState, Step("move", decision.from, decision.to, this->getBoardFieldDeref(decision.from).uid, decision.moves, size )};
+        return { newState, StepThree("move", decision.from, decision.to, this->getBoardFieldDeref(decision.from)->uid, decision.moves, size )};
     }
 }
 
-std::tuple<State*, Step> State::stepAbil(AbilityDecision decision) {
+std::tuple<State*, Step> State::stepAbil(const AbilityDecision& decision) {
     this->timestep = MOVEDlast;
     State *newState = new State(this->board, this->units, this->players, this->resDeck, this->timestep, this->turnID);
     if(decision.type == "pass") {
         newState->timestep = ABILITYCHOSEN;
-        return { newState, Step("pass", "Abilities not implemented yet") };
+        return { newState, StepOne("pass", "Abilities not implemented yet") };
     } else {
         std::logic_error("Not implemented yet");
     }
@@ -206,12 +199,12 @@ std::tuple<State *, Step> State::stepAct(ActionDecision decision) {
     State* newState = this;
     newState->timestep = ACTED;
     if(&decision == NULL) {
-        return { newState, Step("pass", "No action chosen") };
+        return { newState, StepOne("pass", "No action chosen") };
     }
 
     newState->players[this->iActive].discard(decision.card);
-    int heroIndex = newState->getBoardField((decision.subjectPos)).index;
-    assert(newState->getBoardField(decision.subjectPos).team == this->iActive);
+    int heroIndex = newState->getBoardField((decision.subjectPos))->index;
+    assert(newState->getBoardField(decision.subjectPos)->team == this->iActive);
     character hero = newState->units[this->iActive][heroIndex];
     newState->checkConsistency();
     if(decision.card == DEFENSE) {
@@ -221,9 +214,9 @@ std::tuple<State *, Step> State::stepAct(ActionDecision decision) {
     } else {
         hero.turnAttacked = newState->turnID;
         int setLife = 0;
-        int victimIndex = newState->getBoardField(decision.objectPos).index;
+        int victimIndex = newState->getBoardField(decision.objectPos)->index;
 
-        assert(newState->getBoardField(decision.subjectPos).team == 1 - this->iActive);
+        assert(newState->getBoardField(decision.subjectPos)->team == 1 - this->iActive);
 
         character victim = newState->units[1- this->iActive][victimIndex];
         if(decision.card == SOFTATK) {
@@ -237,8 +230,6 @@ std::tuple<State *, Step> State::stepAct(ActionDecision decision) {
         if(victim.HP <= 0) {
             // TODO: units (aliveUnits) character array? -1 für pointer?
             // newState->units[1 - this->iActive] -= 1;
-
-
         }
     }
 
@@ -316,7 +307,7 @@ std::tuple<State *, Step> State::beginTurn() {
                     if(!dirty) {
                         dirty = true;
                     }
-                    ret->nbAliveUnits[ret->iActive][i] = clone;
+                    ret->units[ret->iActive][i] = clone;
                 }
         }
     }
@@ -324,11 +315,24 @@ std::tuple<State *, Step> State::beginTurn() {
     return std::make_tuple(ret, Step("beginturn"));
 }
 
-def allMovementsForCharacter(self, character : Character):
-if self.timestep == Timestep.MOVEDfirst and character.turnMoved == self.turnId:
-return []
-ret = []
-stack = [ (character.position, False, []) ]
+int State::allMovementsForCharacter(character hero) {
+    if(this->timestep == MOVEDfirst && hero.turnMoved == this->turnID)
+        return;
+    std::vector<character> ret;
+    std::vector<std::tuple<position, bool, std::vector<character>>> stack;
+
+    while(!stack.empty()) {
+        std::tuple<position, bool, std::vector<character>> val = stack.back();
+        stack.pop_back();
+
+        if(!std::get<1>(val)) {
+            if()
+        }
+    }
+
+
+}
+
 boardOfBools = [ [ False for i in range(FULL_BOARD_WIDTH) ] for j in range(2) ] # whether that field has already been passed in the current iteration or not
 while stack: # not empty
 (pos, secondPass, movs) = stack.pop()

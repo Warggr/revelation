@@ -35,7 +35,7 @@ public:
     std::tuple<State*, Step>  stepDraw(ActionOrResource decision);
     void checkConsistency();
     std::tuple<State*, Step> stepMov(MoveDecision decision);
-    std::tuple<State*, Step>  stepAbil(AbilityDecision decision);
+    std::tuple<State*, Step>  stepAbil(const AbilityDecision& decision);
     std::tuple<State*, Step> stepAct(ActionDecision decision);
     position getNeighbour(position pos, Direction dir);
     std::tuple<State*, Step> beginTurn();

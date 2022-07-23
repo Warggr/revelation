@@ -11,26 +11,56 @@
 #include "../cmake-build-debug/_deps/json-src/single_include/nlohmann/json.hpp"
 #include "position.hpp"
 #include "character.hpp"
+#include <variant>
 
 using json = nlohmann::json;
 
 class Step {
-    std::string type;
+    std::string typ;
+public:
+    Step(std::string typ) {
+        this->typ = typ;
+    }
+    json to_json(nlohmann::basic_json<> &j, const Step &step);
+};
+
+class StepOne : public Step{
+    std::string msg;
+
+public:
+    StepOne(std::string typ, std::string msg) : Step(typ) {
+        this->msg = msg;
+    }
+};
+
+class StepTwo : public Step {
     std::string clss;
-    ActionCard value;
+    std::variant<ActionCard, Faction> cardDrawn;
     std::tuple<int, int> size;
-    std::string message;
+
+public:
+    StepTwo(std::string typ, std::string clss, std::variant<ActionCard, Faction> cardDrawn, std::tuple<int, int> size) : Step(typ){
+        this->clss = clss;
+        this->cardDrawn = cardDrawn;
+        this->size = size;
+    }
+};
+
+class StepThree : public Step {
+    position from;
+    position to;
     char uid;
     std::vector<Direction> moves;
     int firstCOF;
 
 public:
-    position from;
-    position to;
-    Step(std::string type, std::string clss, ActionCard value, std::tuple<int, int> size);
-    Step(std::string type, std::string message);
-    Step(std::string type, position from, position to, char uid, std::vector<Direction> moves, int firstCOF);
-    json to_json(nlohmann::basic_json<> &j, const Step &step);
+    StepThree(std::string typ, position from, position to, char uid, std::vector<Direction> moves, int firstCOF) : Step(typ), from(from), to(to) {
+        this->from = from;
+        this->to = to;
+        this->moves = moves;
+        this->firstCOF = firstCOF;
+    }
 };
+
 
 #endif //REVELATION_STEP_HPP
