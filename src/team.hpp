@@ -2,8 +2,8 @@
 #define REVELATION_TEAM_HPP
 
 #include "string"
-#include "../cmake-build-debug/_deps/json-src/single_include/nlohmann/json.hpp"
 #include "character.hpp"
+#include "nlohmann/json.hpp"
 
 using json = nlohmann::json;
 class Team {

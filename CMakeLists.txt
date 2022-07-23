@@ -3,7 +3,7 @@ set(PROJECT_VERSION_MAJOR 1)
 set(PROJECT_VERSION_MINOR 0)
 set(PROJECT_VERSION_PATCH 0)
 set(PROJECT_VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH})
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 11)
 
 project(revelation VERSION ${PROJECT_VERSION} LANGUAGES CXX)
 
@@ -37,7 +37,7 @@ endif()
 
 #add interfaces
 add_library(project_warnings INTERFACE)
-add_library(project_options INTERFACE main.cpp main.h)
+add_library(project_options INTERFACE)
 
 if(NOT SanitizeType STREQUAL "None")
     target_compile_options(project_options INTERFACE -fsanitize=${SanitizeType})
@@ -101,39 +101,15 @@ if(ENABLE_CLANG_TIDY)
     endif()
 endif()
 
-#[[if(ENABLE_TESTING)
-    enable_testing()
-    find_package(Catch2 REQUIRED)
-    add_executable(tests main.cpp)
-    target_link_libraries(tests PRIVATE Catch2::Catch2)
-    list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
-    include(CTest)
-    include(Catch2)
-endif()]]
-
 #json serializer
 include(FetchContent)
 FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.10.5/json.tar.xz)
 FetchContent_MakeAvailable(json)
-add_executable(team src/team.cpp src/team.hpp)
-target_link_libraries(team PRIVATE nlohmann_json::nlohmann_json)
-add_executable(character src/character.cpp src/character.hpp)
-target_link_libraries(character PRIVATE nlohmann_json::nlohmann_json)
-add_executable(state src/state.cpp src/state.hpp)
-target_link_libraries(state PRIVATE nlohmann_json::nlohmann_json)
-add_executable(player src/player.cpp src/player.hpp)
-target_link_libraries(player PRIVATE nlohmann_json::nlohmann_json)
-add_executable(step src/step.cpp src/step.hpp)
-target_link_libraries(step PRIVATE nlohmann_json::nlohmann_json)
-
-set(WANTED_DEBUG_FLAGS "DBG_NONE" CACHE STRING "")
-
-set(RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+include_directories(PRIVATE ${CMAKE_BINARY_DIR}/_deps/json-src/include)
 
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-set(SOURCE_FILES main.cpp)
-add_executable(my_exec ${SOURCE_FILES})
+link_libraries(PRIVATE project_warning project_options)
 
 add_subdirectory(src)
 

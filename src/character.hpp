@@ -5,7 +5,7 @@
 
 #include "position.hpp"
 #include "constants.hpp"
-#include "../cmake-build-debug/_deps/json-src/single_include/nlohmann/json.hpp"
+#include "nlohmann/json.hpp"
 
 struct character {
 public:
