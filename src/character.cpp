@@ -19,6 +19,8 @@ character::character(uint8_t teampos, const char *name, short maxHP, short softA
     this->pos = position(0,0);
     this->turnMoved = NULL;
     this->turnAttacked = NULL;
+    this->defShieldHP = 0;
+    this->HP = maxHP;
 }
 
 json character::to_json(json& j, const character &character) const {
@@ -36,5 +38,39 @@ json character::to_json(json& j, const character &character) const {
     return j;
 }
 
+character* character::beginTurn() {
+    character* me = new character(this->teampos, this->name, this->maxHP, this->softAtk,this->hardAtk, this->mov,
+                                 this->rng, this->netWorth, this->flavor, this->team);
 
+    if(this->defShieldHP > 0) {
+        me->HP += 50;
+        me->defShieldHP = 0;
+    }
 
+    return me;
+}
+
+short character::takeDmg(bool isHard, short power) {
+    if(this->defShieldHP > 0) {
+        short shielded = fmin(this->defShieldHP, power);
+        this->defShieldHP -= shielded;
+        power -= shielded;
+    }
+    this->HP -= power;
+    return power;
+}
+
+short character::getAtk(bool isHard, short turnID) {
+    if(this->turnAttacked == turnID - 1) {
+        return 10;
+    } else if(isHard) {
+        return this->hardAtk;
+    } else {
+        return this->softAtk;
+    }
+}
+
+short character::buff() {
+    this->defShieldHP = this->maxHP;
+    return this->defShieldHP;
+}

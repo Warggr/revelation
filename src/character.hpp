@@ -26,22 +26,21 @@ public:
     short int maxAtk;
     int turnMoved;
     int turnAttacked;
+    short defShieldHP;
 
     character(uint8_t teampos, const char *name, short maxHP, short softAtk, short hardAtk, uint8_t mov,
               uint8_t rng, float netWorth, const char *flavor, int team);
-    uint8_t takeDmg(ActionCard atkType, uint8_t power);  /*{
-        HP -= power;
-        return power;
-    }*/
+    uint8_t takeDmg(ActionCard atkType, uint8_t power);
 
-    short buff(){
-        //tempHP += maxHP;
-       return HP += 50;
-    }
+    short buff();
 
-    std::tuple<State, Step> beginTurn();
+    character* beginTurn();
 
     nlohmann::json to_json(nlohmann::json &j, const character &character) const;
+
+    short getAtk(bool isHard, short turnID);
+
+    short takeDmg(bool isHard, short power);
 };
 
 #endif //REVELATION_CHARACTER_HPP

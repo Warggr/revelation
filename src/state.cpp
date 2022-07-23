@@ -288,7 +288,6 @@ json State::to_json(nlohmann::basic_json<> &j, const State &state) {
     for(int i = 0; i < this->board.size(); i++) {
         j.at("players").insert(j.at("characters").begin(), board[i].to_json());
     }
-
     return j;
 }
 
