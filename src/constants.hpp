@@ -31,10 +31,6 @@ enum ActionOrResource {
     ACTION = true, RESOURCES = false
 };
 
-enum Direction {
-    UP = 0, LEFT = 1, RIGHT = 2, DOWN = 3
-};
-
 struct AbilityDecision {
     std::string type;
 };
@@ -45,12 +41,15 @@ public:
     position subjectPos;
     position objectPos;
 
+    ActionDecision() = default;
     ActionDecision(ActionCard card, position subjectPos, position objectPos)
             : objectPos(objectPos), subjectPos(subjectPos) {
         this->card = card;
         this->subjectPos = subjectPos;
         this->objectPos = objectPos;
     }
+
+    static constexpr ActionDecision pass();
 
 };
 

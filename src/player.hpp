@@ -29,6 +29,8 @@ public:
     void discard(ActionCard card);
 
     void useActionCard(ActionCard cardValue);
+
+    const std::vector<ActionCard>& getActions() const { return actions; }
 };
 
 

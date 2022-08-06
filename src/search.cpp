@@ -68,15 +68,15 @@ unsigned pushChildStates(const StackFrame& stackFrame, SearchPolicy& putBack, co
                     newStackFrame.decisions.moves[i+1] = decision;
                 }
                 putBack.addChild( newStackFrame );
-                allPossibleMoves[ stateid ] = true;
+                allPossibleMoves.insert( stateid );
 
                 if(i != 2){
                     for(auto charSel : subState.units[ subState.iActive ]){
                         if(not isDead(charSel)){
-                            auto possibleMovs = subState.allMovementsForCharacter(charSel);
+                            auto possibleMovs = subState.allMovementsForCharacter(*charSel);
                             for(auto movSel : possibleMovs){
                                 std::array<MoveDecision, 2> newDecisions = decisions;
-                                newDecisions[i+1] = MoveDecision( charSel.pos, movSel[0], movSel[1] );
+                                newDecisions[i+1] = MoveDecision( charSel->pos, movSel[0], movSel[1] );
                                 auto [ newState, step ] = subState.stepMov( newDecisions[i+1] );
                                 heurVal += heuristic.evaluateStep( step );
 

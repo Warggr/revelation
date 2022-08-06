@@ -16,6 +16,7 @@ class Deck {
     static int seed;
 
 public:
+    Deck() = default;
     Deck(std::vector<T> drawPile, std::vector<T> discardPile, int seed);
     static Deck create(std::initializer_list<T> cards);
     void discard(T card);
@@ -23,4 +24,4 @@ public:
     std::tuple<int, int> sizeconfig();
 };
 
-#endif REVELATION_DECK_HPP
+#endif //REVELATION_DECK_HPP

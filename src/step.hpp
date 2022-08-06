@@ -8,7 +8,7 @@
 #include "string"
 #include "constants.hpp"
 #include "deck.hpp"
-#include "../cmake-build-debug/_deps/json-src/single_include/nlohmann/json.hpp"
+#include "nlohmann/json.hpp"
 #include "position.hpp"
 #include "character.hpp"
 #include <variant>
@@ -18,6 +18,7 @@ using json = nlohmann::json;
 class Step {
     std::string typ;
 public:
+    Step() = default;
     Step(std::string typ) {
         this->typ = typ;
     }
@@ -62,5 +63,8 @@ public:
     }
 };
 
+constexpr bool isPass(const Step& step){
+    return false; //TODO
+}
 
 #endif //REVELATION_STEP_HPP

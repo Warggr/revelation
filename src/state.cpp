@@ -124,19 +124,6 @@ void State::checkConsistency() {
     //TODO
 }
 
-position State::getNeighbour(position pos, Direction dir) {
-    if(dir == UP)
-        return position(pos.row - 1, pos.column);
-    if(dir == DOWN)
-        return position(pos.row + 1, pos.column);
-    if(dir == LEFT)
-        return position(pos.row, pos.column - 1);
-    if(dir == RIGHT)
-        return position(pos.row, pos.column + 1);
-    else
-        std::invalid_argument("Invalid direction!");
-}
-
 std::tuple<State*, Step> State::stepMov(MoveDecision decision) {
     this->checkConsistency();
     State *newState = new State(this->board, this->units, this->players, this->resDeck, this->timestep, this->turnID);
