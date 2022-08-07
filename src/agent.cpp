@@ -35,7 +35,7 @@ class HumanAgent: public Agent {
         return (iSel == 1) ? ActionOrResource::ACTION : ActionOrResource::RESOURCES;
     }
 
-    MoveDecision getMovement(const State& state) override {
+    MoveDecision getMovement(const State& state, unsigned int) override {
         const character& charSel = chooseCharacter(state);
         std::vector<MoveDecision> possibleMovs = state.allMovementsForCharacter(charSel);
         for(int i = 0; i<possibleMovs.size(); i++)

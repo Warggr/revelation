@@ -60,7 +60,7 @@ short character::takeDmg(bool isHard, short power) {
     return power;
 }
 
-short character::getAtk(bool isHard, short turnID) {
+short character::getAtk(bool isHard, short turnID) const {
     if(this->turnAttacked == turnID - 1) {
         return 10;
     } else if(isHard) {

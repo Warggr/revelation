@@ -12,14 +12,14 @@ struct MoveDecision {
     position from;
     position to;
     std::vector<Direction> moves;
+    MoveDecision() = default;
     MoveDecision(position from, position to, std::vector<Direction> moves): from(from), to(to), moves(std::move(moves)) {};
 
     static MoveDecision pass() { return { {}, {}, {} }; };
+    static bool isPass(const MoveDecision& decision){
+        return decision.moves.empty();
+    }
 };
-
-bool isPass(const MoveDecision& decision){
-    return decision.moves.empty();
-}
 
 //static_assert( isPass( MoveDecision::pass() ) );
 
@@ -29,9 +29,10 @@ protected:
 
     const Player& getMyPlayer(const State& state) const;
 public:
+    virtual ~Agent() = default;
     virtual ActionOrResource getDrawAction(const State& state) = 0;
     virtual void onBegin(const State& state) {};
-    virtual MoveDecision getMovement(const State& state) = 0;
+    virtual MoveDecision getMovement(const State& state, unsigned nb) = 0;
     virtual AbilityDecision getAbility(const State& state) { return {}; };
     virtual ActionDecision getAction(const State& state) = 0;
 };

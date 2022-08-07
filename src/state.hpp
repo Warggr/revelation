@@ -4,18 +4,20 @@
 #include "constants.hpp"
 #include "deck.hpp"
 #include "team.hpp"
-#include <vector>
-#include <tuple>
 #include "step.hpp"
 #include "agent.hpp"
 #include "character.hpp"
 #include "BoardTile.hpp"
 #include "nlohmann/json.hpp"
+#include <vector>
+#include <tuple>
 
 using json = nlohmann::json;
 
+using Board = std::array<std::array<BoardTile, FULL_BOARD_WIDTH>, 2>;
+
 class State {
-    std::vector<std::vector<BoardTile>> board;
+    Board board;
     std::vector<int> nbAliveUnits;
     Deck<Faction> resDeck;
     int turnID;
@@ -23,27 +25,28 @@ class State {
 public:
     Timestep timestep;
     uint8_t iActive;
-    std::array<character*, 6> units[2];
-    std::vector<Player> players;
+    std::array<std::array<character*, ARMY_SIZE>, 2> units;
+    std::array<Player, 2> players;
 
     State() = default;
-    State(std::vector<std::vector<BoardTile>> board, std::vector<std::vector<character>> units, std::vector<Player> players, Deck<Faction> resDeck, Timestep timestep, int turnID);
-    static State createStart(Team teams[2]);
-    BoardTile* getBoardField(position coords) const;
+    State(Board board, std::array<std::array<character*, ARMY_SIZE>, 2> units, std::array<Player, 2> players,
+          Deck<Faction> resDeck, Timestep timestep, int turnID);
+    static State createStart(std::array<Team, 2> teams);
+    const BoardTile& getBoardField(position coords) const;
     character* getBoardFieldDeref(position coords) const;
-    void setBoardField(position coords, BoardTile* value);
-    void setBoardFieldDeref(position coords, BoardTile* value);
+    void setBoardField(position coords, BoardTile value);
+    void setBoardFieldDeref(position coords, BoardTile value);
     bool isFinished() const;
-    std::tuple<State, Step> stepDraw(ActionOrResource decision) const;
+    std::tuple<State, uptr<DrawStep>> stepDraw(ActionOrResource decision) const;
     void checkConsistency() const;
-    std::tuple<State, Step> stepMov(MoveDecision decision) const;
-    std::tuple<State, Step> stepAbil(const AbilityDecision& decision) const;
-    std::tuple<State, Step> stepAct(ActionDecision decision) const;
-    std::tuple<State, Step> beginTurn() const;
-    std::tuple<State, Step> advance(Agent agent) const;
+    std::tuple<State, uptr<MoveStep>> stepMov(MoveDecision decision) const;
+    std::tuple<State, uptr<AbilityStep>> stepAbil(const AbilityDecision& decision) const;
+    std::tuple<State, uptr<ActionStep>> stepAct(ActionDecision decision) const;
+    std::tuple<State, uptr<BeginStep>> beginTurn() const;
+    std::tuple<State, uptr<Step>> advance(Agent& agent) const;
     std::vector<MoveDecision> allMovementsForCharacter(character character) const;
     std::map<character*, std::vector<character*>> allAttacks() const;
-    json to_json(nlohmann::basic_json<> &j, const State &state) const;
+    json to_json(nlohmann::basic_json<> &j) const;
 
     static State invalid() { State retVal; retVal.iActive = 3; return retVal; }
     inline static bool isInvalid(const State& state) { return state.iActive == 3; }

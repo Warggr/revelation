@@ -2,6 +2,8 @@
 #define REVELATION_SEARCH_HPP
 
 #include "state.hpp"
+#include "search/heuristic.hpp"
+#include <utility>
 
 struct DecisionList{
     ActionOrResource draw;
@@ -10,43 +12,76 @@ struct DecisionList{
     ActionDecision action;
 };
 
-class Heuristic {
+class ProgressLogger{
 public:
-    using Value = float;
-
-    virtual Value evaluateStep(int myId, const State& oldState, const Step& step) const = 0;
-    virtual Value evaluateMaxForState(int playerId, const State& state, unsigned short nbTurnsRemaining) const = 0;
+    virtual void enterTurn() = 0;
+    virtual void exitTurn() = 0;
+    virtual void enter(Timestep timestep, unsigned nbChildren) = 0;
+    virtual void exit(Timestep timestep) = 0;
+    virtual void message(const char* msg) const;
+    virtual void message(const char* msg, float nb) const;
 };
 
-struct StackFrame {
+struct SearchNode {
     State state;
     DecisionList decisions;
     Heuristic::Value heurVal;
 
-    StackFrame(const State& state, const DecisionList& decisions, float heurVal ):
-        state(state), decisions(decisions), heurVal(heurVal)
+    SearchNode(State state, DecisionList decisions, float heurVal ):
+        state(std::move(state)), decisions(std::move(decisions)), heurVal(heurVal)
         {};
-    StackFrame copy(const State& newState, Heuristic::Value heuristicIncrement) const {
-        return StackFrame( newState, decisions, heurVal + heuristicIncrement );
+    [[nodiscard]] SearchNode copy(State newState, Heuristic::Value heuristicIncrement) const {
+        return { std::move(newState), decisions, heurVal + heuristicIncrement };
     }
+};
+
+template<typename T>
+class Container{
+public:
+    virtual void addChild(const T& child) = 0;
+    virtual bool hasChildren() = 0;
+    virtual T popChild() = 0;
+};
+
+class SearchPolicy;
+
+class SearchAgent: public Agent {
+    SearchPolicy* searchPolicy;
+    DecisionList plans;
+public:
+    ActionOrResource getDrawAction(const State& state) override { return plans.draw; }
+    MoveDecision getMovement(const State& state, unsigned nb) override { return plans.moves[nb]; }
+    AbilityDecision getAbility(const State& state) override { return plans.ability; }
+    ActionDecision getAction(const State& state) override { return plans.action; }
+
+    void onBegin(const State &state) override;
 };
 
 class SearchPolicy {
 protected:
-    bool finished = false;
+    DecisionList bestMoves;
+    State bestState;
+    Heuristic::Value maxHeur, worstOpponentsHeuristic;
 public:
-    bool isFinished() const { return finished; }
-    virtual SearchPolicy* enterOpponentsTurn() = 0;
-    virtual SearchPolicy* enterOwnTurn(){
-        return nullptr; // depth policies by default do not allow simulating my own turn after the opponent's simulation
+    /* SearchPolicy specifies the search-node container (e.g. LIFO stack or priority queue) */
+    virtual Container<SearchNode>& getContainer() = 0;
+    void planAhead(const State& state, ProgressLogger& logger, Heuristic::Value maxHeurAllowed = std::numeric_limits<float>::max());
+    virtual void addEndState(State state, const DecisionList& decisions, Heuristic::Value heurVal){
+        if(heurVal > maxHeur){
+            bestMoves = decisions;
+            bestState = std::move(state);
+            maxHeur = heurVal;
+        }
     }
-    virtual std::tuple<unsigned short, unsigned short> asTuple() = 0;
-    virtual void addChild(const StackFrame& child) = 0;
-    virtual bool hasChildren() const = 0;
-    virtual StackFrame popChild() = 0;
+    virtual std::tuple<State, DecisionList, Heuristic::Value> getResults() {
+        return std::make_tuple(bestState, bestMoves, maxHeur);
+    }
+
+    virtual std::tuple<unsigned, unsigned> asTuple() = 0;
+    /* Callbacks that some implementations use */
     virtual void informNbChildren(unsigned int nbChildren, Timestep timestepLevel){ (void)nbChildren; (void)timestepLevel; }
 };
 
-unsigned int pushChildStates(const StackFrame& stackFrame, SearchPolicy& putback, const Heuristic& heuristic);
+unsigned int pushChildStates(const SearchNode& stackFrame, Container<SearchNode>& putback /*, const Heuristic& heuristic*/ );
 
 #endif //REVELATION_SEARCH_HPP

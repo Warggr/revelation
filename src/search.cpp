@@ -9,6 +9,60 @@
 #include <iostream>
 #include <queue>
 #include <limits>
+#include <utility>
+
+void SearchAgent::onBegin(const State &state) {
+    ProgressLogger* logger; //TODO
+    searchPolicy->planAhead(state, *logger);
+    State newState; Heuristic::Value heurVal;
+    std::tie(newState, plans, heurVal) = searchPolicy->getResults();
+}
+
+void SearchPolicy::planAhead(const State& startState, ProgressLogger& logger, Heuristic::Value maxHeurAllowed){
+    /*
+    Constructs all descendants of @param state up to a level defined by @param depthPolicy.
+    Specify @param maxHeurAllowed if you want the function to return directly if it reaches a certain heuristic.
+    */
+    //searchPolicy->getLogger().enterTurn();
+    //nbPaths = 0
+    maxHeur = std::numeric_limits<float>::min();
+    worstOpponentsHeuristic = std::numeric_limits<float>::max();
+
+    Container<SearchNode>& container = getContainer();
+    container.addChild( SearchNode(startState, DecisionList(), 0) );
+
+    while(container.hasChildren()){
+        SearchNode node = container.popChild();
+
+        const State& state = node.state;
+        if(state.timestep != Timestep::ACTED){
+            unsigned nbChildren = pushChildStates(node, container);
+            //searchPolicy->getLogger().enter(state.timestep, nbChildren);
+            //searchPolicy->informNbChildren(nbChildren, state.timestep);
+        } else {
+            auto [ newState, step ] = state.beginTurn();
+            //searchPolicy->getLogger().enter(state.timestep, 1);
+            addEndState(newState, node.decisions, node.heurVal);
+
+/*            SearchPolicy* subDepth = enterOpponentsTurn();
+            if(subDepth){
+                auto [ nbTurnsMe, nbTurnsOpponent ] = subDepth->asTuple();
+                // we"re using state.iActive and not newState.iActive because in newState, iActive has already switched to the opponent
+                Heuristic::Value max_bound = node.heurVal + heuristic->evaluateMaxForState(newState, 1 - state.iActive, nbTurnsOpponent);
+                Heuristic::Value min_bound = node.heurVal - heuristic->evaluateMaxForState(newState, state.iActive, nbTurnsMe - 1);
+                if(min_bound >= maxHeurAllowed){ // we are in any case over the maximal allowed value
+                    //searchPolicy->exit();
+                    return std::make_tuple(State::invalid(), DecisionList(), min_bound);
+                }
+                if(max_bound <= maxHeur) // in any case, we already had a better solution
+                    continue;
+
+                subDepth->init(newState, node.decisions, node.heurVal);
+            }*/
+        }
+    }
+    //print(nbPaths, "possible futures found");
+}
 
 using HashKey = int;
 
@@ -25,7 +79,7 @@ HashKey hashBoard( const std::array<character*, 6>& units ){
     return retVal;
 }
 
-unsigned pushChildStates(const StackFrame& stackFrame, SearchPolicy& putBack, const Heuristic& heuristic){
+unsigned pushChildStates(const SearchNode& stackFrame, Container<SearchNode>& putBack, const Heuristic& heuristic){
     /*
     Creates all children states of state (the first element in the @param stackFrame) and adds them into the data structure @param putBack.
     @returns the number of children inserted this way.
@@ -35,7 +89,7 @@ unsigned pushChildStates(const StackFrame& stackFrame, SearchPolicy& putBack, co
     case Timestep::BEGIN:{
         auto decision = ActionOrResource::ACTION;
         auto [ newState, step ] = state.stepDraw( decision );
-        StackFrame newFrame = stackFrame.copy(newState, heuristic.evaluateStep( state.iActive, state, step ));
+        SearchNode newFrame = stackFrame.copy(newState, heuristic.evaluateStep( state.iActive, state, *step ));
         newFrame.decisions.draw = decision;
         putBack.addChild( newFrame );
         return 1;
@@ -48,12 +102,12 @@ unsigned pushChildStates(const StackFrame& stackFrame, SearchPolicy& putBack, co
         using SubStackFrame = std::tuple<State, std::array<MoveDecision, 2>, Heuristic::Value>;
 
         std::vector<SubStackFrame> oldStates;
-        oldStates.push_back( std::make_tuple( state, std::array<MoveDecision, 2>(), stackFrame.heurVal ) );
+        oldStates.emplace_back( state, std::array<MoveDecision, 2>(), stackFrame.heurVal );
         for(unsigned i = 0; i<3; i++){
             std::vector<SubStackFrame> newStates;
-            for( auto tuple : oldStates ){
-                const auto& [ subState, decisions, heurVal ] = tuple;
-                auto stateid = hashBoard(subState.units[subState.iActive]);
+            for( const auto& [ subState, decisions, heurValOld ] : oldStates ){
+                Heuristic::Value heurVal = heurValOld;
+                HashKey stateid = hashBoard(subState.units[subState.iActive]);
                 //print("with", [ printDecision(decision) if decision else None for decision in decisions ], ", stateid would be ", stateid);
                 if( allPossibleMoves.find(stateid) != allPossibleMoves.end() ){ //already in allPossibleMoves
                     //nbChildrenFiltered += 1
@@ -63,8 +117,8 @@ unsigned pushChildStates(const StackFrame& stackFrame, SearchPolicy& putBack, co
                 if(i != 2){
                     MoveDecision decision = MoveDecision::pass();
                     auto [ newSubState, step ] = subState.stepMov(decision);
-                    assert(isPass(step));
-                    newStackFrame = newStackFrame.copy( newSubState, heuristic.evaluateStep( state.iActive, newSubState, step ) );
+                    assert(step->isPass());
+                    newStackFrame = newStackFrame.copy( newSubState, heuristic.evaluateStep( state.iActive, newSubState, *step ) );
                     newStackFrame.decisions.moves[i+1] = decision;
                 }
                 putBack.addChild( newStackFrame );
@@ -74,13 +128,13 @@ unsigned pushChildStates(const StackFrame& stackFrame, SearchPolicy& putBack, co
                     for(auto charSel : subState.units[ subState.iActive ]){
                         if(not isDead(charSel)){
                             auto possibleMovs = subState.allMovementsForCharacter(*charSel);
-                            for(auto movSel : possibleMovs){
+                            for(const auto& movSel : possibleMovs){
                                 std::array<MoveDecision, 2> newDecisions = decisions;
-                                newDecisions[i+1] = MoveDecision( charSel->pos, movSel[0], movSel[1] );
+                                newDecisions[i+1] = movSel;
                                 auto [ newState, step ] = subState.stepMov( newDecisions[i+1] );
-                                heurVal += heuristic.evaluateStep( step );
+                                heurVal += heuristic.evaluateStep( state.iActive, newState, *step );
 
-                                newStates.push_back( std::make_tuple(newState, newDecisions, heurVal ) );
+                                newStates.emplace_back(newState, newDecisions, heurVal );
                             }
                         }
                     }
@@ -96,7 +150,7 @@ unsigned pushChildStates(const StackFrame& stackFrame, SearchPolicy& putBack, co
     case Timestep::MOVEDlast:{
         auto decision = AbilityDecision();
         auto [ newState, step ] = state.stepAbil( decision );
-        StackFrame retVal = stackFrame.copy( newState, heuristic.evaluateStep( state.iActive, state, step ) );
+        SearchNode retVal = stackFrame.copy( newState, heuristic.evaluateStep( state.iActive, state, *step ) );
         retVal.decisions.ability = decision;
         putBack.addChild( retVal );
         return 1;
@@ -106,7 +160,7 @@ unsigned pushChildStates(const StackFrame& stackFrame, SearchPolicy& putBack, co
         { // the "pass" decision
             ActionDecision passDecision = ActionDecision::pass();
             auto [ newState, step ] = state.stepAct(passDecision);
-            StackFrame newFrame = stackFrame.copy(newState, heuristic.evaluateStep( state.iActive, state, step ));
+            SearchNode newFrame = stackFrame.copy(newState, heuristic.evaluateStep( state.iActive, state, *step ));
             newFrame.decisions.action = passDecision;
             putBack.addChild( newFrame );
             //print("Appending to stack "pass"", len(stack));
@@ -119,11 +173,10 @@ unsigned pushChildStates(const StackFrame& stackFrame, SearchPolicy& putBack, co
             if(card == ActionCard::DEFENSE){
                 for(auto subject : state.units[ state.iActive ]){
                     if(not isDead(subject)){
-                        decision.subjectPos = subject.pos;
-                        decision.object = nullptr;
+                        decision.subjectPos = subject->pos;
                         auto [ newState, step ] = state.stepAct( decision );
-                        StackFrame retVal = stackFrame.copy( newState, heuristic.evaluateStep( state.iActive, state, step ) );
-                        retVal.ability = decision;
+                        SearchNode retVal = stackFrame.copy( newState, heuristic.evaluateStep( state.iActive, state, *step ) );
+                        retVal.decisions.action = decision;
                         putBack.addChild( retVal );
                         //print("Appending defense to stack", len(stack));
                         nbChildren += 1;
@@ -131,12 +184,12 @@ unsigned pushChildStates(const StackFrame& stackFrame, SearchPolicy& putBack, co
                 }
             } else {
                 auto allPossibleAttacks = state.allAttacks();
-                for(auto aggressor : allPossibleAttacks){
-                    for(auto victim : allPossibleAttacks[aggressor]){
-                        decision.subjectPos = state.units[ state.iActive ][ aggressor ].pos;
-                        decision.objectPos = state.units[ 1 - state.iActive ][ victim ].pos;
+                for(auto [ aggressor, victims ] : allPossibleAttacks){
+                    for(auto victim : victims){
+                        decision.subjectPos = state.units[ state.iActive ][ aggressor->teampos ]->pos;
+                        decision.objectPos = state.units[ 1 - state.iActive ][ victim->teampos ]->pos;
                         auto [ newState, step ] = state.stepAct( decision );
-                        StackFrame retVal = stackFrame.copy( newState, heuristic.evaluateStep( state.iActive, state, step ) );
+                        SearchNode retVal = stackFrame.copy( newState, heuristic.evaluateStep( state.iActive, state, *step ) );
                         retVal.decisions.action = decision;
                         putBack.addChild( retVal );
                         //print("Appending attack to stack", len(stack));
@@ -149,18 +202,182 @@ unsigned pushChildStates(const StackFrame& stackFrame, SearchPolicy& putBack, co
     }
 
     default:
-        throw std::exception("Timestep::ACTED (aka end of turns) are supposed to be handled differently");
+        throw std::exception(); //Timestep::ACTED (aka end of turns) are supposed to be handled differently
     }
 }
 
-class ProgressLogger{
+class Stack: public Container<SearchNode> {
+    struct MySearchNode {
+        SearchNode frame;
+        bool pass2;
+        MySearchNode(SearchNode frame, bool pass2): frame(std::move(frame)), pass2(pass2) {};
+    };
+    std::vector<MySearchNode> stack;
 public:
-    virtual void enterTurn() = 0;
-    virtual void exitTurn() = 0;
-    virtual void enter(Timestep timestep, unsigned nbChildren) = 0;
-    virtual void exit(Timestep timestep) = 0;
-    virtual void message(const char* msg) const {
-        std::cout << msg << '\n';
+    void addChild(const SearchNode& child) override {
+        stack.emplace_back( child, false );
+    }
+    bool hasChildren() override {
+        while(stack.back().pass2){
+            //logger->exit(stack.back().frame.timestep);
+            stack.pop_back();
+        }
+        return not stack.empty();
+    }
+    SearchNode popChild() override {
+        auto [ frame, pass2 ] = stack.back();
+        assert(!pass2);
+        return frame;
+    }
+};
+
+/*
+ * Abstract class for different kinds of DFS-like search policies.
+ * Classes inheriting from this can specify until which depth to go by overriding @method enterOpponentsTurn.
+ */
+class DepthFirstSearch : public SearchPolicy {
+    Stack stack;
+    ProgressLogger* logger;
+protected:
+    virtual SearchPolicy* enterOpponentsTurn() = 0;
+public:
+//    ProgressLogger& getLogger() override { return *logger; }
+    Container<SearchNode>& getContainer() override { return stack; }
+/*    std::tuple<unsigned, unsigned> asTuple() override {
+        auto [ nbTurnsOpponent, nbTurnsMe ] = opponentsTurn ? opponentsTurn->asTuple() : std::make_tuple(0, 0);
+        return std::make_tuple( nbTurnsMe + 1, nbTurnsOpponent );
+    }*/
+
+    void addEndState(State state, const DecisionList& decisions, Heuristic::Value heurVal) override {
+        /* This is depth-first, so we directly go deeper when we enter an end-of-turn state. */
+        SearchPolicy* opponentsTurn = enterOpponentsTurn();
+        if(opponentsTurn) {
+            logger->message("MINNING with cut-off at", worstOpponentsHeuristic);
+            opponentsTurn->planAhead(state, *logger, worstOpponentsHeuristic);
+            auto [ newState, _, heurDiff ] = opponentsTurn->getResults();
+            state = newState;
+
+            if (State::isInvalid(state)) { // this happens when the search was better than bestOpponentsHeuristic and was cut off
+                logger->message("Search cut off");
+                return;
+            }
+            if (heurDiff < worstOpponentsHeuristic) {
+                worstOpponentsHeuristic = heurDiff;
+            }
+            heurVal -= heurDiff;
+            logger->message("Search returned", heurDiff);
+        }
+        SearchPolicy::addEndState(state, decisions, heurVal);
+    }
+};
+
+class StaticDepthFirstSearch : public DepthFirstSearch {
+    SearchPolicy* opponentsTurn = nullptr;
+protected:
+    SearchPolicy* enterOpponentsTurn() override { return opponentsTurn; }
+public:
+    template<typename PolicyType>
+    PolicyType* setOpponentsTurn(PolicyType* t){ opponentsTurn = t; return t; }
+
+    std::tuple<unsigned, unsigned> asTuple() override {
+        unsigned my = 0, your = 0;
+        if(opponentsTurn)
+            std::tie(your, my) = opponentsTurn->asTuple();
+        return std::make_tuple(my + 1, your);
+    }
+};
+
+class AdaptiveDepthFirstSearch : public DepthFirstSearch {
+    constexpr static int usedLevelsMap[] = { 0, -1, 1, -1, 2, 3 };
+    constexpr static int nbUsedLevels = 4;
+
+    unsigned maxNodes;
+    unsigned nodes;
+    int currentLevel;
+    unsigned sumChildren[nbUsedLevels]{0};
+    unsigned nbChildren[nbUsedLevels]{0};
+    unsigned currentChildrenCount[nbUsedLevels]{0};
+
+    unsigned estimateNbBranches(){
+        unsigned nbBranches = currentChildrenCount[ currentLevel ];
+        for(int i = currentLevel; i != 0; i--){
+            nbBranches = ( nbBranches + sumChildren[ i ] ) * ( currentChildrenCount[ i - 1 ] / (nbChildren[i] + 1) ) + 1;
+        }
+        return nbBranches;
+    }
+public:
+    AdaptiveDepthFirstSearch(unsigned maxNodes = 1000000): maxNodes(maxNodes), nodes(1), currentLevel(-1) {}
+    void informNbChildren(unsigned nbChildren, Timestep timestep) override {
+        // print(timestepLevel.value, "->", AdaptiveDepthPolicy.usedLevelsMap[ timestepLevel.value ], "->", nbChildren);
+        int timestepLevel = usedLevelsMap[ timestepLevel ];
+        if(timestepLevel == currentLevel + 1){
+            //pass
+        } else if(timestepLevel == currentLevel){
+            sumChildren[ timestepLevel ] += currentChildrenCount[ timestepLevel ];
+            this->nbChildren[ timestepLevel ] += 1;
+        } else if(timestepLevel == currentLevel - 1){
+            sumChildren[ timestepLevel ] += sumChildren[ currentLevel ] + currentChildrenCount[ currentLevel ] + 1;
+            this->nbChildren[ timestepLevel ] += 1;
+            sumChildren[ currentLevel ] = 0;
+            this->nbChildren[ currentLevel ] = 0;
+        } else {
+            assert(false);
+        }
+        currentLevel = timestepLevel;
+        currentChildrenCount[ timestepLevel ] = nbChildren;
+    }
+    SearchPolicy* enterOpponentsTurn() override {
+        nodes = estimateNbBranches();
+        if(maxNodes <= 1.5 * (nodes * nodes)) return nullptr;
+        else return new AdaptiveDepthFirstSearch(maxNodes / nodes);
+    }
+    std::tuple<unsigned, unsigned> asTuple() override {
+        unsigned log = 0;
+        unsigned i = maxNodes;
+        while(i > 1){
+            i = i / nodes - 1;
+            log += 1;
+        }
+        return { log / 2 + log % 2, log / 2 };
+    }
+};
+
+class GreedyBestFirstSearchAgent: public SearchPolicy, public Container<SearchNode> {
+    struct MyQueueFrame{
+        SearchNode stackFrame;
+        unsigned depth;
+
+        MyQueueFrame( SearchNode frame, unsigned depth ): stackFrame(std::move(frame)), depth(depth) {};
+        bool operator<(const MyQueueFrame& other) const { return stackFrame.heurVal < other.stackFrame.heurVal; }
+    };
+    std::priority_queue<MyQueueFrame> queue;
+    unsigned maxDepth;
+    unsigned currentDepth = 0;
+public:
+    explicit GreedyBestFirstSearchAgent(unsigned maxDepth): maxDepth(maxDepth) {};
+
+    void addChild(const SearchNode& child) override {
+        queue.push( MyQueueFrame( child, currentDepth ) );
+    }
+    bool hasChildren() override { return not queue.empty(); }
+    SearchNode popChild() override {
+        auto [ node, depth ] = queue.top();
+        queue.pop();
+        currentDepth = depth;
+        return node;
+    }
+    Container<SearchNode>& getContainer() override { return *this; }
+
+    std::tuple<unsigned int, unsigned int> asTuple() override {
+        return { maxDepth / 2 + maxDepth % 2, maxDepth / 2 };
+    }
+    void addEndState(State state, const DecisionList& decisions, Heuristic::Value heurVal) override {
+        if(currentDepth == maxDepth){
+            SearchPolicy::addEndState(std::move(state), decisions, heurVal);
+        } else {
+            currentDepth++;
+            addChild({state, decisions, heurVal});
+        }
     }
 };
 
@@ -215,265 +432,10 @@ public:
     }
 };
 
-class SearchAgent: public Agent {
-    /*
-    Search up to a fixed depth described by a set of parenthesis.
-        - [] indicates that only my own turn will be considered
-        - [ X ] my own turn will be considered, then the opponent will choose their best state with maxDepth=X
-        - [ X, Y ] I will simulate my own turn, then the opponent will simulate their turn with maxDepth=X and return the result, then I will simulate the consequences of their turn with maxDepth=Y.
+void ProgressLogger::message(const char* msg) const {
+    std::cout << msg << '\n';
+}
 
-        For example, for a full-2-turns-ahead simulation, use maxDepth = [ [ [ [] ] ] ]
-    */
-    SearchAgent* opponentsTurn = nullptr;
-    SearchAgent* myTurn = nullptr;
-
-    DecisionList plans;
-public:
-    ~SearchAgent() { if(opponentsTurn) delete opponentsTurn; if(myTurn) delete myTurn; }
-    ActionOrResource getDrawAction(const State& state) override { return plans.draw; }
-    MoveDecision getMovement1(const State& state) override { return plans.moves[0]; }
-    MoveDecision getMovement2(const State& state) override { return plans.moves[1]; }
-    AbilityDecision getAbility(const State& state) override { return plans.ability; }
-    ActionDecision getAction(const State& state) override { return plans.action; }
-
-    virtual void addChild(const StackFrame& child) = 0;
-    virtual bool hasChildren() const = 0;
-
-    template<typename SearchAgentType>
-    SearchAgentType* addOpponent(){
-        opponentsTurn = new SearchAgentType();
-        return opponentsTurn;
-    }
-    template<typename SearchAgentType>
-    SearchAgentType* addMe(){
-        myTurn = new SearchAgentType();
-        return myTurn;
-    }
-    SearchAgent* getOpponent() const { return opponentsTurn; }
-    SearchAgent* getMe() const { return myTurn; }
-
-    SearchAgent* enterOpponentsTurn() { return opponentsTurn; }
-    SearchAgent* enterOwnTurn() { return myTurn; }
-
-    std::tuple<unsigned, unsigned> asTuple() {
-        unsigned myTurns = 1, opponentsTurns = 0;
-        if(opponentsTurn){
-            unsigned opp, me;
-            std::tie(opp, me) = opponentsTurns->asTuple();
-            myTurns += me;
-            opponentsTurns += opp;
-            if(myTurn){
-                std::tie(me, opp) = myTurn->asTuple();
-                myTurns += me;
-                opponentsTurns += opp;
-            }
-        }
-        return std::make_tuple( myTurns, opponentsTurns );
-    }
-};
-
-class GreedyBestFirstSearchAgent: public SearchAgent{
-    struct MyQueueFrame{
-        StackFrame stackFrame;
-        unsigned depth;
-
-        MyQueueFrame( StackFrame frame, unsigned depth ): stackFrame(frame), depth(depth) {};
-        bool operator<(const MyQueueFrame& other) const { return stackFrame.heurVal < other.stackFrame.heurVal; }
-    };
-
-    std::priority_queue<MyQueueFrame> queue;
-
-    void addChild(const StackFrame& child) override {
-        queue.push( MyQueueFrame( child, 0 ) ); //TODO depth
-    }
-    bool hasChildren() const override { return not queue.empty(); }
-};
-
-class DepthFirstSearchAgent: public SearchAgent {
-    std::vector<StackFrame> stack;
-public:
-    void addChild(const StackFrame& child) override { stack.push_back(child); }
-    bool hasChildren() const override { return not stack.empty(); }
-
-    std::tuple<State, Heuristic::Value> planAhead(const State& state, const DepthPolicy& depthPolicy, const ProgressLogger& logger, Heuristic::Value maxHeurAllowed = std::numeric_limits<float>().max()){
-        /*
-        Constructs all descendants of @param state. up to a level defined by @param depthPolicy.
-        Selects the one that is best for the active player (defined by state.iActive);
-        Returns a tuple (state, decisions, heuristic) with the bext future state, the decisions that led to it, and the heuristic of that state.
-
-        Specify @param maxHeurAllowed if(you want the function to return directly if(it reaches a certain heuristic.
-        */
-        logger.enterTurn();
-        //nbPaths = 0
-        DecisionList bestMoves;
-        State bestState;
-        Heuristic::Value maxHeur = std::numeric_limits<float>().min(), worstOpponentsHeuristic = std::numeric_limits<float>().max();
-        depthPolicy.addChild( StackFrame(state, DecisionList(), 0) );
-        while(depthPolicy.hasChildren()){
-            StackFrame frame = stack.back(); stack.pop_back();
-            if(frame.pass2){
-                logger.exit(state.timestep);
-                continue;
-            } else {
-                frame.pass2 = true;
-                stack.push_back(frame);
-            }
-
-            const State& state = frame.state;
-            if(state.timestep != Timestep::ACTED){
-                nbChildren = pushChildStates(frame, stack, stateCache);
-                logger.enter(state.timestep, nbChildren);
-                depthPolicy.informNbChildren(nbChildren, state.timestep);
-            } else {
-                (newState, step) = state.beginTurn();
-                logger.enter(state.timestep, 1);
-
-                DepthPolicy* subDepth = depthPolicy.enterOpponentsTurn();
-                if(subDepth != nullptr){
-                    auto [ nbTurnsMe, nbTurnsOpponent ] = subDepth->asTuple();
-                    // we"re using state.iActive and not newState.iActive because in newState, iActive has already switched to the opponent
-                    Heuristic::Value max_bound = frame.heurVal + Heuristic.evaluateMaxForState(newState, 1 - state.iActive, nbTurnsOpponent);
-                    Heuristic::Value min_bound = frame.heurVal - Heuristic.evaluateMaxForState(newState, state.iActive, nbTurnsMe);
-                    if(min_bound >= maxHeurAllowed){ // we are in any case over the maximal allowed value
-                        progressLogger.exitTurn();
-                        return std::make_tuple(State::invalid(), min_bound);
-                    }
-                    if(max_bound <= maxHeur) // in any case, we already had a better solution
-                        continue;
-
-                    progressLogger.message("MINNING with cut-off at", worstOpponentsHeuristic);
-                    auto [ newState, opponentsHeuristic ] = planAhead( newState, subDepth, worstOpponentsHeuristic, progressLogger );
-                    if(State::isInvalid(newState)){ // this happens when the search was better than bestOpponentsHeuristic and was cut off
-                        progressLogger.message("Search cut off");
-                        continue;
-                    }
-                    if(opponentsHeuristic < worstOpponentsHeuristic){
-                        worstOpponentsHeuristic = opponentsHeuristic;
-                    }
-                    frame.heurVal -= opponentsHeuristic;
-                    progressLogger.message("Search returned", opponentsHeuristic);
-
-                    subsubDepth = depthPolicy.enterOwnTurn();
-                    if(subsubDepth != nullptr){
-                        (newState, _decisions, heuristic) = planAhead( newState, subsubDepth, None, progressLogger );
-                        frame.heurVal += heuristic
-                    }
-                }
-                //nbPaths += 1
-
-                if(frame.heurVal > maxHeur){
-                    bestMoves = stackFrame.decisions;
-                    bestState = newState;
-                    maxHeur = frame.heurVal;
-                }
-            }
-        }
-        //print(nbPaths, "possible futures found");
-        progressLogger.exitTurn();
-        return std::make_tuple( bestState, bestMoves, maxHeur );
-    }
-};
-
-class AdaptiveDepthPolicy : public DepthPolicy{
-    constexpr static int usedLevelsMap[] = { 0, -1, 1, -1, 2, 3 };
-    constexpr static int nbUsedLevels = 4;
-
-    unsigned maxNodes;
-    unsigned nodes;
-    int currentLevel;
-    unsigned sumChildren[nbUsedLevels]{0};
-    unsigned nbChildren[nbUsedLevels]{0};
-    unsigned currentChildrenCount[nbUsedLevels]{0};
-public:
-    AdaptiveDepthPolicy(unsigned maxNodes = 1000000): maxNodes(maxNodes), nodes(1), currentLevel(-1) {}
-    void informNbChildren(unsigned nbChildren, Timestep timestep){
-        // print(timestepLevel.value, "->", AdaptiveDepthPolicy.usedLevelsMap[ timestepLevel.value ], "->", nbChildren);
-        timestepLevel = AdaptiveDepthPolicy.usedLevelsMap[ timestepLevel ];
-        if(timestepLevel == currentLevel + 1){
-            //pass
-        } else if(timestepLevel == currentLevel){
-            sumChildren[ timestepLevel ] += currentChildrenCount[ timestepLevel ];
-            nbChildren[ timestepLevel ] += 1;
-        } else if(timestepLevel == currentLevel - 1){
-            sumChildren[ timestepLevel ] += sumChildren[ currentLevel ] + currentChildrenCount[ currentLevel ] + 1;
-            nbChildren[ timestepLevel ] += 1;
-            sumChildren[ currentLevel ] = 0;
-            nbChildren[ currentLevel ] = 0;
-        } else {
-            assert(false);
-        }
-        currentLevel = timestepLevel;
-        currentChildrenCount[ timestepLevel ] = nbChildren;
-    }
-    unsigned estimateNbBranches(){
-        // print("currentChildrenCount:", currentChildrenCount);
-        // print("sumChildren:", sumChildren);
-        // print("nbChildren:", nbChildren);
-        // print("Current level:", currentLevel);
-        unsigned nbBranches = currentChildrenCount[ currentLevel ];
-        for(int i = currentLevel; i != 0; i--){
-            // print(f"( {nbBranches} + {sumChildren[ i ]} ) * ( {currentChildrenCount[ i - 1 ]} / ({nbChildren[i]} + 1) )", end=");
-            nbBranches = ( nbBranches + sumChildren[ i ] ) * ( currentChildrenCount[ i - 1 ] / (nbChildren[i] + 1) ) + 1;
-            // print(f" =: {nbBranches}");
-        }
-        return nbBranches;
-    }
-    void enterOpponentsTurn() override {
-        //print("To enter or not to enter, that is the question...");
-        nodes = estimateNbBranches();
-        // print("MaxNodes", maxNodes, "at this depth there were", nodes);
-        if(maxNodes <= 1.5 * (nodes ** 2)) return nullptr;
-        else return AdaptiveDepthPolicy(maxNodes / nodes);
-    }
-    std::tuple<unsigned, unsigned> asTuple() override {
-        log = 0;
-        i = maxNodes;
-        while(i > 1){
-            i = i / nodes - 1;
-            log += 1;
-        }
-        return ( log / 2 + log % 2, log / 2 );
-    }
-};
-
-class PowerTimesToughnessHeuristic : public Heuristic {
-    Value evaluateMaxForState(const State& state, short playerId, unsigned short nbTurnsRemaining) const override {
-        myMaxAtk = 0;
-        for(auto unit : state.units[ playerId ]){ //units are sorted by max atk, so the first in the list is the one with the highest atk
-            if(not isDead(unit)){
-                myMaxAtk = unit.maxAtk;
-                break;
-            }
-        }
-        nbMaxDamage = myMaxAtk * nbTurnsRemaining;
-        heurVal = 0;
-        for(auto enemy : state.units[ 1 - playerId ]){
-            if(not isDead(unit)){
-                if(unit.HP < nbMaxDamage){
-                    heurVal += unit.maxAtk * ( unit.HP + unit.maxHP );
-                    nbMaxDamage -= unit.HP
-                } else {
-                    heurVal += unit.maxAtk * nbMaxDamage;
-                    break;
-                }
-            }
-        }
-        return heurVal;
-    }
-    Value evaluateStep( int myId, const State& oldState, const Step& step) const override {
-        if(step.type == "atk"){
-            obj = oldState.getBoardFieldDeref( step.kwargs["object"] );
-            ret = step.lostLife * obj.maxAtk;
-            if("delete" in step.kwargs){
-                ret += obj.maxAtk * obj.maxHP
-            }
-            return ret;
-        }
-        else if(step.type == "def")
-            return 50 * oldState.getBoardFieldDeref( step.kwargs["subject"] ).maxAtk;
-        else if(step.type == "move")
-            return -1;
-        else
-            return 0;
-    }
-};
+void ProgressLogger::message(const char* msg, float nb) const {
+    std::cout << msg << nb << '\n';
+}

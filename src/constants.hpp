@@ -32,7 +32,7 @@ enum ActionOrResource {
 };
 
 struct AbilityDecision {
-    std::string type;
+    bool isPass() const { return true; }
 };
 
 class ActionDecision {
@@ -42,15 +42,17 @@ public:
     position objectPos;
 
     ActionDecision() = default;
-    ActionDecision(ActionCard card, position subjectPos, position objectPos)
-            : objectPos(objectPos), subjectPos(subjectPos) {
-        this->card = card;
-        this->subjectPos = subjectPos;
-        this->objectPos = objectPos;
+    constexpr ActionDecision(ActionCard card, position subjectPos, position objectPos)
+            : card(card), objectPos(objectPos), subjectPos(subjectPos) {}
+
+    constexpr bool isPass() const {
+        return card==ActionCard::DEFENSE and subjectPos == position(1, 1) and objectPos == position(1, 1);
     }
-
-    static constexpr ActionDecision pass();
-
+    static constexpr ActionDecision pass(){
+        return { ActionCard::DEFENSE, {1, 1}, {1, 1} };
+    }
 };
+
+static_assert(ActionDecision::pass().isPass() );
 
 #endif //REVELATION_CONSTANTS_HPP

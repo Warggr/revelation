@@ -1,11 +1,12 @@
 #include "player.hpp"
-#include "Deck.hpp"
-#include <iostream>
+#include "deck.hpp"
 #include "constants.hpp"
+#include <iostream>
+#include <algorithm>
 
-Player::Player(std::vector<ActionCard> abilityCheck): actionDeck(actionDeck), resourceDeck(resourceDeck) {
+Player::Player(std::vector<ActionCard> abilityCheck): actionDeck(actionDeck) {
     this->abilityCheck = abilityCheck;
-    this->actionDeck = Deck<ActionCard>::create(this->startingAbilityDeck);
+    this->actionDeck = Deck<ActionCard>::create(startingAbilityDeck);
 }
 
 ActionCard Player::drawAction() {

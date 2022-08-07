@@ -1,38 +1,32 @@
-import asyncio
-import pathlib
-import datetime
-import json as JSONlib
-from threading import Thread, Lock
-from queue import Queue
-from websockets.server import serve
+#include "logger.hpp"
 
-from serialize import WSJSONEncoder
-from player import Player
-from state import Step
+/* class BaseLogger : public Logger {
+    std::array<Player, 2> players;
+    std::vector<Step*> steps;
+public:
+    BaseLogger(std::array<Player, 2> players) : players(players) {}
 
-class Logger:
-    def liveServer(self) -> 'Logger':
-        return LiveServerAndLogger(self)
-    def logToTerminal(self) -> 'Logger':
-        return PrintLogger(self)
-    def __enter__(self):
-        return self
-    def __exit__(self, type, value, traceback):
-        return
+    void addStep(Step* step) {
+        steps.push_back(step);
+    }
 
-class BaseLogger(Logger):
-    def __init__(self, players : tuple[Player, Player]):
-        self.players = players
-        self.steps : list[Step] = []
-    def addStep(self, step : Step):
-        self.steps.append(step)
-    def all(self):
-        return { "teams" : self.players, "steps" : self.steps }
-    def __exit__(self, type, value, traceback):
-        if type is None:
-            now = datetime.datetime.now()
-            file = open(now.strftime('%m.%d-%H:%M') + '-replay.json', 'x')
-            JSONlib.dump(f, self.all())
+    def all(self)
+
+    :
+    return { "teams" : self.players, "steps" : self.steps }
+
+    void exit() {
+        now = datetime.datetime.now()
+        file = open(now.strftime('%m.%d-%H:%M') + '-replay.json', 'x')
+        JSONlib.
+                dump(f, self
+                .
+
+                        all()
+
+        )
+    }
+}
 
 class Decorator(Logger):
     def __init__(self, parent):
@@ -99,3 +93,4 @@ class PrintLogger(Decorator):
     def addStep(self, step : Step):
         self.parent.addStep(step)
         print(step)
+*/

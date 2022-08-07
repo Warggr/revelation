@@ -109,7 +109,7 @@ include_directories(PRIVATE ${CMAKE_BINARY_DIR}/_deps/json-src/include)
 
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 
-link_libraries(PRIVATE project_warning project_options)
+#link_libraries(project_warnings project_options)
 
 add_subdirectory(src)
 

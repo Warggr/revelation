@@ -1,22 +1,14 @@
-/*from player import Player
-from team import Team
-from character import Character
-from constants import Timestep, FULL_BOARD_WIDTH, HALF_BOARD_WIDTH, Faction
-from card import Deck, ActionCard
-from serialize import Serializable
-from agent import ActionOrResource*/
-
 #include "team.hpp"
 #include "constants.hpp"
 #include "agent.hpp"
 #include "state.hpp"
-#include <assert.h>
+#include <cassert>
 #include "step.hpp"
 #include <memory>
-#include <tkDecls.h>
+//#include <tkDecls.h>
 #define REPEAT(x) x, x, x, x
 
-State::State(std::vector<std::vector<BoardTile>> board, std::vector<std::vector<character>> units, std::vector<Player> players, Deck<Faction> resDeck, Timestep timestep, int turnID) : resDeck(resDeck), board(board) {
+State::State(Board board, std::array<std::array<character*, ARMY_SIZE>, 2> units, std::array<Player, 2> players, Deck<Faction> resDeck, Timestep timestep, int turnID) : resDeck(resDeck), board(board) {
     this->board = board;
     this->nbAliveUnits.reserve(ARMY_SIZE * 2);
     this->players = players;
@@ -27,92 +19,88 @@ State::State(std::vector<std::vector<BoardTile>> board, std::vector<std::vector<
     this->turnID = turnID;
 }
 
-State State::createStart(Team teams[2]) {
-    std::vector<std::vector<character>> alive;
-    for(std::size_t i = 0; i < 2; i++ ) {
-        for(std::size_t j = 0; j < teams[i].characters.size(); j++) {
-            for(std::size_t k = 0; k < teams[i].characters[j].size(); k++) {
-                character ch = teams[i].characters[j].at(k);
-                ch.teampos = alive[i].size();
-                alive[i].push_back(ch);
-                ch.pos = position( j, k + 1 + HALF_BOARD_WIDTH);
-                ch.team = i;
+State State::createStart(std::array<Team, 2> teams) {
+    std::array<std::array<character*, ARMY_SIZE>, 2> alive;
+    for(int i = 0; i < 2; i++ ) {
+        for(int j = 0; j < 2; j++) {
+            for(int k = 0; k < ARMY_WIDTH; k++) {
+                auto* ch = new character( teams[i].characters[j].at(k) );
+                ch->teampos = alive[i].size();
+                alive[i][k] = ch;
+                ch->pos = position( j, k + 1 + HALF_BOARD_WIDTH);
+                ch->team = i;
             }
         }
     }
 
+    Board board;
     for(std::size_t i = 0; i < alive.size(); i++) {
-        auto sortLambda = [] (character const& one, character const& two) -> bool{
-            return one.maxAtk > two.maxAtk;
+        auto sortLambda = [] (character const* one, character const* two) -> bool{
+            return one->maxAtk > two->maxAtk;
         };
 
         std::sort(alive[i].begin(), alive[i].end(), sortLambda);
-        std::vector<character> characters = alive[i];
 
-        for(std::size_t j = 0; j < characters.size(); j++) {
-            characters[j].teampos = j;
-            board[characters[j].pos.row][characters[j].pos.column] = BoardTile(i, j);
+        for(int j = 0; j < ARMY_WIDTH; j++) {
+            character* ch = alive[i][j];
+            ch->teampos = j;
+            board[ch->pos.row][ch->pos.column] = BoardTile(i, j);
         }
     }
 
-    for(std::size_t i = 0; i < players.size(); i++) {
-        for(std::size_t j = 0; j < 2; j++) {
-            this->players[j].drawAction();
+    std::array<Player, 2> players;
+    for(int i = 0; i < 2; i++) {
+        for(auto & player : players) {
+            player.drawAction();
         }
     }
 
-    std::initializer_list<Faction> startingResources= { REPEAT(NONE), REPEAT(BLOOD), REPEAT(MERCURY), REPEAT(HORROR), REPEAT(SPECTRUM), REPEAT(ETHER), ETHER};
-    Deck<Faction> resDeck = Deck<Faction>::create(startingResources);
+    Deck<Faction> resDeck = Deck<Faction>::create({ REPEAT(BLOOD), REPEAT(MERCURY), REPEAT(HORROR), REPEAT(SPECTRUM), ETHER });
     return State(board, alive, players, resDeck, BEGIN, 0);
 }
 
-BoardTile* State::getBoardField(position coords) {
-    return &board[coords.row][coords.column];
+const BoardTile& State::getBoardField(position coords) const {
+    return board[coords.row][coords.column];
 }
 
-character* State::getBoardFieldDeref(position coords) {
-    BoardTile* ptr = this->getBoardField(coords);
-    if(ptr == NULL)
-        return nullptr;
-    else
-        return &this->units[ptr->team][ptr->index];
+character* State::getBoardFieldDeref(position coords) const {
+    const BoardTile& ptr = this->getBoardField(coords);
+    return this->units[ptr.team][ptr.index];
 }
 
-void State::setBoardField(position coords, BoardTile* value) {
-    BoardTile tmp = BoardTile(value->team, value->index);
-    board[coords.row][coords.column] = tmp;
+void State::setBoardField(position coords, BoardTile value) {
+    board[coords.row][coords.column] = value;
 }
 
-void State::setBoardFieldDeref(position coords, BoardTile* value) {
+void State::setBoardFieldDeref(position coords, BoardTile value) {
     this->setBoardField(coords, value);
-    if(&value != NULL)
-        this->units[value->team][value->index].pos = coords;
+    if(not BoardTile::isEmpty(value))
+        this->units[value.team][value.index]->pos = coords;
 }
 
-bool State::isFinished() {
+bool State::isFinished() const {
     return this->nbAliveUnits[0] == 0 || this->nbAliveUnits[1] == 0;
 }
 
-std::tuple<State*, Step> State::stepDraw(ActionOrResource decision) {
+std::tuple<State, uptr<DrawStep>> State::stepDraw(ActionOrResource decision) const {
     assert(timestep == BEGIN);
     this->checkConsistency();
-    State *newState = new State(this->board, this->units, this->players, this->resDeck, this->timestep, this->turnID);
-    newState->timestep = DISCARDED;
+    State newState(this->board, this->units, this->players, this->resDeck, this->timestep, this->turnID);
+    newState.timestep = DISCARDED;
     //newState.players = newState.players.copy()
     //newState.players[self.iActive] = copy.copy(newState.players[self.iActive])
-    newState->checkConsistency();
+    newState.checkConsistency();
     std::variant<ActionCard, Faction> cardDrawn;
     if(decision == ACTION) {
-        cardDrawn = newState->players[iActive].drawAction();
-        return { newState, StepTwo("draw", "action", cardDrawn, newState->players[iActive].actionDeck.sizeconfig())};
+        cardDrawn = newState.players[iActive].drawAction();
+        return { newState, std::make_unique<DrawStep>(cardDrawn, newState.players[iActive].actionDeck.sizeconfig()) };
     } else {
-        cardDrawn = newState->players[iActive].drawResource(newState->resDeck);
-        return { newState, StepTwo("draw", "resource", cardDrawn, newState->resDeck.sizeconfig())};
+        cardDrawn = newState.players[iActive].drawResource(newState.resDeck);
+        return { newState, std::make_unique<DrawStep>( cardDrawn, newState.resDeck.sizeconfig())};
     }
-
 }
 
-void State::checkConsistency() {
+void State::checkConsistency() const {
     /*for team in self.aliveUnits:
     for char in team:
     if char is not None and self.getBoardField( char.position ) is not char:
@@ -124,186 +112,168 @@ void State::checkConsistency() {
     //TODO
 }
 
-std::tuple<State*, Step> State::stepMov(MoveDecision decision) {
+std::tuple<State, uptr<MoveStep>> State::stepMov(MoveDecision decision) const {
     this->checkConsistency();
-    State *newState = new State(this->board, this->units, this->players, this->resDeck, this->timestep, this->turnID);
-    newState->checkConsistency();
+    State newState(this->board, this->units, this->players, this->resDeck, this->timestep, this->turnID);
+    newState.checkConsistency();
     if(this->timestep == DISCARDED)
-        newState->timestep = MOVEDfirst;
+        newState.timestep = MOVEDfirst;
     else if(this->timestep == MOVEDfirst)
-        newState->timestep = MOVEDlast;
+        newState.timestep = MOVEDlast;
     else
         throw std::invalid_argument(("Invalid timestep"));
 
-    if(&decision == NULL) {
-        newState->timestep = MOVEDlast;
-        return { newState, StepOne("pass", "Did not move" ) };
+    if(MoveDecision::isPass(decision)) {
+        newState.timestep = MOVEDlast;
+        uptr<MoveStep> u = std::make_unique<MoveStep>(MoveStep::pass());
+        return std::make_tuple( newState, std::move(u) );
     } else {
-        newState->checkConsistency();
+        newState.checkConsistency();
         this->checkConsistency();
 
-        BoardTile* moverTile = newState->getBoardField(decision.from);
-        character mover = newState->units[this->iActive][moverTile->index];
-        newState->units[this->iActive][moverTile->index] = mover;
-        mover.turnMoved = newState->turnID;
+        BoardTile moverTile = newState.getBoardField(decision.from);
+        character* mover = newState.units[this->iActive][moverTile.index];
+        newState.units[this->iActive][moverTile.index] = mover;
+        mover->turnMoved = newState.turnID;
 
-        newState->setBoardField(decision.from, NULL);
+        newState.setBoardFieldDeref(decision.from, BoardTile::empty());
 
         position landingSpot = decision.to;
-        int size = decision.moves.size();
-        while(1) {
-            BoardTile* movedTile = newState->getBoardField(landingSpot);
-            newState->setBoardField(landingSpot, moverTile);
-            newState->units[this->iActive][moverTile->index].pos = landingSpot;
+        unsigned size = decision.moves.size();
+        while(true) {
+            BoardTile movedTile = newState.getBoardField(landingSpot);
+            newState.setBoardFieldDeref(landingSpot, moverTile);
 
-            if(&movedTile == NULL)
+            if(BoardTile::isEmpty(movedTile))
                 break;
             size--;
 
-            assert(movedTile->team == this->iActive);
+            assert(movedTile.team == this->iActive);
             moverTile = movedTile;
-            landingSpot = this->getNeighbour(landingSpot, Direction(3 - decision.moves[size]));
+            landingSpot = getNeighbour(landingSpot, Direction(3 - decision.moves[size]));
         }
-        newState->checkConsistency();
+        newState.checkConsistency();
 
-        return { newState, StepThree("move", decision.from, decision.to, this->getBoardFieldDeref(decision.from)->uid, decision.moves, size )};
+        uptr<MoveStep> u = std::make_unique<MoveStep>(decision.from, decision.to, this->getBoardFieldDeref(decision.from)->uid, decision.moves, size );
+        return { newState, std::move(u) };
     }
 }
 
-std::tuple<State*, Step> State::stepAbil(const AbilityDecision& decision) {
-    this->timestep = MOVEDlast;
-    State *newState = new State(this->board, this->units, this->players, this->resDeck, this->timestep, this->turnID);
-    if(decision.type == "pass") {
-        newState->timestep = ABILITYCHOSEN;
-        return { newState, StepOne("pass", "Abilities not implemented yet") };
-    } else {
-        std::logic_error("Not implemented yet");
-    }
+std::tuple<State, uptr<AbilityStep>> State::stepAbil(const AbilityDecision& decision) const {
+    assert(this->timestep == MOVEDlast);
+    State newState(this->board, this->units, this->players, this->resDeck, this->timestep, this->turnID);
+    assert(decision.isPass());
+    newState.timestep = ABILITYCHOSEN;
+    return { newState, std::make_unique<AbilityStep>() };
 }
 
-std::tuple<State *, Step> State::stepAct(ActionDecision decision) {
+std::tuple<State, uptr<ActionStep>> State::stepAct(ActionDecision decision) const {
     assert(this->timestep == ABILITYCHOSEN);
-    State* newState = this;
-    newState->timestep = ACTED;
-    if(&decision == NULL) {
-        return { newState, StepOne("pass", "No action chosen") };
+    State newState(*this);
+    newState.timestep = ACTED;
+    if(decision.isPass()) {
+        return { newState, std::make_unique<ActionStep>(ActionStep::pass()) };
     }
 
-    newState->players[this->iActive].discard(decision.card);
-    int heroIndex = newState->getBoardField((decision.subjectPos))->index;
-    assert(newState->getBoardField(decision.subjectPos)->team == this->iActive);
-    character hero = newState->units[this->iActive][heroIndex];
-    newState->checkConsistency();
+    newState.players[this->iActive].discard(decision.card);
+    int heroIndex = newState.getBoardField((decision.subjectPos)).index;
+    assert(newState.getBoardField(decision.subjectPos).team == this->iActive);
+    character* hero = newState.units[this->iActive][heroIndex];
+    newState.checkConsistency();
     if(decision.card == DEFENSE) {
-        short newShieldHP = hero.buff();
-        //TODO: cardLost ist ein string?
-        return std::make_tuple(newState, Step("def", ));
+        short newShieldHP = hero->buff();
+        return std::make_tuple(newState, std::make_unique<ActionStep>( decision.card, decision.subjectPos, decision.objectPos, newShieldHP, 50 ));
     } else {
-        hero.turnAttacked = newState->turnID;
+        hero->turnAttacked = newState.turnID;
         int setLife = 0;
-        int victimIndex = newState->getBoardField(decision.objectPos)->index;
+        int victimIndex = newState.getBoardField(decision.objectPos).index;
+        uptr<ActionStep> step;
 
-        assert(newState->getBoardField(decision.subjectPos)->team == 1 - this->iActive);
+        assert(newState.getBoardField(decision.subjectPos).team == 1 - this->iActive);
 
-        character victim = newState->units[1- this->iActive][victimIndex];
+        character* victim = newState.units[1- this->iActive][victimIndex];
         if(decision.card == SOFTATK) {
-
+            setLife = victim->takeDmg(false, hero->softAtk);
+            step = std::make_unique<ActionStep>(decision.card, decision.subjectPos, decision.objectPos, setLife, hero->softAtk );
         } else if(decision.card == HARDATK) {
-
+            setLife = victim->takeDmg(true, hero->hardAtk);
+            step = std::make_unique<ActionStep>(decision.card, decision.subjectPos, decision.objectPos, setLife, hero->hardAtk );
         } else {
-            std::invalid_argument("decision.card is neither hard, soft, nor defense");
+            throw std::invalid_argument("decision.card is neither hard, soft, nor defense");
         }
 
-        if(victim.HP <= 0) {
-            // TODO: units (aliveUnits) character array? -1 für pointer?
-            // newState->units[1 - this->iActive] -= 1;
+        if(victim->HP <= 0) {
+            newState.setBoardField(decision.objectPos, BoardTile::empty());
+            newState.units[1 - this->iActive][ victim->teampos ] = DEAD_UNIT;
+            newState.nbAliveUnits[1 - this->iActive] -= 1;
+            step->del = true;
         }
+        newState.checkConsistency();
+        return std::make_tuple(newState, std::move(step));
     }
-
-    delete newState;
 }
 
-std::tuple<State, Step> State::beginTurn() {
+std::tuple<State, uptr<BeginStep>> State::beginTurn() const {
     this->checkConsistency();
     assert(this->timestep == ACTED);
-
-    State *ret = new State(this->board, this->units, this->players, this->resDeck, this->timestep, this->turnID);
-    ret->iActive--;
-    ret->timestep = BEGIN;
+    State ret(*this);
+    ret.iActive = 1 - ret.iActive;
+    ret.timestep = BEGIN;
     bool dirty = false;
-
-    for(int i = 0; i < ret->units[ret->iActive].size(); i++) {
-        character unit = ret->units[ret->iActive][i];
-        if(&unit != NULL) {
-            std::tuple<State, Step> clone = unit.beginTurn();
-            //TODO: tuple ?? wie vergleicht man die?
-            if(std::tie(clone.)) {
-
+    for(int i = 0; i < ARMY_SIZE; i++) {
+        character* unit = ret.units[ret.iActive][i];
+        if( not isDead(unit) ) {
+            character* clone = unit->beginTurn();
+            if(clone->uid != unit->uid) {
+                dirty = true;
+                ret.units[ret.iActive][i] = clone;
             }
         }
     }
+    // TODO invalidate and clone the board if dirty
+    ret.checkConsistency();
+    return std::make_tuple(ret, std::make_unique<BeginStep>());
 }
 
-std::tuple<State *, Step> State::advance(Agent agent) {
-    if(this->timestep == ACTED)
+std::tuple<State, uptr<Step>> State::advance(Agent& agent) const {
+    switch(this->timestep){
+    case ACTED:
         return this->beginTurn();
-    else if(this->timestep == BEGIN) {
-        ActionOrResource decision = agent.getDrawAction();
+    case BEGIN: {
+        ActionOrResource decision = agent.getDrawAction(*this);
         return this->stepDraw(decision);
     }
-    else if(this->timestep == DISCARDED or this->timestep == MOVEDfirst) {
-        MoveDecision decision = agent.getMovement();
+    case DISCARDED or this->timestep == MOVEDfirst: {
+        MoveDecision decision = agent.getMovement(*this, (timestep==DISCARDED ? 0 : 1));
         return this->stepMov(decision);
     }
-    else if(this->timestep == MOVEDlast) {
-        AbilityDecision decision = agent.getAbility();
+    case MOVEDlast: {
+        AbilityDecision decision = agent.getAbility(*this);
         return this->stepAbil(decision);
     }
-    if(this->timestep == ABILITYCHOSEN) {
-        ActionDecision decision = agent.getAction();
+    case ABILITYCHOSEN: {
+        ActionDecision decision = agent.getAction(*this);
         return this->stepAct(decision);
+    }
     }
 }
 
-json State::to_json(nlohmann::basic_json<> &j, const State &state) {
-    j = json {{"resourceDeck", resDeck.sizeconfig()}};
+json State::to_json(nlohmann::basic_json<> &j) const {
+    /*j = json {{"resourceDeck", resDeck.sizeconfig()}};
     j.push_back("players");
     for(int i = 0; i < this->players.size(); i++) {
-        j.at("players").insert(j.at("characters").begin(), players[i].to_json());
+        j.at("players").insert(j.at("characters").begin(), players[i].to_json(j));
     }
     j.push_back("board");
     for(int i = 0; i < this->board.size(); i++) {
         j.at("players").insert(j.at("characters").begin(), board[i].to_json());
     }
-    return j;
+    return j;*/
 }
 
-std::tuple<State *, Step> State::beginTurn() {
-    this->checkConsistency();
-    assert(this->timestep == ACTED);
-    State *ret = new State(this->board, this->units, this->players, this->resDeck, this->timestep, this->turnID);
-    ret->iActive = 1 - ret->iActive;
-    ret->timestep = BEGIN;
-    bool dirty = false;
-    for(int i = 0; i < ret->units[ret->iActive].size(); i++) {
-        character unit = ret->units[ret->iActive][i];
-        if( /*TODO */ ) {
-                character clone = unit.beginTurn();
-                if(clone.s_uid != unit.s_uid) {
-                    if(!dirty) {
-                        dirty = true;
-                    }
-                    ret->units[ret->iActive][i] = clone;
-                }
-        }
-    }
-    ret->checkConsistency();
-    return std::make_tuple(ret, Step("beginturn"));
-}
-
-int State::allMovementsForCharacter(character hero) {
+std::vector<MoveDecision> State::allMovementsForCharacter(character hero) const {
     if(this->timestep == MOVEDfirst && hero.turnMoved == this->turnID)
-        return;
+        return {};
     std::vector<character> ret;
     std::vector<std::tuple<position, bool, std::vector<character>>> stack;
 
@@ -312,13 +282,12 @@ int State::allMovementsForCharacter(character hero) {
         stack.pop_back();
 
         if(!std::get<1>(val)) {
-            if()
+            //TODO
         }
     }
-
-
 }
 
+/*
 boardOfBools = [ [ False for i in range(FULL_BOARD_WIDTH) ] for j in range(2) ] # whether that field has already been passed in the current iteration or not
 while stack: # not empty
 (pos, secondPass, movs) = stack.pop()
@@ -387,4 +356,4 @@ ret[ iChar ].append( tile.index )
 if ret[iChar] == []:
 del ret[iChar]
 return ret
-
+*/

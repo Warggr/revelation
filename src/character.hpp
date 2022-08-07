@@ -1,5 +1,3 @@
-//from serialize import Serializable
-
 #ifndef REVELATION_CHARACTER_HPP
 #define REVELATION_CHARACTER_HPP
 
@@ -30,7 +28,6 @@ public:
 
     character(uint8_t teampos, const char *name, short maxHP, short softAtk, short hardAtk, uint8_t mov,
               uint8_t rng, float netWorth, const char *flavor, int team);
-    uint8_t takeDmg(ActionCard atkType, uint8_t power);
 
     short buff();
 
@@ -38,7 +35,7 @@ public:
 
     nlohmann::json to_json(nlohmann::json &j, const character &character) const;
 
-    short getAtk(bool isHard, short turnID);
+    short getAtk(bool isHard, short turnID) const;
 
     short takeDmg(bool isHard, short power);
 };

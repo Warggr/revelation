@@ -19,10 +19,10 @@ void Deck<T>::discard(T card) {
 }
 
 template <typename T>
-static Deck<T> Deck<T>::create(std::initializer_list<T> cards) {
+Deck<T> Deck<T>::create(std::initializer_list<T> cards) {
     auto rng = std::default_random_engine {};
     std::shuffle(std::begin(cards), std::end(cards), rng);
-    seed = rand() % 100001;
+    int seed = rand() % 100001;
     return Deck(cards, std::vector<T>(), seed);
 }
 
@@ -42,6 +42,6 @@ T Deck<T>::draw() {
 }
 
 template <typename T>
-std::tuple<int, int> Deck<T>::sizeconfig() {
+std::tuple<int, int> Deck<T>::sizeconfig() const {
     return std::make_tuple(this->drawPile.size(), this->discardPile.size());
 }

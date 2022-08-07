@@ -12,42 +12,38 @@
 #include "position.hpp"
 #include "character.hpp"
 #include <variant>
+#include <memory>
 
 using json = nlohmann::json;
 
+template<typename T>
+using uptr = std::unique_ptr<T>;
+
 class Step {
-    std::string typ;
 public:
-    Step() = default;
-    Step(std::string typ) {
-        this->typ = typ;
-    }
-    json to_json(nlohmann::basic_json<> &j, const Step &step);
+    virtual json to_json(nlohmann::basic_json<> &j, const Step &step) = 0;
+    virtual bool isPass() const = 0;
 };
 
-class StepOne : public Step{
-    std::string msg;
-
+class BeginStep : public Step{
 public:
-    StepOne(std::string typ, std::string msg) : Step(typ) {
-        this->msg = msg;
-    }
+    bool isPass() const { return false; }
+    json to_json(nlohmann::basic_json<> &j, const Step &step) override;
 };
 
-class StepTwo : public Step {
-    std::string clss;
+class DrawStep : public Step {
     std::variant<ActionCard, Faction> cardDrawn;
     std::tuple<int, int> size;
-
 public:
-    StepTwo(std::string typ, std::string clss, std::variant<ActionCard, Faction> cardDrawn, std::tuple<int, int> size) : Step(typ){
-        this->clss = clss;
+    DrawStep(std::variant<ActionCard, Faction> cardDrawn, std::tuple<int, int> size){
         this->cardDrawn = cardDrawn;
         this->size = size;
     }
+    bool isPass() const override { return false; }
+    json to_json(nlohmann::basic_json<> &j, const Step &step) override;
 };
 
-class StepThree : public Step {
+class MoveStep : public Step {
     position from;
     position to;
     char uid;
@@ -55,16 +51,34 @@ class StepThree : public Step {
     int firstCOF;
 
 public:
-    StepThree(std::string typ, position from, position to, char uid, std::vector<Direction> moves, int firstCOF) : Step(typ), from(from), to(to) {
-        this->from = from;
-        this->to = to;
+    MoveStep(position from, position to, char uid, std::vector<Direction> moves, int firstCOF) : from(from), to(to), uid(uid) {
         this->moves = moves;
         this->firstCOF = firstCOF;
     }
+    static MoveStep pass() { return { {}, {}, '0', {}, 0 }; }
+    bool isPass() const override { return moves.empty(); }
+    json to_json(nlohmann::basic_json<> &j, const Step &step) override;
 };
 
-constexpr bool isPass(const Step& step){
-    return false; //TODO
-}
+class AbilityStep : public Step {
+public:
+    bool isPass() const override { return true; }
+    json to_json(nlohmann::basic_json<> &j, const Step &step) override;
+};
+
+class ActionStep: public Step {
+    ActionCard cardLost;
+    position subject, object;
+    unsigned int setHP;
+    unsigned int lostHP;
+public:
+    bool del = false;
+    constexpr ActionStep(ActionCard cardLost, position subject, position object, unsigned int setHP, int diffHP):
+        cardLost(cardLost), subject(subject), object(object), setHP(setHP), lostHP(diffHP) {};
+    bool isPass() const override { return lostHP == 0; }
+    json to_json(nlohmann::basic_json<> &j, const Step &step) override;
+
+    static constexpr ActionStep pass() { return { ActionCard::HARDATK, position(), position(), 0, 0 }; }
+};
 
 #endif //REVELATION_STEP_HPP

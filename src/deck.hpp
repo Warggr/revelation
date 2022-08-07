@@ -1,13 +1,12 @@
 #ifndef REVELATION_DECK_HPP
 #define REVELATION_DECK_HPP
 
-#pragma once
-
+#include "constants.hpp"
+#include <tuple>
 #include <forward_list>
 #include <random>
 #include <chrono>
 #include <initializer_list>
-#include "constants.hpp"
 
 template <typename T>
 class Deck {
@@ -21,7 +20,7 @@ public:
     static Deck create(std::initializer_list<T> cards);
     void discard(T card);
     T draw();
-    std::tuple<int, int> sizeconfig();
+    std::tuple<int, int> sizeconfig() const;
 };
 
 #endif //REVELATION_DECK_HPP
