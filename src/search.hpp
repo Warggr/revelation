@@ -3,7 +3,6 @@
 
 #include "state.hpp"
 #include "search/heuristic.hpp"
-#include <utility>
 
 struct DecisionList{
     ActionOrResource draw;
@@ -14,6 +13,7 @@ struct DecisionList{
 
 class ProgressLogger{
 public:
+    virtual ~ProgressLogger() = default;
     virtual void enterTurn() = 0;
     virtual void exitTurn() = 0;
     virtual void enter(Timestep timestep, unsigned nbChildren) = 0;
@@ -38,6 +38,7 @@ struct SearchNode {
 template<typename T>
 class Container{
 public:
+    virtual ~Container() = default;
     virtual void addChild(const T& child) = 0;
     virtual bool hasChildren() = 0;
     virtual T popChild() = 0;
@@ -49,10 +50,10 @@ class SearchAgent: public Agent {
     SearchPolicy* searchPolicy;
     DecisionList plans;
 public:
-    ActionOrResource getDrawAction(const State& state) override { return plans.draw; }
-    MoveDecision getMovement(const State& state, unsigned nb) override { return plans.moves[nb]; }
-    AbilityDecision getAbility(const State& state) override { return plans.ability; }
-    ActionDecision getAction(const State& state) override { return plans.action; }
+    ActionOrResource getDrawAction(const State&) override { return plans.draw; }
+    MoveDecision getMovement(const State&, unsigned nb) override { return plans.moves[nb]; }
+    AbilityDecision getAbility(const State&) override { return plans.ability; }
+    ActionDecision getAction(const State&) override { return plans.action; }
 
     void onBegin(const State &state) override;
 };
@@ -63,9 +64,10 @@ protected:
     State bestState;
     Heuristic::Value maxHeur, worstOpponentsHeuristic;
 public:
+    virtual ~SearchPolicy() = default;
     /* SearchPolicy specifies the search-node container (e.g. LIFO stack or priority queue) */
     virtual Container<SearchNode>& getContainer() = 0;
-    void planAhead(const State& state, ProgressLogger& logger, Heuristic::Value maxHeurAllowed = std::numeric_limits<float>::max());
+    void planAhead(const State& state, /*ProgressLogger& logger,*/ Heuristic::Value maxHeurAllowed = std::numeric_limits<float>::max());
     virtual void addEndState(State state, const DecisionList& decisions, Heuristic::Value heurVal){
         if(heurVal > maxHeur){
             bestMoves = decisions;

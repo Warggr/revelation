@@ -4,7 +4,7 @@ using json = nlohmann::json;
 char character::s_uid = 'a';
 
 character::character(uint8_t teampos, const char *name, short maxHP, short softAtk, short hardAtk, uint8_t mov,
-                     uint8_t rng, float netWorth, const char *flavor, int team) : uid(s_uid++), pos(pos) {
+                     uint8_t rng, float netWorth, const char *flavor, int team) : uid(s_uid++), pos(0, 0) {
     this->teampos = teampos;
     this->name = name;
     this->maxHP = maxHP;
@@ -16,24 +16,23 @@ character::character(uint8_t teampos, const char *name, short maxHP, short softA
     this->flavor = flavor;
     this->team = team;
     this->maxAtk = std::max(softAtk, hardAtk);
-    this->pos = position(0,0);
-    this->turnMoved = NULL;
-    this->turnAttacked = NULL;
+    this->turnMoved = -1;
+    this->turnAttacked = -1;
     this->defShieldHP = 0;
     this->HP = maxHP;
 }
 
-json character::to_json(json& j, const character &character) const {
-    j = json{{"name", character.name},
-             {"cid", character.uid},
-             {"maxHP", character.maxHP},
-             {"HP", character.HP},
-             {"softAtk", character.softAtk},
-             {"hardAtk", character.hardAtk},
-             {"mov", character.mov},
-             {"rng", character.rng},
-             {"netWorth", character.netWorth},
-             {"flavor", character.flavor}};
+json character::to_json(json& j) const {
+    j = json{{"name", name},
+             {"cid", uid},
+             {"maxHP", maxHP},
+             {"HP", HP},
+             {"softAtk", softAtk},
+             {"hardAtk", hardAtk},
+             {"mov", mov},
+             {"rng", rng},
+             {"netWorth", netWorth},
+             {"flavor", flavor}};
 
     return j;
 }
@@ -51,8 +50,9 @@ character* character::beginTurn() {
 }
 
 short character::takeDmg(bool isHard, short power) {
+    (void) isHard; //currently no difference between hard and soft damage
     if(this->defShieldHP > 0) {
-        short shielded = fmin(this->defShieldHP, power);
+        short shielded = std::min(this->defShieldHP, power);
         this->defShieldHP -= shielded;
         power -= shielded;
     }

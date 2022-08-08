@@ -10,13 +10,14 @@ protected:
     virtual Value evaluateMoveStep(int playerId, const State& oldState, const MoveStep& step) const = 0;
     virtual Value evaluateActionStep(int playerId, const State& oldState, const ActionStep& step) const = 0;
 public:
+    virtual ~Heuristic() = default;
     Value evaluateStep(int myId, const State& oldState, const Step& step) const;
     virtual Value evaluateMaxForState(int playerId, const State& state, unsigned short nbTurnsRemaining) const = 0;
 };
 
-class PowerTimesToughnessHeuristic : public Heuristic {
+class PowerTimesToughnessHeuristic final : public Heuristic {
 protected:
-    Value evaluateMaxForState(int playerId, const State& state, unsigned short nbTurnsRemaining) const override {
+    Value evaluateMaxForState(int playerId, const State& state, unsigned short nbTurnsRemaining) const final {
         int myMaxAtk = 0;
         for(auto unit : state.units[ playerId ]){ //units are sorted by max atk, so the first in the list is the one with the highest atk
             if(not isDead(unit)){
@@ -39,8 +40,8 @@ protected:
         }
         return heurVal;
     }
-    Value evaluateMoveStep(int playerId, const State& oldState, const MoveStep& step) const override;
-    Value evaluateActionStep(int playerId, const State& oldState, const ActionStep& step) const override;
+    Value evaluateMoveStep(int playerId, const State& oldState, const MoveStep& step) const final;
+    Value evaluateActionStep(int playerId, const State& oldState, const ActionStep& step) const final;
 };
 
 #endif //REVELATION_HEURISTIC_HPP

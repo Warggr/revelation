@@ -16,14 +16,13 @@ using json = nlohmann::json;
 
 class Player {
     static constexpr std::initializer_list<ActionCard> startingAbilityDeck = { DEFENSE, DEFENSE, HARDATK, HARDATK, HARDATK, HARDATK, SOFTATK, SOFTATK, SOFTATK, SOFTATK };
-    std::vector<ActionCard> abilityCheck;
     std::vector<ActionCard> actions;
     std::vector<Faction> resources;
 
 public:
     Deck<ActionCard> actionDeck;
-    Player() = default;
-    Player(std::vector<ActionCard> abilityCheck);
+//    Player() = default;
+    Player();
 
     ActionCard drawAction();
 

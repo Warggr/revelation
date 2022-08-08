@@ -43,7 +43,7 @@ public:
 
     ActionDecision() = default;
     constexpr ActionDecision(ActionCard card, position subjectPos, position objectPos)
-            : card(card), objectPos(objectPos), subjectPos(subjectPos) {}
+            : card(card), subjectPos(subjectPos), objectPos(objectPos) {}
 
     constexpr bool isPass() const {
         return card==ActionCard::DEFENSE and subjectPos == position(1, 1) and objectPos == position(1, 1);

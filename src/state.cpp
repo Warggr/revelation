@@ -2,17 +2,16 @@
 #include "constants.hpp"
 #include "agent.hpp"
 #include "state.hpp"
-#include <cassert>
 #include "step.hpp"
+#include <cassert>
 #include <memory>
 //#include <tkDecls.h>
 #define REPEAT(x) x, x, x, x
 
-State::State(Board board, std::array<std::array<character*, ARMY_SIZE>, 2> units, std::array<Player, 2> players, Deck<Faction> resDeck, Timestep timestep, int turnID) : resDeck(resDeck), board(board) {
-    this->board = board;
+State::State(Board board, std::array<std::array<character*, ARMY_SIZE>, 2> units, std::array<Player, 2> players,
+             Deck<Faction> resDeck, Timestep timestep, int turnID) :
+        board(board), resDeck(std::move(resDeck)), players(std::move(players)) {
     this->nbAliveUnits.reserve(ARMY_SIZE * 2);
-    this->players = players;
-    this->resDeck = resDeck;
     this->iActive = 0;
     this->timestep = timestep;
     this->units = units;
@@ -219,13 +218,13 @@ std::tuple<State, uptr<BeginStep>> State::beginTurn() const {
     State ret(*this);
     ret.iActive = 1 - ret.iActive;
     ret.timestep = BEGIN;
-    bool dirty = false;
+    //bool dirty = false;
     for(int i = 0; i < ARMY_SIZE; i++) {
         character* unit = ret.units[ret.iActive][i];
         if( not isDead(unit) ) {
             character* clone = unit->beginTurn();
             if(clone->uid != unit->uid) {
-                dirty = true;
+                //dirty = true;
                 ret.units[ret.iActive][i] = clone;
             }
         }
@@ -243,7 +242,8 @@ std::tuple<State, uptr<Step>> State::advance(Agent& agent) const {
         ActionOrResource decision = agent.getDrawAction(*this);
         return this->stepDraw(decision);
     }
-    case DISCARDED or this->timestep == MOVEDfirst: {
+    case DISCARDED:
+    case MOVEDfirst: {
         MoveDecision decision = agent.getMovement(*this, (timestep==DISCARDED ? 0 : 1));
         return this->stepMov(decision);
     }
@@ -255,6 +255,9 @@ std::tuple<State, uptr<Step>> State::advance(Agent& agent) const {
         ActionDecision decision = agent.getAction(*this);
         return this->stepAct(decision);
     }
+    case DREW: //currently DREW never happens
+    default: //shouldn't happen either
+        return std::make_tuple<State, uptr<Step>>({}, {});
     }
 }
 
@@ -269,6 +272,7 @@ json State::to_json(nlohmann::basic_json<> &j) const {
         j.at("players").insert(j.at("characters").begin(), board[i].to_json());
     }
     return j;*/
+    return j; //TODO
 }
 
 std::vector<MoveDecision> State::allMovementsForCharacter(character hero) const {
@@ -285,6 +289,7 @@ std::vector<MoveDecision> State::allMovementsForCharacter(character hero) const 
             //TODO
         }
     }
+    return {}; //TODO
 }
 
 /*

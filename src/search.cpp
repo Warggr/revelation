@@ -9,20 +9,20 @@
 #include <iostream>
 #include <queue>
 #include <limits>
-#include <utility>
 
 void SearchAgent::onBegin(const State &state) {
-    ProgressLogger* logger; //TODO
-    searchPolicy->planAhead(state, *logger);
+//    ProgressLogger* logger; //TODO
+    searchPolicy->planAhead(state /*, *logger*/);
     State newState; Heuristic::Value heurVal;
     std::tie(newState, plans, heurVal) = searchPolicy->getResults();
 }
 
-void SearchPolicy::planAhead(const State& startState, ProgressLogger& logger, Heuristic::Value maxHeurAllowed){
+void SearchPolicy::planAhead(const State& startState, /*ProgressLogger& logger,*/ Heuristic::Value maxHeurAllowed){
     /*
     Constructs all descendants of @param state up to a level defined by @param depthPolicy.
     Specify @param maxHeurAllowed if you want the function to return directly if it reaches a certain heuristic.
     */
+    (void) maxHeurAllowed; //TODO
     //searchPolicy->getLogger().enterTurn();
     //nbPaths = 0
     maxHeur = std::numeric_limits<float>::min();
@@ -36,7 +36,7 @@ void SearchPolicy::planAhead(const State& startState, ProgressLogger& logger, He
 
         const State& state = node.state;
         if(state.timestep != Timestep::ACTED){
-            unsigned nbChildren = pushChildStates(node, container);
+            /*unsigned nbChildren =*/ pushChildStates(node, container);
             //searchPolicy->getLogger().enter(state.timestep, nbChildren);
             //searchPolicy->informNbChildren(nbChildren, state.timestep);
         } else {
@@ -44,7 +44,7 @@ void SearchPolicy::planAhead(const State& startState, ProgressLogger& logger, He
             //searchPolicy->getLogger().enter(state.timestep, 1);
             addEndState(newState, node.decisions, node.heurVal);
 
-/*            SearchPolicy* subDepth = enterOpponentsTurn();
+          /*  SearchPolicy* subDepth = enterOpponentsTurn();
             if(subDepth){
                 auto [ nbTurnsMe, nbTurnsOpponent ] = subDepth->asTuple();
                 // we"re using state.iActive and not newState.iActive because in newState, iActive has already switched to the opponent
@@ -253,7 +253,7 @@ public:
         SearchPolicy* opponentsTurn = enterOpponentsTurn();
         if(opponentsTurn) {
             logger->message("MINNING with cut-off at", worstOpponentsHeuristic);
-            opponentsTurn->planAhead(state, *logger, worstOpponentsHeuristic);
+            opponentsTurn->planAhead(state, /* *logger,*/ worstOpponentsHeuristic);
             auto [ newState, _, heurDiff ] = opponentsTurn->getResults();
             state = newState;
 
@@ -309,7 +309,7 @@ public:
     AdaptiveDepthFirstSearch(unsigned maxNodes = 1000000): maxNodes(maxNodes), nodes(1), currentLevel(-1) {}
     void informNbChildren(unsigned nbChildren, Timestep timestep) override {
         // print(timestepLevel.value, "->", AdaptiveDepthPolicy.usedLevelsMap[ timestepLevel.value ], "->", nbChildren);
-        int timestepLevel = usedLevelsMap[ timestepLevel ];
+        int timestepLevel = usedLevelsMap[ timestep ];
         if(timestepLevel == currentLevel + 1){
             //pass
         } else if(timestepLevel == currentLevel){
@@ -390,6 +390,10 @@ public:
         for(unsigned i = 0; i < indent; i++) std::cout << "    ";
         std::cout << msg << '\n';
     }
+    void message( const char* msg, float x ) const override {
+        for(unsigned i = 0; i < indent; i++) std::cout << "    ";
+        std::cout << msg << x << '\n';
+    }
 };
 
 class ProgressBar : public ProgressLogger{
@@ -397,6 +401,7 @@ class ProgressBar : public ProgressLogger{
     std::vector<int> progress;
 public:
     void message( const char* ) const override {};
+    void message( const char*, float ) const override {};
     void enter(Timestep timestep, unsigned nbChildren) override {
         if(timestep == Timestep::DISCARDED){
             printf("[%4d\\   1]->", nbChildren);
@@ -416,7 +421,7 @@ public:
     }
     void exit(Timestep timestep) override {
         if(timestep == Timestep::DISCARDED or timestep == Timestep::ABILITYCHOSEN){
-            for(int i=0; i<13; i++) printf("\b"); // deleting my progress-frame
+            for(uint i=0; i<13; i++) printf("\b"); // deleting my progress-frame
             progress.pop_back();
         }
     }
@@ -425,7 +430,7 @@ public:
         progress = std::vector<int>();
     }
     void exitTurn() override {
-        for(int i = 0; i<13 * progress.size(); i++) printf("\b"); // deleting progress-frames for all states in the turn which were not exited yet
+        for(uint i = 0; i<13 * progress.size(); i++) printf("\b"); // deleting progress-frames for all states in the turn which were not exited yet
         fflush(stdout);
         progress = std::move(progressStack.back());
         progressStack.pop_back();

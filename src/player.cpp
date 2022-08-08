@@ -4,9 +4,9 @@
 #include <iostream>
 #include <algorithm>
 
-Player::Player(std::vector<ActionCard> abilityCheck): actionDeck(actionDeck) {
-    this->abilityCheck = abilityCheck;
-    this->actionDeck = Deck<ActionCard>::create(startingAbilityDeck);
+Player::Player() {
+//    this->abilityCheck = abilityCheck;
+    actionDeck = Deck<ActionCard>::create(startingAbilityDeck);
 }
 
 ActionCard Player::drawAction() {

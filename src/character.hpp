@@ -33,7 +33,7 @@ public:
 
     character* beginTurn();
 
-    nlohmann::json to_json(nlohmann::json &j, const character &character) const;
+    nlohmann::json to_json(nlohmann::json &j) const;
 
     short getAtk(bool isHard, short turnID) const;
 

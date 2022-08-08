@@ -31,9 +31,9 @@ protected:
 public:
     virtual ~Agent() = default;
     virtual ActionOrResource getDrawAction(const State& state) = 0;
-    virtual void onBegin(const State& state) {};
+    virtual void onBegin(const State&) {};
     virtual MoveDecision getMovement(const State& state, unsigned nb) = 0;
-    virtual AbilityDecision getAbility(const State& state) { return {}; };
+    virtual AbilityDecision getAbility(const State&) { return {}; };
     virtual ActionDecision getAction(const State& state) = 0;
 };
 

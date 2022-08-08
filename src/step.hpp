@@ -21,13 +21,14 @@ using uptr = std::unique_ptr<T>;
 
 class Step {
 public:
+    virtual ~Step() = default;
     virtual json to_json(nlohmann::basic_json<> &j, const Step &step) = 0;
     virtual bool isPass() const = 0;
 };
 
 class BeginStep : public Step{
 public:
-    bool isPass() const { return false; }
+    bool isPass() const override { return false; }
     json to_json(nlohmann::basic_json<> &j, const Step &step) override;
 };
 
@@ -66,7 +67,7 @@ public:
     json to_json(nlohmann::basic_json<> &j, const Step &step) override;
 };
 
-class ActionStep: public Step {
+class ActionStep final: public Step {
     ActionCard cardLost;
     position subject, object;
     unsigned int setHP;
@@ -75,10 +76,11 @@ public:
     bool del = false;
     constexpr ActionStep(ActionCard cardLost, position subject, position object, unsigned int setHP, int diffHP):
         cardLost(cardLost), subject(subject), object(object), setHP(setHP), lostHP(diffHP) {};
+    ~ActionStep() final = default;
     bool isPass() const override { return lostHP == 0; }
     json to_json(nlohmann::basic_json<> &j, const Step &step) override;
 
-    static constexpr ActionStep pass() { return { ActionCard::HARDATK, position(), position(), 0, 0 }; }
+    static /*constexpr*/ ActionStep pass() { return { ActionCard::HARDATK, position(), position(), 0, 0 }; }
 };
 
 #endif //REVELATION_STEP_HPP

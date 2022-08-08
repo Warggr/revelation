@@ -6,10 +6,11 @@
 
 class Logger {
 public:
-    Logger(std::array<Team, 2> teams) {};
+    Logger(std::array<Team, 2>) {};
+    virtual ~Logger();
     Logger* liveServer();
     Logger* logToTerminal();
-    virtual void addStep(uptr<Step>&& step) {};
+    virtual void addStep(uptr<Step>&&) {};
 };
 
 #endif //REVELATION_LOGGER_HPP

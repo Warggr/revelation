@@ -29,7 +29,7 @@ class HumanAgent: public Agent {
         return *state.units[myId][iSel];
     }
 
-    ActionOrResource getDrawAction(const State& state) override {
+    ActionOrResource getDrawAction(const State&) override {
         std::cout << "Choose [1] draw action or [2] draw resource: ";
         int iSel; std::cin >> iSel;
         return (iSel == 1) ? ActionOrResource::ACTION : ActionOrResource::RESOURCES;
@@ -38,7 +38,7 @@ class HumanAgent: public Agent {
     MoveDecision getMovement(const State& state, unsigned int) override {
         const character& charSel = chooseCharacter(state);
         std::vector<MoveDecision> possibleMovs = state.allMovementsForCharacter(charSel);
-        for(int i = 0; i<possibleMovs.size(); i++)
+        for(uint i = 0; i<possibleMovs.size(); i++)
             std::cout << '[' << i << "]: to " << possibleMovs[i].to << '\n';
         std::cout << "Enter which position to select: \n";
         uint iSel; std::cin >> iSel;
@@ -51,7 +51,7 @@ class HumanAgent: public Agent {
         const std::vector<ActionCard>& cards = getMyPlayer(state).getActions();
         if(cards.empty())
             return ActionDecision::pass();
-        for(int i=0; i<cards.size(); i++){
+        for(uint i=0; i<cards.size(); i++){
             std::cout << '[' << (i+1) << "]: " << cards[i] << '\n';
         }
         std::cout << "Choose a card, any card (or 0 to skip):\n";
