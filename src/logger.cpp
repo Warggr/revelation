@@ -1,5 +1,16 @@
 #include "logger.hpp"
 
+Logger::~Logger(){
+}
+
+Logger* Logger::liveServer(){
+    return this; //TODO
+}
+
+Logger* Logger::logToTerminal(){
+    return this; //TODO
+}
+
 /* class BaseLogger : public Logger {
     std::array<Player, 2> players;
     std::vector<Step*> steps;

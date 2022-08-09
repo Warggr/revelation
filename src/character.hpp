@@ -3,14 +3,13 @@
 
 #include "position.hpp"
 #include "constants.hpp"
-#include "nlohmann/json.hpp"
+#include "nlohmann/json_fwd.hpp"
 
 struct character {
-public:
-    int team;
+    int team = -1;
     static char s_uid;
     char uid;
-    uint8_t teampos;
+    uint8_t teampos = -1;
     const char* name;
     short int maxHP;
     short softAtk;
@@ -25,19 +24,20 @@ public:
     int turnMoved;
     int turnAttacked;
     short defShieldHP;
+    bool usesArcAttack;
 
-    character(uint8_t teampos, const char *name, short maxHP, short softAtk, short hardAtk, uint8_t mov,
-              uint8_t rng, float netWorth, const char *flavor, int team);
+    character(const char* name, short maxHP, short softAtk, short hardAtk, uint8_t mov,
+              uint8_t rng, float netWorth, bool usesArcAttack = false, const char* flavor = "");
 
     short buff();
 
     character* beginTurn();
 
-    nlohmann::json to_json(nlohmann::json &j) const;
-
     short getAtk(bool isHard, short turnID) const;
 
     short takeDmg(bool isHard, short power);
 };
+
+void to_json(nlohmann::json& j, const character& chr);
 
 #endif //REVELATION_CHARACTER_HPP

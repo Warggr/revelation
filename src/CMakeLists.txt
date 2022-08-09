@@ -1,13 +1,13 @@
-add_library(agent OBJECT agent.cpp)
-add_library(character OBJECT character.cpp)
-add_library(deck OBJECT deck.cpp)
-add_library(game OBJECT game.cpp)
-add_library(logger OBJECT logger.cpp)
-add_library(player OBJECT player.cpp)
-add_library(search OBJECT search.cpp)
-add_library(state OBJECT state.cpp)
-add_library(step OBJECT step.cpp)
-add_library(team OBJECT team.cpp)
-
-add_executable(revelation main.cpp)
-target_link_libraries(revelation PRIVATE agent character deck game logger player state step team)
+add_executable(revelation
+	main.cpp
+	agent.cpp
+	character.cpp
+	deck.cpp
+	game.cpp
+	json.cpp
+	logger.cpp
+	player.cpp
+	search.cpp
+	state.cpp
+	search/heuristic.cpp
+)

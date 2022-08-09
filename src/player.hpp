@@ -34,7 +34,7 @@ public:
 
     const std::vector<ActionCard>& getActions() const { return actions; }
 
-    json to_json(nlohmann::basic_json<> &j) const;
+    friend void to_json(json&j, const Player& player);
 };
 
 #endif //REVELATION_PLAYER_HPP

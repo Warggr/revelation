@@ -1,11 +1,12 @@
 #include "character.hpp"
+#include "nlohmann/json.hpp"
 
 using json = nlohmann::json;
 char character::s_uid = 'a';
 
-character::character(uint8_t teampos, const char *name, short maxHP, short softAtk, short hardAtk, uint8_t mov,
-                     uint8_t rng, float netWorth, const char *flavor, int team) : uid(s_uid++), pos(0, 0) {
-    this->teampos = teampos;
+character::character(const char *name, short maxHP, short softAtk, short hardAtk, uint8_t mov,
+                     uint8_t rng, float netWorth, bool usesArcAttack, const char *flavor) : uid(s_uid++),
+                     pos(0, 0), usesArcAttack(usesArcAttack) {
     this->name = name;
     this->maxHP = maxHP;
     this->softAtk = softAtk;
@@ -14,7 +15,6 @@ character::character(uint8_t teampos, const char *name, short maxHP, short softA
     this->rng = rng;
     this->netWorth = netWorth;
     this->flavor = flavor;
-    this->team = team;
     this->maxAtk = std::max(softAtk, hardAtk);
     this->turnMoved = -1;
     this->turnAttacked = -1;
@@ -22,24 +22,8 @@ character::character(uint8_t teampos, const char *name, short maxHP, short softA
     this->HP = maxHP;
 }
 
-json character::to_json(json& j) const {
-    j = json{{"name", name},
-             {"cid", uid},
-             {"maxHP", maxHP},
-             {"HP", HP},
-             {"softAtk", softAtk},
-             {"hardAtk", hardAtk},
-             {"mov", mov},
-             {"rng", rng},
-             {"netWorth", netWorth},
-             {"flavor", flavor}};
-
-    return j;
-}
-
 character* character::beginTurn() {
-    character* me = new character(this->teampos, this->name, this->maxHP, this->softAtk,this->hardAtk, this->mov,
-                                 this->rng, this->netWorth, this->flavor, this->team);
+    character* me = new character(*this);
 
     if(this->defShieldHP > 0) {
         me->HP += 50;

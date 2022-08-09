@@ -1,19 +1,18 @@
 #ifndef REVELATION_TEAM_HPP
 #define REVELATION_TEAM_HPP
 
-#include "string"
 #include "character.hpp"
-#include "nlohmann/json.hpp"
+#include "nlohmann/json_fwd.hpp"
+#include <string>
+#include <array>
 
 using json = nlohmann::json;
-class Team {
-private:
-    std::string name;
 
-public:
-    std::vector<std::vector<character>> characters;
-    Team(std::string name, std::vector<std::vector<character>> characters);
-    json to_json(nlohmann::basic_json<> &j, const Team &team);
+struct Team {
+    std::string name;
+    std::array<std::array<character, ARMY_WIDTH>, 2> characters;
+
+    friend void to_json(json& j, const Team& team);
 };
 
 #endif //REVELATION_TEAM_HPP

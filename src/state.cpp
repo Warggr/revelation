@@ -261,20 +261,6 @@ std::tuple<State, uptr<Step>> State::advance(Agent& agent) const {
     }
 }
 
-json State::to_json(nlohmann::basic_json<> &j) const {
-    /*j = json {{"resourceDeck", resDeck.sizeconfig()}};
-    j.push_back("players");
-    for(int i = 0; i < this->players.size(); i++) {
-        j.at("players").insert(j.at("characters").begin(), players[i].to_json(j));
-    }
-    j.push_back("board");
-    for(int i = 0; i < this->board.size(); i++) {
-        j.at("players").insert(j.at("characters").begin(), board[i].to_json());
-    }
-    return j;*/
-    return j; //TODO
-}
-
 std::vector<MoveDecision> State::allMovementsForCharacter(character hero) const {
     if(this->timestep == MOVEDfirst && hero.turnMoved == this->turnID)
         return {};
@@ -318,8 +304,10 @@ stack.append( (position, False, movs + [ direction ]) )
 else: # second pass
 boardOfBools[pos[0]][pos[1]] = False
 return ret
+*/
 
-        def allAttacks(self):
+std::map<character*, std::vector<character*>> State::allAttacks() const {
+/*
 assert self.timestep == Timestep.ABILITYCHOSEN
         ret = {}
 #        print(f' iActive : { self.iActive }, units : { [unit.name for unit in self.aliveUnits[ self.iActive ] ] }')
@@ -362,3 +350,5 @@ if ret[iChar] == []:
 del ret[iChar]
 return ret
 */
+    return {};
+}

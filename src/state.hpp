@@ -8,7 +8,7 @@
 #include "agent.hpp"
 #include "character.hpp"
 #include "BoardTile.hpp"
-#include "nlohmann/json.hpp"
+#include "nlohmann/json_fwd.hpp"
 #include <vector>
 #include <tuple>
 
@@ -46,10 +46,11 @@ public:
     std::tuple<State, uptr<Step>> advance(Agent& agent) const;
     std::vector<MoveDecision> allMovementsForCharacter(character character) const;
     std::map<character*, std::vector<character*>> allAttacks() const;
-    json to_json(nlohmann::basic_json<> &j) const;
 
     static State invalid() { State retVal; retVal.iActive = 3; return retVal; }
     inline static bool isInvalid(const State& state) { return state.iActive == 3; }
+
+    friend void to_json(json& j, const State& state);
 };
 
 constexpr character* DEAD_UNIT = nullptr;

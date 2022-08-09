@@ -8,15 +8,18 @@
 #include <chrono>
 #include <initializer_list>
 
+extern int seed;
+using Generator = std::minstd_rand0;
+
 template <typename T>
 class Deck {
     std::vector<T> drawPile;
     std::vector<T> discardPile;
-    static int seed;
+    Generator generator;
 
 public:
     Deck() = default;
-    Deck(std::vector<T> drawPile, std::vector<T> discardPile, int seed);
+    Deck(std::vector<T> drawPile, std::vector<T> discardPile, Generator generator);
     static Deck create(std::initializer_list<T> cards);
     void discard(T card);
     T draw();

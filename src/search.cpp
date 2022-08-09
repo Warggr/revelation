@@ -36,7 +36,7 @@ void SearchPolicy::planAhead(const State& startState, /*ProgressLogger& logger,*
 
         const State& state = node.state;
         if(state.timestep != Timestep::ACTED){
-            /*unsigned nbChildren =*/ pushChildStates(node, container);
+            /*unsigned nbChildren =*/ pushChildStates(node, container, heuristic);
             //searchPolicy->getLogger().enter(state.timestep, nbChildren);
             //searchPolicy->informNbChildren(nbChildren, state.timestep);
         } else {
@@ -241,6 +241,7 @@ class DepthFirstSearch : public SearchPolicy {
 protected:
     virtual SearchPolicy* enterOpponentsTurn() = 0;
 public:
+    DepthFirstSearch(const Heuristic& heuristic): SearchPolicy(heuristic) {};
 //    ProgressLogger& getLogger() override { return *logger; }
     Container<SearchNode>& getContainer() override { return stack; }
 /*    std::tuple<unsigned, unsigned> asTuple() override {
@@ -306,7 +307,8 @@ class AdaptiveDepthFirstSearch : public DepthFirstSearch {
         return nbBranches;
     }
 public:
-    AdaptiveDepthFirstSearch(unsigned maxNodes = 1000000): maxNodes(maxNodes), nodes(1), currentLevel(-1) {}
+    AdaptiveDepthFirstSearch(const Heuristic& heuristic, unsigned maxNodes = 1000000): DepthFirstSearch(heuristic),
+        maxNodes(maxNodes), nodes(1), currentLevel(-1) {}
     void informNbChildren(unsigned nbChildren, Timestep timestep) override {
         // print(timestepLevel.value, "->", AdaptiveDepthPolicy.usedLevelsMap[ timestepLevel.value ], "->", nbChildren);
         int timestepLevel = usedLevelsMap[ timestep ];
@@ -329,7 +331,7 @@ public:
     SearchPolicy* enterOpponentsTurn() override {
         nodes = estimateNbBranches();
         if(maxNodes <= 1.5 * (nodes * nodes)) return nullptr;
-        else return new AdaptiveDepthFirstSearch(maxNodes / nodes);
+        else return new AdaptiveDepthFirstSearch(heuristic, maxNodes / nodes);
     }
     std::tuple<unsigned, unsigned> asTuple() override {
         unsigned log = 0;
@@ -354,7 +356,7 @@ class GreedyBestFirstSearchAgent: public SearchPolicy, public Container<SearchNo
     unsigned maxDepth;
     unsigned currentDepth = 0;
 public:
-    explicit GreedyBestFirstSearchAgent(unsigned maxDepth): maxDepth(maxDepth) {};
+    explicit GreedyBestFirstSearchAgent(const Heuristic& heuristic, unsigned maxDepth): SearchPolicy(heuristic), maxDepth(maxDepth) {};
 
     void addChild(const SearchNode& child) override {
         queue.push( MyQueueFrame( child, currentDepth ) );

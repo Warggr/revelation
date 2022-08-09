@@ -37,4 +37,13 @@ public:
     virtual ActionDecision getAction(const State& state) = 0;
 };
 
+class HumanAgent: public Agent {
+    const character& chooseCharacter(const State& state) const;
+public:
+    HumanAgent();
+    ActionOrResource getDrawAction(const State&) override;
+    MoveDecision getMovement(const State& state, unsigned int) override;
+    ActionDecision getAction(const State& state) override;
+};
+
 #endif //REVELATION_AGENT_HPP

@@ -62,8 +62,10 @@ class SearchPolicy {
 protected:
     DecisionList bestMoves;
     State bestState;
+    const Heuristic& heuristic;
     Heuristic::Value maxHeur, worstOpponentsHeuristic;
 public:
+    SearchPolicy(const Heuristic& heuristic): heuristic(heuristic) {};
     virtual ~SearchPolicy() = default;
     /* SearchPolicy specifies the search-node container (e.g. LIFO stack or priority queue) */
     virtual Container<SearchNode>& getContainer() = 0;
@@ -84,6 +86,6 @@ public:
     virtual void informNbChildren(unsigned int nbChildren, Timestep timestepLevel){ (void)nbChildren; (void)timestepLevel; }
 };
 
-unsigned int pushChildStates(const SearchNode& stackFrame, Container<SearchNode>& putback /*, const Heuristic& heuristic*/ );
+unsigned int pushChildStates(const SearchNode& stackFrame, Container<SearchNode>& putback, const Heuristic& heuristic );
 
 #endif //REVELATION_SEARCH_HPP

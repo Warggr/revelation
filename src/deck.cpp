@@ -6,11 +6,12 @@
 #include <algorithm>
 #include <random>
 
+int seed;
+
 template <typename T>
-Deck<T>::Deck(std::vector<T> drawPile, std::vector<T> discardPile, int seed) {
+Deck<T>::Deck(std::vector<T> drawPile, std::vector<T> discardPile, Generator generator): generator(generator) {
     this->drawPile = drawPile;
     this->discardPile = discardPile;
-    this->seed = seed;
 }
 
 template <typename T>
@@ -20,28 +21,32 @@ void Deck<T>::discard(T card) {
 
 template <typename T>
 Deck<T> Deck<T>::create(std::initializer_list<T> cards) {
-    auto rng = std::default_random_engine {};
-    std::shuffle(std::begin(cards), std::end(cards), rng);
-    int seed = rand() % 100001;
-    return Deck(cards, std::vector<T>(), seed);
+    std::vector<T> cardsAsVector = cards;
+    Generator generator(seed++); //change the seed slightly so that the next Deck created does not use exactly the same
+
+    std::shuffle(std::begin(cardsAsVector), std::end(cardsAsVector), generator);
+    generator.discard(1);
+    return Deck(std::move(cardsAsVector), std::vector<T>(), generator);
 }
 
 template <typename T>
 T Deck<T>::draw() {
     if(this->drawPile.empty()) {
-        this->drawPile = this->discardPile;
+        drawPile = std::move(discardPile);
         this->discardPile = std::vector<T>();
-
-        //random.seed(self.seed) //FRAGEN
-
-        auto rng = std::default_random_engine {};
-        std::shuffle(std::begin(this->drawPile), std::end(this->drawPile), rng);
-        this->seed = rand() % 100001;
+        std::shuffle(std::begin(drawPile), std::end(drawPile), generator);
+        generator.discard(1); //std::shuffle only copies and does not change the generator - we don't want it to stay always the same,
+        //so we change it manually
     }
-    return this->drawPile.pop_back();
+    T retVal = drawPile.back();
+    drawPile.pop_back();
+    return retVal;
 }
 
 template <typename T>
 std::tuple<int, int> Deck<T>::sizeconfig() const {
     return std::make_tuple(this->drawPile.size(), this->discardPile.size());
 }
+
+template class Deck<ActionCard>;
+template class Deck<Faction>;
