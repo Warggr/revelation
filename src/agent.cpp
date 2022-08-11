@@ -62,7 +62,7 @@ ActionDecision HumanAgent::getAction(const State& state) {
     if(ret.card == ActionCard::DEFENSE){
         ret.subjectPos = chooseCharacter(state).pos;
     } else {
-        std::map<character*, std::vector<character*>> allPossibleAttacks = state.allAttacks();
+        std::map<const character*, std::vector<character*>> allPossibleAttacks = state.allAttacks();
         if(allPossibleAttacks.empty())
             return ActionDecision::pass();
         std::vector<std::array<const character*, 2>> array;

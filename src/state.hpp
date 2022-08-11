@@ -45,7 +45,7 @@ public:
     std::tuple<State, uptr<BeginStep>> beginTurn() const;
     std::tuple<State, uptr<Step>> advance(Agent& agent) const;
     std::vector<MoveDecision> allMovementsForCharacter(character character) const;
-    std::map<character*, std::vector<character*>> allAttacks() const;
+    std::map<const character*, std::vector<character*>> allAttacks() const;
 
     static State invalid() { State retVal; retVal.iActive = 3; return retVal; }
     inline static bool isInvalid(const State& state) { return state.iActive == 3; }

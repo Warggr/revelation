@@ -223,7 +223,7 @@ std::tuple<State, uptr<BeginStep>> State::beginTurn() const {
         character* unit = ret.units[ret.iActive][i];
         if( not isDead(unit) ) {
             character* clone = unit->beginTurn();
-            if(clone->uid != unit->uid) {
+            if(clone != unit) {
                 //dirty = true;
                 ret.units[ret.iActive][i] = clone;
             }
@@ -264,91 +264,104 @@ std::tuple<State, uptr<Step>> State::advance(Agent& agent) const {
 std::vector<MoveDecision> State::allMovementsForCharacter(character hero) const {
     if(this->timestep == MOVEDfirst && hero.turnMoved == this->turnID)
         return {};
-    std::vector<character> ret;
-    std::vector<std::tuple<position, bool, std::vector<character>>> stack;
+    std::vector<MoveDecision> ret;
+
+    bool boardOfBools[FULL_BOARD_WIDTH][2]; //whether that field has already been passed in the current iteration or not
+    for(uint i=0; i<2; i++) for(uint j=0; j<FULL_BOARD_WIDTH; j++) boardOfBools[i][j] = false;
+
+    std::vector<std::tuple<position, bool, std::vector<Direction>>> stack;
+    stack.emplace_back(hero.pos, false, std::vector<Direction>());
 
     while(!stack.empty()) {
-        std::tuple<position, bool, std::vector<character>> val = stack.back();
+        auto [ pos, secondPass, moves ] = stack.back();
         stack.pop_back();
 
-        if(!std::get<1>(val)) {
-            //TODO
+        if(not secondPass) {
+            if(not moves.empty()) //do not select the empty list, aka "staying in place"
+                ret.emplace_back( hero.pos, pos, moves );
+            if(moves.size() < hero.mov){
+                stack.emplace_back( pos, true, moves );
+                boardOfBools[pos.row][pos.column] = true;
+                std::vector<std::tuple<Direction, position>> neighbours;
+                if(pos.column != 1)
+                    neighbours.emplace_back( Direction::LEFT, getNeighbour(pos, Direction::LEFT) );
+                if(pos.column != FULL_BOARD_WIDTH - 1)
+                    neighbours.emplace_back( Direction::RIGHT, getNeighbour(pos, Direction::RIGHT) );
+                neighbours.emplace_back( (pos.row == 0 ? Direction::DOWN : Direction::UP), position(pos.row, pos.column) );
+                for(auto& [ dir, pos ] : neighbours){
+                    if(boardOfBools[pos.row][pos.column]) continue; //can't pass twice through the same field
+                    const BoardTile& resident = this->getBoardField(pos);
+                    if(not BoardTile::isEmpty(resident) and resident.team != hero.team) continue; //can't pass through an opponent
+                    auto newMoves = moves;
+                    newMoves.push_back(dir);
+                    stack.emplace_back( pos, false, newMoves );
+                }
+            }
+        } else { //second pass
+            boardOfBools[pos.row][pos.column] = false;
         }
     }
-    return {}; //TODO
+    return ret;
 }
 
-/*
-boardOfBools = [ [ False for i in range(FULL_BOARD_WIDTH) ] for j in range(2) ] # whether that field has already been passed in the current iteration or not
-while stack: # not empty
-(pos, secondPass, movs) = stack.pop()
-if not secondPass:
-if movs: # do not select the empty list, aka "staying in place"
-ret.append( (movs, pos) )
-if len(movs) < character.mov:
-stack.append( (pos, True, movs) )
-boardOfBools[pos[0]][pos[1]] = True
-        neighbours = []
-if pos[1] != 0:
-neighbours.append( (Direction.LEFT, getNeighbour(pos, Direction.LEFT)) )
-if pos[1] != FULL_BOARD_WIDTH-1:
-neighbours.append( (Direction.RIGHT, getNeighbour(pos, Direction.RIGHT)) )
-neighbours.append( ((Direction.DOWN if pos[0] == 0 else Direction.UP), (1 - pos[0], pos[1])) )
-for (direction, position) in neighbours:
-if boardOfBools[position[0]][position[1]]:
-continue
-resident = self.getBoardField(position)
-if not isEmpty(resident) and resident.team != character.team:
-continue
-stack.append( (position, False, movs + [ direction ]) )
-else: # second pass
-boardOfBools[pos[0]][pos[1]] = False
-return ret
-*/
+std::map<const character*, std::vector<character*>> State::allAttacks() const {
+    assert(timestep == Timestep::ABILITYCHOSEN);
+    std::map<const character*, std::vector<character*>> ret;
+    //print(f' iActive : { this->iActive }, units : { [unit.name for unit in this->units[ this->iActive ] ] }')
+    for(uint iChar = 0; iChar < ARMY_SIZE; iChar++){
+        const character* chr = this->units[this->iActive][iChar];
+        if(isDead(chr)) continue;
 
-std::map<character*, std::vector<character*>> State::allAttacks() const {
-/*
-assert self.timestep == Timestep.ABILITYCHOSEN
-        ret = {}
-#        print(f' iActive : { self.iActive }, units : { [unit.name for unit in self.aliveUnits[ self.iActive ] ] }')
-for iChar, character in enumerate( self.aliveUnits[ self.iActive ] ):
-if not isDead(character):
-ret[ iChar ] = []
-if character.arcAtk:
-for row in range(2):
-deltaRow = abs( character.position[0] - row )
-for col in range( max(character.position[1] - character.rng + deltaRow, 0), min(character.position[1] + character.rng - deltaRow + 1, FULL_BOARD_WIDTH) ):
-tile = self.board[row][col]
-if not isEmpty(tile) and tile.team != self.iActive:
-ret[ iChar ].append( tile.index )
-else:
-row = character.position[0]
-tile = self.board[1-row][character.position[1]]
-if not isEmpty(tile) and tile.team != self.iActive:
-ret[ iChar ].append( tile.index )
-for col in range( character.position[1] - 1, max(character.position[1] - character.rng - 1, -1), -1 ):
-tile = self.board[row][col]
-if not isEmpty(tile):
-if tile.team != self.iActive:
-ret[ iChar ].append( tile.index )
-break
-if col != character.position[1] - character.rng:
-tile = self.board[row][1-col]
-if not isEmpty(tile) and tile.team != self.iActive:
-ret[ iChar ].append( tile.index )
-for col in range( character.position[1] + 1, min(character.position[1] + character.rng + 1, FULL_BOARD_WIDTH), +1 ):
-tile = self.board[row][col]
-if not isEmpty(tile):
-if tile.team != self.iActive:
-ret[ iChar ].append( tile.index )
-break
-if col != character.position[1] - character.rng:
-tile = self.board[row][1-col]
-if not isEmpty(tile) and tile.team != self.iActive:
-ret[ iChar ].append( tile.index )
-if ret[iChar] == []:
-del ret[iChar]
-return ret
-*/
-    return {};
+        std::vector<character*> enemies;
+        if(chr->usesArcAttack){
+            for(int row = 0; row < 2; row++){
+                int deltaRow = (chr->pos.row == row ? 0 : 1);
+                int min = std::max(chr->pos.column - chr->rng + deltaRow, 0);
+                int max = std::min(chr->pos.column + chr->rng - deltaRow, FULL_BOARD_WIDTH - 1);
+                for(int col = min; col <= max; col++){
+                    const BoardTile& tile = this->board[row][col];
+                    if(not BoardTile::isEmpty(tile) and tile.team != this->iActive){
+                        enemies.push_back( this->units[1-this->iActive][tile.index] );
+                    }
+                }
+            }
+        } else {
+            auto row = chr->pos.row;
+            const BoardTile& tile = this->board[1-row][chr->pos.column];
+            if(not BoardTile::isEmpty(tile) and tile.team != this->iActive){
+                enemies.push_back( this->units[1-this->iActive][tile.index] );
+            }
+            for(int col = chr->pos.column - 1; col >= 0 and col >= chr->pos.column - chr->rng; col--){
+                const BoardTile& tile = this->board[row][col];
+                if(not BoardTile::isEmpty(tile)){
+                    if(tile.team != this->iActive)
+                        enemies.push_back( this->units[1-this->iActive][tile.index] );
+                    break;
+                }
+                if(col != chr->pos.column - chr->rng){
+                    const BoardTile& tile = this->board[row][1-col];
+                    if(not BoardTile::isEmpty(tile) and tile.team != this->iActive)
+                        enemies.push_back( this->units[1-this->iActive][tile.index] );
+                }
+            }
+            for(int col = chr->pos.column + 1; col < FULL_BOARD_WIDTH and col <= chr->pos.column + chr->rng; col++ ){
+                const BoardTile& tile = this->board[row][col];
+                if(not BoardTile::isEmpty(tile)){
+                    if(tile.team != this->iActive)
+                        enemies.push_back( this->units[1-this->iActive][tile.index] );
+                    break;
+                }
+                if(col != chr->pos.column - chr->rng){
+                    const BoardTile& tile = this->board[row][1-col];
+                    if(not BoardTile::isEmpty(tile) and tile.team != this->iActive)
+                        enemies.push_back( this->units[1-this->iActive][tile.index] );
+                }
+            }
+        }
+        if(!enemies.empty()){
+            auto [ iter, wasInserted ] = ret.insert(std::make_pair<>( chr, enemies ));
+            assert(wasInserted);
+        }
+    }
+    return ret;
 }
