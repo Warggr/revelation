@@ -5,7 +5,6 @@
 #include <algorithm>
 
 Player::Player() {
-//    this->abilityCheck = abilityCheck;
     actionDeck = Deck<ActionCard>::create(startingAbilityDeck);
 }
 

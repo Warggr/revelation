@@ -43,7 +43,7 @@ Heuristic::Value PowerTimesToughnessHeuristic::evaluateActionStep(int myId, cons
     if(step.cardLost == ActionCard::DEFENSE)
         return 50 * oldState.getBoardFieldDeref( step.subject )->maxAtk;
     else {
-        character* obj = oldState.getBoardFieldDeref( step.object );
+        const Character* obj = oldState.getBoardFieldDeref( step.object );
         Heuristic::Value ret = step.lostHP * obj->maxAtk;
         if(step.del)
             ret += obj->maxAtk * obj->maxHP;

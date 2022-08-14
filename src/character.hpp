@@ -4,9 +4,10 @@
 #include "position.hpp"
 #include "constants.hpp"
 #include "nlohmann/json_fwd.hpp"
+#include "memory.hpp"
 
-struct character {
-    int team = -1;
+struct Character {
+    unsigned int team = 3;
     static char s_uid;
     char uid;
     uint8_t teampos = -1;
@@ -26,18 +27,16 @@ struct character {
     short defShieldHP;
     bool usesArcAttack;
 
-    character(const char* name, short maxHP, short softAtk, short hardAtk, uint8_t mov,
+    Character(const char* name, short maxHP, short softAtk, short hardAtk, uint8_t mov,
               uint8_t rng, float netWorth, bool usesArcAttack = false, const char* flavor = "");
 
     short buff();
-
-    character* beginTurn();
 
     short getAtk(bool isHard, short turnID) const;
 
     short takeDmg(bool isHard, short power);
 };
 
-void to_json(nlohmann::json& j, const character& chr);
+void to_json(nlohmann::json& j, const Character& chr);
 
 #endif //REVELATION_CHARACTER_HPP

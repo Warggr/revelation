@@ -15,6 +15,7 @@
 using json = nlohmann::json;
 
 using Board = std::array<std::array<BoardTile, FULL_BOARD_WIDTH>, 2>;
+using UnitList = std::array<NullableShared<Character>, ARMY_SIZE>;
 
 class State {
     Board board;
@@ -25,15 +26,16 @@ class State {
 public:
     Timestep timestep;
     uint8_t iActive;
-    std::array<std::array<character*, ARMY_SIZE>, 2> units;
+    std::array<UnitList, 2> units;
     std::array<Player, 2> players;
 
     State() = default;
-    State(Board board, std::array<std::array<character*, ARMY_SIZE>, 2> units, std::array<Player, 2> players,
+    State(Board board, std::array<UnitList, 2> units, std::array<Player, 2> players,
           Deck<Faction> resDeck, Timestep timestep, int turnID);
     static State createStart(std::array<Team, 2> teams);
     const BoardTile& getBoardField(position coords) const;
-    character* getBoardFieldDeref(position coords) const;
+    Character* getBoardFieldDeref(position coords);
+    const Character* getBoardFieldDeref(position coords) const;
     void setBoardField(position coords, BoardTile value);
     void setBoardFieldDeref(position coords, BoardTile value);
     bool isFinished() const;
@@ -44,8 +46,9 @@ public:
     std::tuple<State, uptr<ActionStep>> stepAct(ActionDecision decision) const;
     std::tuple<State, uptr<BeginStep>> beginTurn() const;
     std::tuple<State, uptr<Step>> advance(Agent& agent) const;
-    std::vector<MoveDecision> allMovementsForCharacter(character character) const;
-    std::map<const character*, std::vector<character*>> allAttacks() const;
+    std::vector<MoveDecision> allMovementsForCharacter(const Character& character) const;
+    std::vector<const Character*> allAttacksForCharacter(const Character* attacker, unsigned int attackingTeam) const;
+    std::map<const Character*, std::vector<const Character*>> allAttacks() const;
 
     static State invalid() { State retVal; retVal.iActive = 3; return retVal; }
     inline static bool isInvalid(const State& state) { return state.iActive == 3; }
@@ -53,8 +56,9 @@ public:
     friend void to_json(json& j, const State& state);
 };
 
-constexpr character* DEAD_UNIT = nullptr;
+constexpr nullptr_t DEAD_UNIT = nullptr;
 
-inline bool isDead(const character* cha){ return cha == nullptr; }
+inline bool isDead(const Character* cha){ return cha == nullptr; }
+inline bool isDead(const NullableShared<Character>& cha){ return cha.pt() == nullptr; }
 
 #endif //REVELATION_STATE_HPP

@@ -38,7 +38,7 @@ public:
 };
 
 class HumanAgent: public Agent {
-    const character& chooseCharacter(const State& state) const;
+    const Character& chooseCharacter(const State& state) const;
 public:
     HumanAgent();
     ActionOrResource getDrawAction(const State&) override;

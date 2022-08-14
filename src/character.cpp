@@ -2,9 +2,9 @@
 #include "nlohmann/json.hpp"
 
 using json = nlohmann::json;
-char character::s_uid = 'a';
+char Character::s_uid = 'a';
 
-character::character(const char *name, short maxHP, short softAtk, short hardAtk, uint8_t mov,
+Character::Character(const char *name, short maxHP, short softAtk, short hardAtk, uint8_t mov,
                      uint8_t rng, float netWorth, bool usesArcAttack, const char *flavor) : uid(s_uid++),
                      pos(0, 0), usesArcAttack(usesArcAttack) {
     this->name = name;
@@ -22,18 +22,7 @@ character::character(const char *name, short maxHP, short softAtk, short hardAtk
     this->HP = maxHP;
 }
 
-character* character::beginTurn() {
-    character* me = new character(*this);
-
-    if(this->defShieldHP > 0) {
-        me->HP += 50;
-        me->defShieldHP = 0;
-    }
-
-    return me;
-}
-
-short character::takeDmg(bool isHard, short power) {
+short Character::takeDmg(bool isHard, short power) {
     (void) isHard; //currently no difference between hard and soft damage
     if(this->defShieldHP > 0) {
         short shielded = std::min(this->defShieldHP, power);
@@ -44,7 +33,7 @@ short character::takeDmg(bool isHard, short power) {
     return power;
 }
 
-short character::getAtk(bool isHard, short turnID) const {
+short Character::getAtk(bool isHard, short turnID) const {
     if(this->turnAttacked == turnID - 1) {
         return 10;
     } else if(isHard) {
@@ -54,7 +43,7 @@ short character::getAtk(bool isHard, short turnID) const {
     }
 }
 
-short character::buff() {
+short Character::buff() {
     this->defShieldHP = this->maxHP;
     return this->defShieldHP;
 }

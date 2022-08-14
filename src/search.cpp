@@ -72,7 +72,7 @@ unsigned char hashPosition( const position& pos ){ //max. 4 bits for column and 
     return 2 * pos.column + pos.column;
 }
 
-HashKey hashBoard( const std::array<character*, 6>& units ){
+HashKey hashBoard( const UnitList& units ){
     int retVal = 0;
     for(unsigned i = 0; i<6; i++)
         retVal += (isDead(units[i]) ? hashPosition(units[i]->pos) + 1 : 0) << (5*i);

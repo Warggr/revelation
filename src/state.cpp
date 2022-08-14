@@ -55,16 +55,21 @@ State State::createStart(std::array<Team, 2> teams) {
     }
 
     Deck<Faction> resDeck = Deck<Faction>::create({ REPEAT(BLOOD), REPEAT(MERCURY), REPEAT(HORROR), REPEAT(SPECTRUM), ETHER });
-    return State(board, alive, players, resDeck, BEGIN, 0);
+    return State(board, std::move(alive), players, resDeck, BEGIN, 0);
 }
 
 const BoardTile& State::getBoardField(position coords) const {
     return board[coords.row][coords.column];
 }
 
-character* State::getBoardFieldDeref(position coords) const {
+Character* State::getBoardFieldDeref(position coords) {
     const BoardTile& ptr = this->getBoardField(coords);
-    return this->units[ptr.team][ptr.index];
+    return this->units[ptr.team][ptr.index].pt();
+}
+
+const Character* State::getBoardFieldDeref(position coords) const {
+    const BoardTile& ptr = this->getBoardField(coords);
+    return this->units[ptr.team][ptr.index].pt();
 }
 
 void State::setBoardField(position coords, BoardTile value) {
@@ -87,7 +92,7 @@ std::tuple<State, uptr<DrawStep>> State::stepDraw(ActionOrResource decision) con
     State newState(this->board, this->units, this->players, this->resDeck, this->timestep, this->turnID);
     newState.timestep = DISCARDED;
     //newState.players = newState.players.copy()
-    //newState.players[self.iActive] = copy.copy(newState.players[self.iActive])
+    //newState.players[this->iActive] = copy.copy(newState.players[this->iActive])
     newState.checkConsistency();
     std::variant<ActionCard, Faction> cardDrawn;
     if(decision == ACTION) {
@@ -177,7 +182,7 @@ std::tuple<State, uptr<ActionStep>> State::stepAct(ActionDecision decision) cons
     newState.players[this->iActive].discard(decision.card);
     int heroIndex = newState.getBoardField((decision.subjectPos)).index;
     assert(newState.getBoardField(decision.subjectPos).team == this->iActive);
-    character* hero = newState.units[this->iActive][heroIndex];
+    Character* hero = newState.units[this->iActive][heroIndex].pt();
     newState.checkConsistency();
     if(decision.card == DEFENSE) {
         short newShieldHP = hero->buff();
@@ -188,9 +193,9 @@ std::tuple<State, uptr<ActionStep>> State::stepAct(ActionDecision decision) cons
         int victimIndex = newState.getBoardField(decision.objectPos).index;
         uptr<ActionStep> step;
 
-        assert(newState.getBoardField(decision.subjectPos).team == 1 - this->iActive);
+        assert(newState.getBoardField(decision.objectPos).team == 1 - this->iActive);
 
-        character* victim = newState.units[1- this->iActive][victimIndex];
+        Character* victim = newState.units[1- this->iActive][victimIndex].pt();
         if(decision.card == SOFTATK) {
             setLife = victim->takeDmg(false, hero->softAtk);
             step = std::make_unique<ActionStep>(decision.card, decision.subjectPos, decision.objectPos, setLife, hero->softAtk );
@@ -261,12 +266,12 @@ std::tuple<State, uptr<Step>> State::advance(Agent& agent) const {
     }
 }
 
-std::vector<MoveDecision> State::allMovementsForCharacter(character hero) const {
+std::vector<MoveDecision> State::allMovementsForCharacter(const Character& hero) const {
     if(this->timestep == MOVEDfirst && hero.turnMoved == this->turnID)
         return {};
     std::vector<MoveDecision> ret;
 
-    bool boardOfBools[FULL_BOARD_WIDTH][2]; //whether that field has already been passed in the current iteration or not
+    bool boardOfBools[2][FULL_BOARD_WIDTH]; //whether that field has already been passed in the current iteration or not
     for(uint i=0; i<2; i++) for(uint j=0; j<FULL_BOARD_WIDTH; j++) boardOfBools[i][j] = false;
 
     std::vector<std::tuple<position, bool, std::vector<Direction>>> stack;

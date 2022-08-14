@@ -2,7 +2,7 @@
 #include "state.hpp"
 #include "constants.hpp"
 #include <map>
-#include "iostream"
+#include <iostream>
 
 std::ostream& operator<<(std::ostream& o, const position& pos){
     o << '[' << pos.column << ", " << pos.row << ']';
@@ -18,13 +18,13 @@ HumanAgent::HumanAgent() {
     //name = input("Hi! Please enter your name: ")
 }
 
-const character& HumanAgent::chooseCharacter(const State& state) const {
+const Character& HumanAgent::chooseCharacter(const State& state) const {
     for(uint i=0; i<NB_CHARACTERS; i++)
         if(not isDead(state.units[myId][i])){
             std::cout << '[' << i << "]: " << state.units[myId][i]->name << '\n';
     }
 
-    std::cout << "Enter which character to select: \n";
+    std::cout << "Enter which character to select: ";
     int iSel = 0; std::cin >> iSel;
     return *state.units[myId][iSel];
 }
@@ -36,11 +36,11 @@ ActionOrResource HumanAgent::getDrawAction(const State&) {
 }
 
 MoveDecision HumanAgent::getMovement(const State& state, unsigned int) {
-    const character& charSel = chooseCharacter(state);
+    const Character& charSel = chooseCharacter(state);
     std::vector<MoveDecision> possibleMovs = state.allMovementsForCharacter(charSel);
     for(uint i = 0; i<possibleMovs.size(); i++)
         std::cout << '[' << i << "]: to " << possibleMovs[i].to << '\n';
-    std::cout << "Enter which position to select: \n";
+    std::cout << "Enter which position to select: ";
     uint iSel; std::cin >> iSel;
     MoveDecision movSel = possibleMovs[iSel];
     return movSel;
@@ -54,7 +54,7 @@ ActionDecision HumanAgent::getAction(const State& state) {
     for(uint i=0; i<cards.size(); i++){
         std::cout << '[' << (i+1) << "]: " << cards[i] << '\n';
     }
-    std::cout << "Choose a card, any card (or 0 to skip):\n";
+    std::cout << "Choose a card, any card (or 0 to skip): ";
     uint iSel; std::cin >> iSel;
     if(iSel == 0)
         return ActionDecision::pass();
@@ -62,10 +62,10 @@ ActionDecision HumanAgent::getAction(const State& state) {
     if(ret.card == ActionCard::DEFENSE){
         ret.subjectPos = chooseCharacter(state).pos;
     } else {
-        std::map<const character*, std::vector<character*>> allPossibleAttacks = state.allAttacks();
+        auto allPossibleAttacks = state.allAttacks();
         if(allPossibleAttacks.empty())
             return ActionDecision::pass();
-        std::vector<std::array<const character*, 2>> array;
+        std::vector<std::array<const Character*, 2>> array;
         int i = 1;
         for(const auto& [ unit, enemies ] : allPossibleAttacks){
             std::cout << unit->name << '\n';
