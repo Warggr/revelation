@@ -9,29 +9,35 @@ std::ostream& operator<<(std::ostream& o, const position& pos){
     return o;
 }
 
+uint input(uint min, uint max){
+    while(true) {
+        uint iSel; std::cin >> iSel;
+        if(min <= iSel and iSel <= max) return iSel;
+        else std::cout << "Please choose a number between " << min << " and " << max << "!\n";
+    };
+}
+
 const Player& Agent::getMyPlayer(const State& state) const {
     return state.players[ myId ];
 }
 
-
-HumanAgent::HumanAgent() {
+HumanAgent::HumanAgent(uint myId) : Agent(myId) {
     //name = input("Hi! Please enter your name: ")
 }
 
 const Character& HumanAgent::chooseCharacter(const State& state) const {
     for(uint i=0; i<NB_CHARACTERS; i++)
-        if(not isDead(state.units[myId][i])){
+        if(not isDead(state.units[myId][i].pt()))
             std::cout << '[' << i << "]: " << state.units[myId][i]->name << '\n';
-    }
 
     std::cout << "Enter which character to select: ";
-    int iSel = 0; std::cin >> iSel;
+    uint iSel = input(0, NB_CHARACTERS-1);
     return *state.units[myId][iSel];
 }
 
 ActionOrResource HumanAgent::getDrawAction(const State&) {
     std::cout << "Choose [1] draw action or [2] draw resource: ";
-    int iSel; std::cin >> iSel;
+    uint iSel = input(0, 1);
     return (iSel == 1) ? ActionOrResource::ACTION : ActionOrResource::RESOURCES;
 }
 
@@ -41,7 +47,7 @@ MoveDecision HumanAgent::getMovement(const State& state, unsigned int) {
     for(uint i = 0; i<possibleMovs.size(); i++)
         std::cout << '[' << i << "]: to " << possibleMovs[i].to << '\n';
     std::cout << "Enter which position to select: ";
-    uint iSel; std::cin >> iSel;
+    uint iSel = input(0, possibleMovs.size() - 1);
     MoveDecision movSel = possibleMovs[iSel];
     return movSel;
 }
@@ -55,7 +61,8 @@ ActionDecision HumanAgent::getAction(const State& state) {
         std::cout << '[' << (i+1) << "]: " << cards[i] << '\n';
     }
     std::cout << "Choose a card, any card (or 0 to skip): ";
-    uint iSel; std::cin >> iSel;
+    uint iSel = input(0, cards.size());
+
     if(iSel == 0)
         return ActionDecision::pass();
     ret.card = cards[iSel - 1];
@@ -77,7 +84,7 @@ ActionDecision HumanAgent::getAction(const State& state) {
             }
         }
         std::cout << "Enter which attack to select: ";
-        uint iSel; std::cin >> iSel;
+        uint iSel = input(0, i-1);
         ret.subjectPos = array[iSel - 1][0]->pos;
         ret.objectPos = array[iSel - 1][1]->pos;
     }

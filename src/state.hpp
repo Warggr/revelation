@@ -33,19 +33,23 @@ public:
     State(Board board, std::array<UnitList, 2> units, std::array<Player, 2> players,
           Deck<Faction> resDeck, Timestep timestep, int turnID);
     static State createStart(std::array<Team, 2> teams);
+
     const BoardTile& getBoardField(position coords) const;
     Character* getBoardFieldDeref(position coords);
     const Character* getBoardFieldDeref(position coords) const;
     void setBoardField(position coords, BoardTile value);
     void setBoardFieldDeref(position coords, BoardTile value);
+
     bool isFinished() const;
-    std::tuple<State, uptr<DrawStep>> stepDraw(ActionOrResource decision) const;
     void checkConsistency() const;
+
+    std::tuple<State, uptr<DrawStep>> stepDraw(ActionOrResource decision) const;
     std::tuple<State, uptr<MoveStep>> stepMov(MoveDecision decision) const;
     std::tuple<State, uptr<AbilityStep>> stepAbil(const AbilityDecision& decision) const;
     std::tuple<State, uptr<ActionStep>> stepAct(ActionDecision decision) const;
     std::tuple<State, uptr<BeginStep>> beginTurn() const;
     std::tuple<State, uptr<Step>> advance(Agent& agent) const;
+
     std::vector<MoveDecision> allMovementsForCharacter(const Character& character) const;
     std::vector<const Character*> allAttacksForCharacter(const Character* attacker, unsigned int attackingTeam) const;
     std::map<const Character*, std::vector<const Character*>> allAttacks() const;

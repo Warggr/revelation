@@ -5,11 +5,11 @@
 #include <cstdint>
 
 struct position {
-    int row;
-    int column;
+    unsigned int row : 1;
+    unsigned int column : 4;
 public:
     position() = default;
-    constexpr position(int row, int column): row(row), column(column) {}
+    constexpr position(unsigned int row, unsigned int column): row(row), column(column) {}
     constexpr bool operator==(const position& other) const { return other.row == row and other.column == column; }
 };
 
@@ -24,13 +24,13 @@ enum Direction {
 inline position getNeighbour(const position& pos, Direction dir) {
     switch(dir){
     case UP:
-        return {pos.row - 1, pos.column};
+        return {static_cast<unsigned int>(pos.row - 1), pos.column};
     case DOWN:
-        return {pos.row + 1, pos.column};
+        return {static_cast<unsigned int>(pos.row + 1), pos.column};
     case LEFT:
-        return {pos.row, pos.column - 1};
+        return {pos.row, static_cast<unsigned int>(pos.column - 1)};
     case RIGHT:
-        return {pos.row, pos.column + 1};
+        return {pos.row, static_cast<unsigned int>(pos.column + 1)};
     default:
         return pos; //throw error
     }
