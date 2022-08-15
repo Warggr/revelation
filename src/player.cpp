@@ -21,11 +21,12 @@ Faction Player::drawResource(Deck<Faction> resourceDeck)  {
 }
 
 void Player::discard(ActionCard card) {
-    if(std::find(actions.begin(), actions.end(), card) != actions.end()) {
+    if(std::find(actions.begin(), actions.end(), card) == actions.end()) {
         std::cout << "Actions: \n";
         for(auto i: actions)
             std::cout << i << " , ";
         std::cout << "Card " << card;
+        throw 1;
     }
     std::remove(actions.begin(), actions.end(), card);
     actionDeck.discard(card);

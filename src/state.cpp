@@ -5,43 +5,50 @@
 #include "step.hpp"
 #include <cassert>
 #include <memory>
-//#include <tkDecls.h>
+#include <iostream>
 #define REPEAT(x) x, x, x, x
 
-State::State(Board board, std::array<std::array<character*, ARMY_SIZE>, 2> units, std::array<Player, 2> players,
+std::ostream& operator<<(std::ostream& o, const position& pos);
+
+std::ostream& operator<<(std::ostream& o, const BoardTile& tile){
+    o << static_cast<int>(tile.team) << '[' << tile.index << ']';
+    return o;
+}
+
+State::State(Board board, std::array<UnitList, 2> units, std::array<Player, 2> players,
              Deck<Faction> resDeck, Timestep timestep, int turnID) :
         board(board), resDeck(std::move(resDeck)), players(std::move(players)) {
-    this->nbAliveUnits.reserve(ARMY_SIZE * 2);
+    this->nbAliveUnits = {ARMY_SIZE, ARMY_SIZE};
     this->iActive = 0;
     this->timestep = timestep;
     this->units = units;
     this->turnID = turnID;
+    this->checkConsistency();
 }
 
 State State::createStart(std::array<Team, 2> teams) {
-    std::array<std::array<character*, ARMY_SIZE>, 2> alive;
+    std::array<UnitList, 2> alive;
     for(int i = 0; i < 2; i++ ) {
         for(int j = 0; j < 2; j++) {
             for(int k = 0; k < ARMY_WIDTH; k++) {
-                auto* ch = new character( teams[i].characters[j].at(k) );
-                ch->teampos = alive[i].size();
-                alive[i][k] = ch;
-                ch->pos = position( j, k + 1 + HALF_BOARD_WIDTH);
+                alive[i][j*ARMY_WIDTH+k] = NullableShared<Character>( teams[i].characters[j][k] );
+                auto* ch = alive[i][j*ARMY_WIDTH+k].pt();
+                ch->pos = position( j, k + 1 + i*HALF_BOARD_WIDTH);
                 ch->team = i;
             }
         }
     }
 
     Board board;
-    for(std::size_t i = 0; i < alive.size(); i++) {
-        auto sortLambda = [] (character const* one, character const* two) -> bool{
+    for(std::size_t i = 0; i < 2; i++) {
+        auto sortLambda = [] (const NullableShared<Character>& one, const NullableShared<Character>& two) -> bool{
             return one->maxAtk > two->maxAtk;
         };
 
         std::sort(alive[i].begin(), alive[i].end(), sortLambda);
 
-        for(int j = 0; j < ARMY_WIDTH; j++) {
-            character* ch = alive[i][j];
+        for(int j = 0; j < ARMY_SIZE; j++) {
+            Character* ch = alive[i][j].pt();
             ch->teampos = j;
             board[ch->pos.row][ch->pos.column] = BoardTile(i, j);
         }
@@ -105,15 +112,42 @@ std::tuple<State, uptr<DrawStep>> State::stepDraw(ActionOrResource decision) con
 }
 
 void State::checkConsistency() const {
-    /*for team in self.aliveUnits:
-    for char in team:
-    if char is not None and self.getBoardField( char.position ) is not char:
-    print('!Error:', self.getBoardField( char.position ), '@', char.position, 'is not', char)
-    print( [ [ (char.cid, char.position) for char in row ] for row in self.aliveUnits ] )
-    print([ [ () if char is None else (char.cid, char.position) for char in row ] for row in self.board ])
-    raise Exception()}
-    def checkConsistency(self)*/
-    //TODO
+/*    for(unsigned i = 0; i<2; i++){
+        for(unsigned j = 0; j<FULL_BOARD_WIDTH; j++){
+            const BoardTile& tile = this->board[i][j];
+            if(BoardTile::isEmpty(tile)) std::cout << "  ";
+            else std::cout << this->units[tile.team][tile.index]->uid << this->units[tile.team][tile.index]->team;
+        }
+        std::cout << '\n';
+    }
+
+    std::cout << "iActive is "<< static_cast<int>(iActive) << '\n';*/
+    for(unsigned int i = 0; i<2; i++){
+        for(unsigned int j = 0; j<ARMY_SIZE; j++){
+            const Character* ch = this->units[i][j].pt();
+            if(not isDead(ch)){
+                const BoardTile& tile = this->getBoardField( ch->pos );
+                if(tile.team != i or tile.index != j){
+                    std::cout << "!Error: team" << i << '[' << j << "] is " << ch << " on " << ch->pos << " supposed to be tile " << tile << '\n';
+                    for(int i = 0; i<2; i++){
+                        for(int j = 0; j<FULL_BOARD_WIDTH; j++){
+                            if(BoardTile::isEmpty(board[i][j])) std::cout << "EMPTY ";
+                            else std::cout << '(' << static_cast<int>(board[i][j].team) << ',' << board[i][j].index << ") ";
+                        }
+                        std::cout << '\n';
+                    }
+                    for(int i = 0; i<2; i++){
+                        for(int j = 0; j<ARMY_SIZE; j++){
+                            if(isDead(units[i][j])) std::cout << "DEAD ";
+                            else std::cout << units[i][j]->pos;
+                        }
+                        std::cout << '\n';
+                    }
+                    throw 1;
+                }
+            }
+        }
+    }
 }
 
 std::tuple<State, uptr<MoveStep>> State::stepMov(MoveDecision decision) const {
@@ -136,7 +170,7 @@ std::tuple<State, uptr<MoveStep>> State::stepMov(MoveDecision decision) const {
         this->checkConsistency();
 
         BoardTile moverTile = newState.getBoardField(decision.from);
-        character* mover = newState.units[this->iActive][moverTile.index];
+        NullableShared<Character> mover = newState.units[this->iActive][moverTile.index].copy();
         newState.units[this->iActive][moverTile.index] = mover;
         mover->turnMoved = newState.turnID;
 
@@ -208,7 +242,7 @@ std::tuple<State, uptr<ActionStep>> State::stepAct(ActionDecision decision) cons
 
         if(victim->HP <= 0) {
             newState.setBoardField(decision.objectPos, BoardTile::empty());
-            newState.units[1 - this->iActive][ victim->teampos ] = DEAD_UNIT;
+            newState.units[1 - this->iActive][ victim->teampos ] = NullableShared<Character>(DEAD_UNIT);
             newState.nbAliveUnits[1 - this->iActive] -= 1;
             step->del = true;
         }
@@ -225,16 +259,16 @@ std::tuple<State, uptr<BeginStep>> State::beginTurn() const {
     ret.timestep = BEGIN;
     //bool dirty = false;
     for(int i = 0; i < ARMY_SIZE; i++) {
-        character* unit = ret.units[ret.iActive][i];
+        auto& unit = ret.units[ret.iActive][i];
         if( not isDead(unit) ) {
-            character* clone = unit->beginTurn();
-            if(clone != unit) {
-                //dirty = true;
-                ret.units[ret.iActive][i] = clone;
+            if(unit->defShieldHP > 0) {
+                NullableShared<Character> clone = unit.copy();
+                clone->HP += 50;
+                clone->defShieldHP = 0;
+                ret.units[iActive][i] = clone;
             }
         }
     }
-    // TODO invalidate and clone the board if dirty
     ret.checkConsistency();
     return std::make_tuple(ret, std::make_unique<BeginStep>());
 }
@@ -288,11 +322,12 @@ std::vector<MoveDecision> State::allMovementsForCharacter(const Character& hero)
                 stack.emplace_back( pos, true, moves );
                 boardOfBools[pos.row][pos.column] = true;
                 std::vector<std::tuple<Direction, position>> neighbours;
-                if(pos.column != 1)
+                if(pos.column != 0)
                     neighbours.emplace_back( Direction::LEFT, getNeighbour(pos, Direction::LEFT) );
                 if(pos.column != FULL_BOARD_WIDTH - 1)
                     neighbours.emplace_back( Direction::RIGHT, getNeighbour(pos, Direction::RIGHT) );
-                neighbours.emplace_back( (pos.row == 0 ? Direction::DOWN : Direction::UP), position(pos.row, pos.column) );
+                neighbours.emplace_back( (pos.row == 0 ? Direction::DOWN : Direction::UP), position(1-pos.row, pos.column) );
+
                 for(auto& [ dir, pos ] : neighbours){
                     if(boardOfBools[pos.row][pos.column]) continue; //can't pass twice through the same field
                     const BoardTile& resident = this->getBoardField(pos);
@@ -309,60 +344,72 @@ std::vector<MoveDecision> State::allMovementsForCharacter(const Character& hero)
     return ret;
 }
 
-std::map<const character*, std::vector<character*>> State::allAttacks() const {
-    assert(timestep == Timestep::ABILITYCHOSEN);
-    std::map<const character*, std::vector<character*>> ret;
-    //print(f' iActive : { this->iActive }, units : { [unit.name for unit in this->units[ this->iActive ] ] }')
-    for(uint iChar = 0; iChar < ARMY_SIZE; iChar++){
-        const character* chr = this->units[this->iActive][iChar];
-        if(isDead(chr)) continue;
+std::vector<const Character*> State::allAttacksForCharacter(const Character* chr, unsigned int attackingTeam) const {
+    std::vector<const Character*> enemies;
+    //std::cout << "-|===> for " << chr->uid << chr->team << '@' << chr << '\n';
 
-        std::vector<character*> enemies;
-        if(chr->usesArcAttack){
-            for(int row = 0; row < 2; row++){
-                int deltaRow = (chr->pos.row == row ? 0 : 1);
-                int min = std::max(chr->pos.column - chr->rng + deltaRow, 0);
-                int max = std::min(chr->pos.column + chr->rng - deltaRow, FULL_BOARD_WIDTH - 1);
-                for(int col = min; col <= max; col++){
-                    const BoardTile& tile = this->board[row][col];
-                    if(not BoardTile::isEmpty(tile) and tile.team != this->iActive){
-                        enemies.push_back( this->units[1-this->iActive][tile.index] );
-                    }
-                }
-            }
-        } else {
-            auto row = chr->pos.row;
-            const BoardTile& tile = this->board[1-row][chr->pos.column];
-            if(not BoardTile::isEmpty(tile) and tile.team != this->iActive){
-                enemies.push_back( this->units[1-this->iActive][tile.index] );
-            }
-            for(int col = chr->pos.column - 1; col >= 0 and col >= chr->pos.column - chr->rng; col--){
+    assert(chr->team == attackingTeam);
+    if(chr->usesArcAttack){
+        for(int row = 0; row < 2; row++){
+            int deltaRow = (chr->pos.row == row ? 0 : 1);
+            int min = std::max(chr->pos.column - chr->rng + deltaRow, 0);
+            int max = std::min(chr->pos.column + chr->rng - deltaRow, FULL_BOARD_WIDTH - 1);
+            for(int col = min; col <= max; col++){
                 const BoardTile& tile = this->board[row][col];
-                if(not BoardTile::isEmpty(tile)){
-                    if(tile.team != this->iActive)
-                        enemies.push_back( this->units[1-this->iActive][tile.index] );
-                    break;
-                }
-                if(col != chr->pos.column - chr->rng){
-                    const BoardTile& tile = this->board[row][1-col];
-                    if(not BoardTile::isEmpty(tile) and tile.team != this->iActive)
-                        enemies.push_back( this->units[1-this->iActive][tile.index] );
-                }
-            }
-            for(int col = chr->pos.column + 1; col < FULL_BOARD_WIDTH and col <= chr->pos.column + chr->rng; col++ ){
-                const BoardTile& tile = this->board[row][col];
-                if(not BoardTile::isEmpty(tile)){
-                    if(tile.team != this->iActive)
-                        enemies.push_back( this->units[1-this->iActive][tile.index] );
-                    break;
-                }
-                if(col != chr->pos.column - chr->rng){
-                    const BoardTile& tile = this->board[row][1-col];
-                    if(not BoardTile::isEmpty(tile) and tile.team != this->iActive)
-                        enemies.push_back( this->units[1-this->iActive][tile.index] );
+                if(not BoardTile::isEmpty(tile) and tile.team != attackingTeam){
+                    enemies.push_back( this->units[1-attackingTeam][tile.index].pt() );
                 }
             }
         }
+    } else {
+        auto row = chr->pos.row;
+        const BoardTile& tile = this->board[1-row][chr->pos.column];
+        if(not BoardTile::isEmpty(tile) and tile.team != attackingTeam){
+            enemies.push_back( this->units[1-attackingTeam][tile.index].pt() );
+        }
+        for(int col = chr->pos.column - 1; col >= 0 and col >= chr->pos.column - chr->rng; col--){
+            const BoardTile& tile = this->board[row][col];
+            if(not BoardTile::isEmpty(tile)){
+                if(tile.team != attackingTeam){
+                    enemies.push_back( this->units[1-attackingTeam][tile.index].pt() );
+                }
+                break;
+            }
+            if(col != chr->pos.column - chr->rng){
+                const BoardTile& tile = this->board[1-row][col];
+                if(not BoardTile::isEmpty(tile) and tile.team != attackingTeam){
+                    enemies.push_back( this->units[1-attackingTeam][tile.index].pt() );
+                }
+            }
+        }
+        for(int col = chr->pos.column + 1; col < FULL_BOARD_WIDTH and col <= chr->pos.column + chr->rng; col++ ){
+            const BoardTile& tile = this->board[row][col];
+            if(not BoardTile::isEmpty(tile)){
+                if(tile.team != attackingTeam){
+                    enemies.push_back( this->units[1-attackingTeam][tile.index].pt() );
+                }
+                break;
+            }
+            if(col != chr->pos.column - chr->rng){
+                const BoardTile& tile = this->board[1-row][col];
+                if(not BoardTile::isEmpty(tile) and tile.team != attackingTeam){
+                    enemies.push_back( this->units[1-attackingTeam][tile.index].pt() );
+                }
+            }
+        }
+    }
+    return enemies;
+}
+
+std::map<const Character*, std::vector<const Character*>> State::allAttacks() const {
+    assert(timestep == Timestep::ABILITYCHOSEN);
+    std::map<const Character*, std::vector<const Character*>> ret;
+    //print(f' iActive : { this->iActive }, units : { [unit.name for unit in this->units[ this->iActive ] ] }')
+    for(uint iChar = 0; iChar < ARMY_SIZE; iChar++){
+        const Character* chr = this->units[this->iActive][iChar].pt();
+        if(isDead(chr)) continue;
+        auto enemies = allAttacksForCharacter(chr, this->iActive);
+
         if(!enemies.empty()){
             auto [ iter, wasInserted ] = ret.insert(std::make_pair<>( chr, enemies ));
             assert(wasInserted);

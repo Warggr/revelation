@@ -25,10 +25,11 @@ struct MoveDecision {
 
 class Agent {
 protected:
-    uint8_t myId;
+    uint myId : 1;
 
     const Player& getMyPlayer(const State& state) const;
 public:
+    Agent(unsigned int myId) : myId(myId) {};
     virtual ~Agent() = default;
     virtual ActionOrResource getDrawAction(const State& state) = 0;
     virtual void onBegin(const State&) {};
@@ -40,7 +41,7 @@ public:
 class HumanAgent: public Agent {
     const Character& chooseCharacter(const State& state) const;
 public:
-    HumanAgent();
+    HumanAgent(uint myId);
     ActionOrResource getDrawAction(const State&) override;
     MoveDecision getMovement(const State& state, unsigned int) override;
     ActionDecision getAction(const State& state) override;

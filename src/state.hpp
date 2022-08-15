@@ -8,6 +8,7 @@
 #include "agent.hpp"
 #include "character.hpp"
 #include "BoardTile.hpp"
+#include "memory.hpp"
 #include "nlohmann/json_fwd.hpp"
 #include <vector>
 #include <tuple>
@@ -19,10 +20,9 @@ using UnitList = std::array<NullableShared<Character>, ARMY_SIZE>;
 
 class State {
     Board board;
-    std::vector<int> nbAliveUnits;
+    std::array<int, 2> nbAliveUnits;
     Deck<Faction> resDeck;
     int turnID;
-
 public:
     Timestep timestep;
     uint8_t iActive;

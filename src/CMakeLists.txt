@@ -10,4 +10,5 @@ add_executable(revelation
 	search.cpp
 	state.cpp
 	search/heuristic.cpp
+	search/depthfirstsearch.cpp
 )
