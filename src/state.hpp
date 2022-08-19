@@ -4,14 +4,16 @@
 #include "constants.hpp"
 #include "deck.hpp"
 #include "team.hpp"
-#include "step.hpp"
+#include "step_impl.hpp"
 #include "agent.hpp"
 #include "character.hpp"
 #include "BoardTile.hpp"
+#include "effect.hpp"
 #include "memory.hpp"
 #include "nlohmann/json_fwd.hpp"
 #include <vector>
 #include <tuple>
+#include <forward_list>
 
 using json = nlohmann::json;
 
@@ -20,9 +22,10 @@ using UnitList = std::array<NullableShared<Character>, ARMY_SIZE>;
 
 class State {
     Board board;
-    std::array<int, 2> nbAliveUnits;
+    std::array<unsigned short int, 2> nbAliveUnits;
     Deck<Faction> resDeck;
     int turnID;
+    std::forward_list<Effect*> unresolvedSpecialAbility;
 public:
     Timestep timestep;
     uint8_t iActive;
@@ -48,7 +51,8 @@ public:
     std::tuple<State, uptr<AbilityStep>> stepAbil(const AbilityDecision& decision) const;
     std::tuple<State, uptr<ActionStep>> stepAct(ActionDecision decision) const;
     std::tuple<State, uptr<BeginStep>> beginTurn() const;
-    std::tuple<State, uptr<Step>> advance(Agent& agent) const;
+    std::tuple<State, uptr<Step>> resolveSpecialAction() const;
+    std::tuple<State, uptr<Step>> advance(Agent& active, Agent& opponent) const;
 
     std::vector<MoveDecision> allMovementsForCharacter(const Character& character) const;
     std::vector<const Character*> allAttacksForCharacter(const Character* attacker, unsigned int attackingTeam) const;
@@ -60,7 +64,7 @@ public:
     friend void to_json(json& j, const State& state);
 };
 
-constexpr nullptr_t DEAD_UNIT = nullptr;
+constexpr std::nullptr_t DEAD_UNIT = nullptr;
 
 inline bool isDead(const Character* cha){ return cha == nullptr; }
 inline bool isDead(const NullableShared<Character>& cha){ return cha.pt() == nullptr; }

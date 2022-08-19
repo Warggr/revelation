@@ -24,35 +24,11 @@ enum Timestep {
 };
 
 enum ActionCard {
-    HARDATK , SOFTATK , DEFENSE
+    HARDATK , SOFTATK , DEFENSE, SPECIALACTION
 };
 
 enum ActionOrResource {
     ACTION = true, RESOURCES = false
 };
-
-struct AbilityDecision {
-    bool isPass() const { return true; }
-};
-
-class ActionDecision {
-public:
-    ActionCard card;
-    position subjectPos;
-    position objectPos;
-
-    ActionDecision() = default;
-    constexpr ActionDecision(ActionCard card, position subjectPos, position objectPos)
-            : card(card), subjectPos(subjectPos), objectPos(objectPos) {}
-
-    constexpr bool isPass() const {
-        return card==ActionCard::DEFENSE and subjectPos == position(1, 1) and objectPos == position(1, 1);
-    }
-    static constexpr ActionDecision pass(){
-        return { ActionCard::DEFENSE, {1, 1}, {1, 1} };
-    }
-};
-
-static_assert(ActionDecision::pass().isPass() );
 
 #endif //REVELATION_CONSTANTS_HPP

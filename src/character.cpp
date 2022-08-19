@@ -22,6 +22,11 @@ Character::Character(const char *name, short maxHP, short softAtk, short hardAtk
     this->HP = maxHP;
 }
 
+Character::~Character(){
+    for(auto effect_ptr : specialAction)
+        delete effect_ptr;
+}
+
 short Character::takeDmg(bool isHard, short power) {
     (void) isHard; //currently no difference between hard and soft damage
     if(this->defShieldHP > 0) {

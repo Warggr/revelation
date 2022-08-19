@@ -1,7 +1,7 @@
 #ifndef REVELATION_HEURISTIC_HPP
 #define REVELATION_HEURISTIC_HPP
 
-#include "../step.hpp"
+#include "../step_impl.hpp"
 
 class State;
 

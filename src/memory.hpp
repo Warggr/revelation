@@ -9,7 +9,7 @@ private:
     std::unique_ptr<T> content;
 public:
     NullableShared() = default;
-    NullableShared(nullptr_t){};
+    NullableShared(std::nullptr_t){};
     NullableShared(NullableShared&& move): content(std::move(move.content)) {}
     NullableShared& operator=(NullableShared&& move) {
         content = std::move(move.content); return *this;

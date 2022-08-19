@@ -10,6 +10,7 @@ struct DecisionList{
     MoveDecision moves[2];
     AbilityDecision ability;
     ActionDecision action;
+    std::vector<unsigned int> specialActions;
 };
 
 struct SearchNode {
@@ -68,6 +69,7 @@ public:
 class SearchAgent: public Agent {
     SearchPolicy* searchPolicy;
     DecisionList plans {};
+    unsigned short int currentSpecialAction = 0;
 public:
     SearchAgent(unsigned int myId, SearchPolicy* policy): Agent(myId), searchPolicy(policy) {};
     //~SearchAgent() { delete searchPolicy; }
@@ -75,6 +77,9 @@ public:
     MoveDecision getMovement(const State&, unsigned nb) override { return plans.moves[nb]; }
     AbilityDecision getAbility(const State&) override { return plans.ability; }
     ActionDecision getAction(const State&) override { return plans.action; }
+    unsigned int getSpecialAction(Effect&) override {
+        return plans.specialActions[currentSpecialAction++];
+    }
 
     void onBegin(const State &state) override;
 };

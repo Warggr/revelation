@@ -161,7 +161,7 @@ std::tuple<State, uptr<MoveStep>> State::stepMov(MoveDecision decision) const {
     else
         throw std::invalid_argument(("Invalid timestep"));
 
-    if(MoveDecision::isPass(decision)) {
+    if(decision.isPass()) {
         newState.timestep = MOVEDlast;
         uptr<MoveStep> u = std::make_unique<MoveStep>(MoveStep::pass());
         return std::make_tuple( newState, std::move(u) );
@@ -213,11 +213,15 @@ std::tuple<State, uptr<ActionStep>> State::stepAct(ActionDecision decision) cons
         return { newState, std::make_unique<ActionStep>(ActionStep::pass()) };
     }
 
-    newState.players[this->iActive].discard(decision.card);
     int heroIndex = newState.getBoardField((decision.subjectPos)).index;
     assert(newState.getBoardField(decision.subjectPos).team == this->iActive);
     Character* hero = newState.units[this->iActive][heroIndex].pt();
     newState.checkConsistency();
+    if(decision.card == SPECIALACTION){
+        newState.unresolvedSpecialAbility = hero->getSpecialAction();
+        return std::make_tuple(newState, std::make_unique<ActionStep>( decision.card, decision.subjectPos, decision.objectPos, 0, 0 ));
+    }
+    newState.players[this->iActive].discard(decision.card);
     if(decision.card == DEFENSE) {
         short newShieldHP = hero->buff();
         return std::make_tuple(newState, std::make_unique<ActionStep>( decision.card, decision.subjectPos, decision.objectPos, newShieldHP, 50 ));
@@ -273,25 +277,37 @@ std::tuple<State, uptr<BeginStep>> State::beginTurn() const {
     return std::make_tuple(ret, std::make_unique<BeginStep>());
 }
 
-std::tuple<State, uptr<Step>> State::advance(Agent& agent) const {
+std::tuple<State, uptr<Step>> State::advance(Agent& active, Agent& opponent) const {
+    if(!unresolvedSpecialAbility.empty()){
+        State copy(*this);
+
+        Effect* effect = copy.unresolvedSpecialAbility.front();
+        copy.unresolvedSpecialAbility.pop_front();
+
+        Agent& whoDecides = effect->opponentChooses() ? opponent : active;
+        unsigned int decision = whoDecides.getSpecialAction(*effect);
+
+        uptr<Step> step = effect->resolve(copy, decision);
+        return std::make_tuple<State, uptr<Step>>( std::move(copy), std::move(step) );
+    }
     switch(this->timestep){
     case ACTED:
         return this->beginTurn();
     case BEGIN: {
-        ActionOrResource decision = agent.getDrawAction(*this);
+        ActionOrResource decision = active.getDrawAction(*this);
         return this->stepDraw(decision);
     }
     case DISCARDED:
     case MOVEDfirst: {
-        MoveDecision decision = agent.getMovement(*this, (timestep==DISCARDED ? 0 : 1));
+        MoveDecision decision = active.getMovement(*this, (timestep==DISCARDED ? 0 : 1));
         return this->stepMov(decision);
     }
     case MOVEDlast: {
-        AbilityDecision decision = agent.getAbility(*this);
+        AbilityDecision decision = active.getAbility(*this);
         return this->stepAbil(decision);
     }
     case ABILITYCHOSEN: {
-        ActionDecision decision = agent.getAction(*this);
+        ActionDecision decision = active.getAction(*this);
         return this->stepAct(decision);
     }
     case DREW: //currently DREW never happens

@@ -22,7 +22,15 @@ const Player& Agent::getMyPlayer(const State& state) const {
 }
 
 HumanAgent::HumanAgent(uint myId) : Agent(myId) {
-    //name = input("Hi! Please enter your name: ")
+}
+
+unsigned int HumanAgent::getSpecialAction(Effect& effect) {
+    std::vector<std::string> descriptions = effect.getOptions();
+    for(unsigned int i=0; i<descriptions.size(); i++){
+        std::cout << '[' << i << "]: " << descriptions[i] << '\n';
+    }
+    uint iSel = input(0, descriptions.size() - 1);
+    return iSel;
 }
 
 const Character& HumanAgent::chooseCharacter(const State& state) const {

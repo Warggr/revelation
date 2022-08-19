@@ -5,23 +5,9 @@
 #include "player.hpp"
 #include "character.hpp"
 #include "deck.hpp"
+#include "decision.hpp"
 
 class State;
-
-struct MoveDecision {
-    position from;
-    position to;
-    std::vector<Direction> moves;
-    MoveDecision() = default;
-    MoveDecision(position from, position to, std::vector<Direction> moves): from(from), to(to), moves(std::move(moves)) {};
-
-    static MoveDecision pass() { return { {}, {}, {} }; };
-    static bool isPass(const MoveDecision& decision){
-        return decision.moves.empty();
-    }
-};
-
-//static_assert( isPass( MoveDecision::pass() ) );
 
 class Agent {
 protected:
@@ -36,6 +22,7 @@ public:
     virtual MoveDecision getMovement(const State& state, unsigned nb) = 0;
     virtual AbilityDecision getAbility(const State&) { return {}; };
     virtual ActionDecision getAction(const State& state) = 0;
+    virtual unsigned int getSpecialAction(Effect& effect) = 0;
 };
 
 class HumanAgent: public Agent {
@@ -45,6 +32,7 @@ public:
     ActionOrResource getDrawAction(const State&) override;
     MoveDecision getMovement(const State& state, unsigned int) override;
     ActionDecision getAction(const State& state) override;
+    unsigned int getSpecialAction(Effect& effect) override;
 };
 
 #endif //REVELATION_AGENT_HPP

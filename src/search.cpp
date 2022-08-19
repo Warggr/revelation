@@ -8,6 +8,7 @@
 #include <cassert>
 
 void SearchAgent::onBegin(const State &state) {
+    currentSpecialAction = 0;
 //    ProgressLogger* logger; //TODO
     searchPolicy->planAhead(state /*, *logger*/);
     State newState; Heuristic::Value heurVal;

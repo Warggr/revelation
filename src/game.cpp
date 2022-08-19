@@ -21,7 +21,7 @@ bool Game::play(bool isLiveServer, bool logToTerminal) {
     while(not state.isFinished()) {
         if(state.timestep == Timestep::BEGIN)
             agents[state.iActive]->onBegin(state);
-        auto [ newState, step ] = state.advance(*agents[state.iActive]);
+        auto [ newState, step ] = state.advance(*agents[state.iActive], *agents[1 - state.iActive]);
         state = newState;
         logger->addStep(std::move(step));
     }
