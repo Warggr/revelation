@@ -15,4 +15,9 @@ struct Team {
     friend void to_json(json& j, const Team& team);
 };
 
+Team mkEurope();
+Team mkNearEast();
+Team mkFarEast();
+Team mkNorthmen();
+
 #endif //REVELATION_TEAM_HPP

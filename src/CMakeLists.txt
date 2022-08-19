@@ -9,6 +9,7 @@ add_executable(revelation
 	player.cpp
 	search.cpp
 	state.cpp
+	teams.cpp
 	search/heuristic.cpp
 	search/depthfirstsearch.cpp
 )
