@@ -18,7 +18,7 @@ Heuristic::Value PowerTimesToughnessHeuristic::evaluateMaxForState(int playerId,
     int myMaxAtk = 0;
     for(auto unit : state.units[ playerId ]){ //units are sorted by max atk, so the first in the list is the one with the highest atk
         if(not isDead(unit)){
-            myMaxAtk = unit->maxAtk;
+            myMaxAtk = unit->im.maxAtk;
             break;
         }
     }
@@ -27,10 +27,10 @@ Heuristic::Value PowerTimesToughnessHeuristic::evaluateMaxForState(int playerId,
     for(auto enemy : state.units[ 1 - playerId ]){
         if(not isDead(enemy)){
             if(enemy->HP < nbMaxDamage){
-                heurVal += enemy->maxAtk * ( enemy->HP + enemy->maxHP );
+                heurVal += enemy->im.maxAtk * ( enemy->HP + enemy->im.maxHP );
                 nbMaxDamage -= enemy->HP;
             } else {
-                heurVal += enemy->maxAtk * nbMaxDamage;
+                heurVal += enemy->im.maxAtk * nbMaxDamage;
                 break;
             }
         }
@@ -40,13 +40,15 @@ Heuristic::Value PowerTimesToughnessHeuristic::evaluateMaxForState(int playerId,
 
 Heuristic::Value PowerTimesToughnessHeuristic::evaluateActionStep(int myId, const State& oldState, const ActionStep& step) const {
     (void) myId;
+    if(step.isPass())
+        return 0;
     if(step.cardLost == ActionCard::DEFENSE)
-        return 50 * oldState.getBoardFieldDeref( step.subject )->maxAtk;
+        return 50 * oldState.getBoardFieldDeref( step.subject )->im.maxAtk;
     else {
         const Character* obj = oldState.getBoardFieldDeref( step.object );
-        Heuristic::Value ret = step.lostHP * obj->maxAtk;
+        Heuristic::Value ret = step.lostHP * obj->im.maxAtk;
         if(step.del)
-            ret += obj->maxAtk * obj->maxHP;
+            ret += obj->im.maxAtk * obj->im.maxHP;
         return ret;
     }
 }

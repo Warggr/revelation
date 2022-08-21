@@ -2,8 +2,8 @@
 #include "logger.hpp"
 #include "game.hpp"
 
-Game::Game(const std::array<Team, 2>& teams, const std::array<Agent*, 2>& agents):
-    state(State::createStart(teams)), teams(teams), agents(agents)
+Game::Game(std::array<Team, 2>&& teams, const std::array<Agent*, 2>& agents):
+    state(State::createStart(teams)), teams(std::move(teams)), agents(agents)
 {
 };
 

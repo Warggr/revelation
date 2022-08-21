@@ -22,7 +22,7 @@ public:
     virtual MoveDecision getMovement(const State& state, unsigned nb) = 0;
     virtual AbilityDecision getAbility(const State&) { return {}; };
     virtual ActionDecision getAction(const State& state) = 0;
-    virtual unsigned int getSpecialAction(Effect& effect) = 0;
+    virtual unsigned int getSpecialAction(const State& state, Effect& effect) = 0;
 };
 
 class HumanAgent: public Agent {
@@ -32,7 +32,7 @@ public:
     ActionOrResource getDrawAction(const State&) override;
     MoveDecision getMovement(const State& state, unsigned int) override;
     ActionDecision getAction(const State& state) override;
-    unsigned int getSpecialAction(Effect& effect) override;
+    unsigned int getSpecialAction(const State& state, Effect& effect) override;
 };
 
 #endif //REVELATION_AGENT_HPP

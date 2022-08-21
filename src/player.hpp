@@ -30,6 +30,8 @@ public:
 
     void discard(ActionCard card);
 
+    void discard(unsigned int card);
+
     void useActionCard(ActionCard cardValue);
 
     const std::vector<ActionCard>& getActions() const { return actions; }

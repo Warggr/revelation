@@ -32,6 +32,12 @@ void Player::discard(ActionCard card) {
     actionDeck.discard(card);
 }
 
+void Player::discard(unsigned int iCard) {
+    auto card = actions[iCard];
+    actions.erase(actions.begin() + iCard);
+    actionDeck.discard(card);
+}
+
 void Player::useActionCard(ActionCard cardValue) {
     std::remove(actions.begin(), actions.end(), cardValue);
     actionDeck.discard(cardValue);

@@ -77,7 +77,7 @@ public:
     MoveDecision getMovement(const State&, unsigned nb) override { return plans.moves[nb]; }
     AbilityDecision getAbility(const State&) override { return plans.ability; }
     ActionDecision getAction(const State&) override { return plans.action; }
-    unsigned int getSpecialAction(Effect&) override {
+    unsigned int getSpecialAction(const State&, Effect&) override {
         return plans.specialActions[currentSpecialAction++];
     }
 

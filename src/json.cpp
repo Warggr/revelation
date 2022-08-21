@@ -8,12 +8,10 @@ using json = nlohmann::json;
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(BoardTile, team, index)
 
-void to_json(json& j, const Character& chr){
+void to_json(json& j, const ImmutableCharacter& chr){
     j = {
         {"name", std::string(chr.name)},
-        {"uid", chr.uid},
         {"maxHP", chr.maxHP},
-        {"HP", chr.HP},
         {"softAtk", chr.softAtk},
         {"hardAtk", chr.hardAtk},
         {"mov", chr.mov},

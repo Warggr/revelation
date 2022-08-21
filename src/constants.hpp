@@ -2,8 +2,8 @@
 #ifndef REVELATION_CONSTANTS_HPP
 #define REVELATION_CONSTANTS_HPP
 
-#include "string"
 #include "position.hpp"
+#include <string>
 
 constexpr int MAX_RESOURCES = 3;
 constexpr int MAX_ACTIONS = 4;
@@ -30,5 +30,7 @@ enum ActionCard {
 enum ActionOrResource {
     ACTION = true, RESOURCES = false
 };
+
+std::string to_string(enum ActionCard card);
 
 #endif //REVELATION_CONSTANTS_HPP

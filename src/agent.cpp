@@ -24,8 +24,8 @@ const Player& Agent::getMyPlayer(const State& state) const {
 HumanAgent::HumanAgent(uint myId) : Agent(myId) {
 }
 
-unsigned int HumanAgent::getSpecialAction(Effect& effect) {
-    std::vector<std::string> descriptions = effect.getOptions();
+unsigned int HumanAgent::getSpecialAction(const State& state, Effect& effect) {
+    std::vector<std::string> descriptions = effect.getOptions(state);
     for(unsigned int i=0; i<descriptions.size(); i++){
         std::cout << '[' << i << "]: " << descriptions[i] << '\n';
     }
@@ -36,7 +36,7 @@ unsigned int HumanAgent::getSpecialAction(Effect& effect) {
 const Character& HumanAgent::chooseCharacter(const State& state) const {
     for(uint i=0; i<NB_CHARACTERS; i++)
         if(not isDead(state.units[myId][i].pt()))
-            std::cout << '[' << i << "]: " << state.units[myId][i]->name << '\n';
+            std::cout << '[' << i << "]: " << state.units[myId][i]->im.name << '\n';
 
     std::cout << "Enter which character to select: ";
     uint iSel = input(0, NB_CHARACTERS-1);
@@ -66,7 +66,7 @@ ActionDecision HumanAgent::getAction(const State& state) {
     if(cards.empty())
         return ActionDecision::pass();
     for(uint i=0; i<cards.size(); i++){
-        std::cout << '[' << (i+1) << "]: " << cards[i] << '\n';
+        std::cout << '[' << (i+1) << "]: " << to_string(cards[i]) << '\n';
     }
     std::cout << "Choose a card, any card (or 0 to skip): ";
     uint iSel = input(0, cards.size());
@@ -83,10 +83,10 @@ ActionDecision HumanAgent::getAction(const State& state) {
         std::vector<std::array<const Character*, 2>> array;
         int i = 1;
         for(const auto& [ unit, enemies ] : allPossibleAttacks){
-            std::cout << unit->name << '\n';
+            std::cout << unit->im.name << '\n';
             for(const auto& enemy : enemies){
                 const char* startCharacter = (enemy == enemies.back()) ? "└" : "├";
-                std::cout << '[' << i << ']' << startCharacter << "─" << enemy->name << '\n';
+                std::cout << '[' << i << ']' << startCharacter << "─" << enemy->im.name << '\n';
                 array.push_back( { unit, enemy } );
                 i += 1;
             }

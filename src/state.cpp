@@ -26,12 +26,12 @@ State::State(Board board, std::array<UnitList, 2> units, std::array<Player, 2> p
     this->checkConsistency();
 }
 
-State State::createStart(std::array<Team, 2> teams) {
+State State::createStart(const std::array<Team, 2>& teams) {
     std::array<UnitList, 2> alive;
     for(int i = 0; i < 2; i++ ) {
         for(int j = 0; j < 2; j++) {
             for(int k = 0; k < ARMY_WIDTH; k++) {
-                alive[i][j*ARMY_WIDTH+k] = NullableShared<Character>( teams[i].characters[j][k] );
+                alive[i][j*ARMY_WIDTH+k] = NullableShared<Character>( teams[i].characters_unique[ teams[i].characters[j][k] ] );
                 auto* ch = alive[i][j*ARMY_WIDTH+k].pt();
                 ch->pos = position( j, k + 1 + i*HALF_BOARD_WIDTH);
                 ch->team = i;
@@ -42,7 +42,7 @@ State State::createStart(std::array<Team, 2> teams) {
     Board board;
     for(std::size_t i = 0; i < 2; i++) {
         auto sortLambda = [] (const NullableShared<Character>& one, const NullableShared<Character>& two) -> bool{
-            return one->maxAtk > two->maxAtk;
+            return one->im.maxAtk > two->im.maxAtk;
         };
 
         std::sort(alive[i].begin(), alive[i].end(), sortLambda);
@@ -235,11 +235,11 @@ std::tuple<State, uptr<ActionStep>> State::stepAct(ActionDecision decision) cons
 
         Character* victim = newState.units[1- this->iActive][victimIndex].pt();
         if(decision.card == SOFTATK) {
-            setLife = victim->takeDmg(false, hero->softAtk);
-            step = std::make_unique<ActionStep>(decision.card, decision.subjectPos, decision.objectPos, setLife, hero->softAtk );
+            setLife = victim->takeDmg(false, hero->im.softAtk);
+            step = std::make_unique<ActionStep>(decision.card, decision.subjectPos, decision.objectPos, setLife, hero->im.softAtk );
         } else if(decision.card == HARDATK) {
-            setLife = victim->takeDmg(true, hero->hardAtk);
-            step = std::make_unique<ActionStep>(decision.card, decision.subjectPos, decision.objectPos, setLife, hero->hardAtk );
+            setLife = victim->takeDmg(true, hero->im.hardAtk);
+            step = std::make_unique<ActionStep>(decision.card, decision.subjectPos, decision.objectPos, setLife, hero->im.hardAtk );
         } else {
             throw std::invalid_argument("decision.card is neither hard, soft, nor defense");
         }
@@ -285,7 +285,7 @@ std::tuple<State, uptr<Step>> State::advance(Agent& active, Agent& opponent) con
         copy.unresolvedSpecialAbility.pop_front();
 
         Agent& whoDecides = effect->opponentChooses() ? opponent : active;
-        unsigned int decision = whoDecides.getSpecialAction(*effect);
+        unsigned int decision = whoDecides.getSpecialAction(copy, *effect);
 
         uptr<Step> step = effect->resolve(copy, decision);
         return std::make_tuple<State, uptr<Step>>( std::move(copy), std::move(step) );
@@ -334,7 +334,7 @@ std::vector<MoveDecision> State::allMovementsForCharacter(const Character& hero)
         if(not secondPass) {
             if(not moves.empty()) //do not select the empty list, aka "staying in place"
                 ret.emplace_back( hero.pos, pos, moves );
-            if(moves.size() < hero.mov){
+            if(moves.size() < hero.im.mov){
                 stack.emplace_back( pos, true, moves );
                 boardOfBools[pos.row][pos.column] = true;
                 std::vector<std::tuple<Direction, position>> neighbours;
@@ -365,11 +365,11 @@ std::vector<const Character*> State::allAttacksForCharacter(const Character* chr
     //std::cout << "-|===> for " << chr->uid << chr->team << '@' << chr << '\n';
 
     assert(chr->team == attackingTeam);
-    if(chr->usesArcAttack){
+    if(chr->im.usesArcAttack){
         for(int row = 0; row < 2; row++){
             int deltaRow = (chr->pos.row == row ? 0 : 1);
-            int min = std::max(chr->pos.column - chr->rng + deltaRow, 0);
-            int max = std::min(chr->pos.column + chr->rng - deltaRow, FULL_BOARD_WIDTH - 1);
+            int min = std::max(chr->pos.column - chr->im.rng + deltaRow, 0);
+            int max = std::min(chr->pos.column + chr->im.rng - deltaRow, FULL_BOARD_WIDTH - 1);
             for(int col = min; col <= max; col++){
                 const BoardTile& tile = this->board[row][col];
                 if(not BoardTile::isEmpty(tile) and tile.team != attackingTeam){
@@ -383,7 +383,7 @@ std::vector<const Character*> State::allAttacksForCharacter(const Character* chr
         if(not BoardTile::isEmpty(tile) and tile.team != attackingTeam){
             enemies.push_back( this->units[1-attackingTeam][tile.index].pt() );
         }
-        for(int col = chr->pos.column - 1; col >= 0 and col >= chr->pos.column - chr->rng; col--){
+        for(int col = chr->pos.column - 1; col >= 0 and col >= chr->pos.column - chr->im.rng; col--){
             const BoardTile& tile = this->board[row][col];
             if(not BoardTile::isEmpty(tile)){
                 if(tile.team != attackingTeam){
@@ -391,14 +391,14 @@ std::vector<const Character*> State::allAttacksForCharacter(const Character* chr
                 }
                 break;
             }
-            if(col != chr->pos.column - chr->rng){
+            if(col != chr->pos.column - chr->im.rng){
                 const BoardTile& tile = this->board[1-row][col];
                 if(not BoardTile::isEmpty(tile) and tile.team != attackingTeam){
                     enemies.push_back( this->units[1-attackingTeam][tile.index].pt() );
                 }
             }
         }
-        for(int col = chr->pos.column + 1; col < FULL_BOARD_WIDTH and col <= chr->pos.column + chr->rng; col++ ){
+        for(int col = chr->pos.column + 1; col < FULL_BOARD_WIDTH and col <= chr->pos.column + chr->im.rng; col++ ){
             const BoardTile& tile = this->board[row][col];
             if(not BoardTile::isEmpty(tile)){
                 if(tile.team != attackingTeam){
@@ -406,7 +406,7 @@ std::vector<const Character*> State::allAttacksForCharacter(const Character* chr
                 }
                 break;
             }
-            if(col != chr->pos.column - chr->rng){
+            if(col != chr->pos.column - chr->im.rng){
                 const BoardTile& tile = this->board[1-row][col];
                 if(not BoardTile::isEmpty(tile) and tile.team != attackingTeam){
                     enemies.push_back( this->units[1-attackingTeam][tile.index].pt() );

@@ -35,7 +35,7 @@ public:
     State() = default;
     State(Board board, std::array<UnitList, 2> units, std::array<Player, 2> players,
           Deck<Faction> resDeck, Timestep timestep, int turnID);
-    static State createStart(std::array<Team, 2> teams);
+    static State createStart(const std::array<Team, 2>& teams);
 
     const BoardTile& getBoardField(position coords) const;
     Character* getBoardFieldDeref(position coords);

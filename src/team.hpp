@@ -10,7 +10,8 @@ using json = nlohmann::json;
 
 struct Team {
     std::string name;
-    std::array<std::array<Character, ARMY_WIDTH>, 2> characters;
+    std::vector<ImmutableCharacter> characters_unique;
+    std::array<std::array<unsigned short int, ARMY_WIDTH>, 2> characters;
 
     friend void to_json(json& j, const Team& team);
 };

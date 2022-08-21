@@ -14,6 +14,6 @@ int main(){
     std::array<Agent*, 2> agents = { &ag1, &ag2 };
     std::array<Team, 2> teams = { mkEurope(), mkNearEast() };
 
-	Game game(teams, agents);
+	Game game(std::move(teams), agents);
 	game.play();
 }

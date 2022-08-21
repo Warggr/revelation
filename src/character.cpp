@@ -4,9 +4,16 @@
 using json = nlohmann::json;
 char Character::s_uid = 'a';
 
-Character::Character(const char *name, short maxHP, short softAtk, short hardAtk, uint8_t mov,
-                     uint8_t rng, float netWorth, bool usesArcAttack, const char *flavor) : uid(s_uid++),
-                     pos(0, 0), usesArcAttack(usesArcAttack) {
+Character::Character(const ImmutableCharacter& im):
+    uid(s_uid++),
+    im(im), HP(im.maxHP), pos(0, 0),
+    turnMoved(-1), turnAttacked(-1),
+    defShieldHP(0)
+{
+};
+
+ImmutableCharacter::ImmutableCharacter(const char* name, short maxHP, short softAtk, short hardAtk, uint8_t mov,
+                     uint8_t rng, float netWorth, bool usesArcAttack, const char* flavor) : usesArcAttack(usesArcAttack) {
     this->name = name;
     this->maxHP = maxHP;
     this->softAtk = softAtk;
@@ -16,13 +23,9 @@ Character::Character(const char *name, short maxHP, short softAtk, short hardAtk
     this->netWorth = netWorth;
     this->flavor = flavor;
     this->maxAtk = std::max(softAtk, hardAtk);
-    this->turnMoved = -1;
-    this->turnAttacked = -1;
-    this->defShieldHP = 0;
-    this->HP = maxHP;
 }
 
-Character::~Character(){
+ImmutableCharacter::~ImmutableCharacter(){
     for(auto effect_ptr : specialAction)
         delete effect_ptr;
 }
@@ -42,13 +45,13 @@ short Character::getAtk(bool isHard, short turnID) const {
     if(this->turnAttacked == turnID - 1) {
         return 10;
     } else if(isHard) {
-        return this->hardAtk;
+        return im.hardAtk;
     } else {
-        return this->softAtk;
+        return im.softAtk;
     }
 }
 
 short Character::buff() {
-    this->defShieldHP = this->maxHP;
+    this->defShieldHP = im.maxHP;
     return this->defShieldHP;
 }

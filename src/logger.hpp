@@ -6,7 +6,7 @@
 
 class Logger {
 public:
-    Logger(std::array<Team, 2>) {};
+    Logger(const std::array<Team, 2>&) {};
     virtual ~Logger();
     Logger* liveServer();
     Logger* logToTerminal();
