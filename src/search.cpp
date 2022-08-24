@@ -57,7 +57,7 @@ unsigned char hashPosition( const position& pos ){ //max. 4 bits for column and 
 HashKey hashBoard( const UnitList& units ){
     int retVal = 0;
     for(unsigned i = 0; i<6; i++)
-        retVal += (isDead(units[i]) ? hashPosition(units[i]->pos) + 1 : 0) << (5*i);
+        retVal += (isDead(units[i]) ? 0 : hashPosition(units[i]->pos) + 1) << (5*i);
     return retVal;
 }
 
@@ -123,8 +123,8 @@ unsigned pushChildStates(const SearchNode& stackFrame, Container<SearchNode>& pu
                             auto possibleMovs = subState.allMovementsForCharacter(*charSel);
                             for(const auto& movSel : possibleMovs){
                                 std::array<MoveDecision, 2> newDecisions = decisions;
-                                newDecisions[i+1] = movSel;
-                                auto [ newState, step ] = subState.stepMov( newDecisions[i+1] );
+                                newDecisions[i] = movSel;
+                                auto [ newState, step ] = subState.stepMov( newDecisions[i] );
                                 heurVal += heuristic.evaluateStep( state.iActive, newState, *step );
 
                                 newStates.emplace_back(newState, newDecisions, heurVal );

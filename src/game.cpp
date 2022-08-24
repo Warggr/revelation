@@ -7,10 +7,6 @@ Game::Game(std::array<Team, 2>&& teams, const std::array<Agent*, 2>& agents):
 {
 };
 
-Game::~Game(){
-    for(Agent* agent : agents) delete agent;
-}
-
 bool Game::play(bool isLiveServer, bool logToTerminal) {
     auto* logger = new Logger(teams);
     if(isLiveServer)
