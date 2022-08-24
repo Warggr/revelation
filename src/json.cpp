@@ -42,6 +42,10 @@ void BeginStep::to_json(json& j) const {
     (void)j; //TODO
 }
 
+void DiscardStep::to_json(json& j) const {
+    (void)j; //TODO
+}
+
 void MoveStep::to_json(json& j) const {
     (void)j; //TODO
 }

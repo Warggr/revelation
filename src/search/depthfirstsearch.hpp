@@ -74,7 +74,7 @@ public:
 };
 
 class AdaptiveDepthFirstSearch : public DepthFirstSearch {
-    constexpr static int usedLevelsMap[] = { 0, -1, 1, -1, 2, 3 };
+    constexpr static int usedLevelsMap[] = { 0, 1, 1, -1, 2, 3 };
     constexpr static int nbUsedLevels = 4;
 
     unsigned maxNodes;

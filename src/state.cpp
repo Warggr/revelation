@@ -96,19 +96,35 @@ bool State::isFinished() const {
 std::tuple<State, uptr<DrawStep>> State::stepDraw(ActionOrResource decision) const {
     assert(timestep == BEGIN);
     this->checkConsistency();
-    State newState(this->board, this->units, this->players, this->resDeck, this->timestep, this->turnID);
-    newState.timestep = DISCARDED;
+    State newState(*this);
+    newState.timestep = DREW;
     //newState.players = newState.players.copy()
     //newState.players[this->iActive] = copy.copy(newState.players[this->iActive])
     newState.checkConsistency();
     std::variant<ActionCard, Faction> cardDrawn;
     if(decision == ACTION) {
         cardDrawn = newState.players[iActive].drawAction();
+        if(newState.players[iActive].getActions().size() <= MAX_ACTIONS) newState.timestep = DISCARDED;
+            // no need to discard anything - so we skip discard step and pretend we have already discarded
         return { newState, std::make_unique<DrawStep>(cardDrawn, newState.players[iActive].actionDeck.sizeconfig()) };
     } else {
         cardDrawn = newState.players[iActive].drawResource(newState.resDeck);
+        if(newState.players[iActive].getResourceCards().size() <= MAX_RESOURCES) newState.timestep = DISCARDED;
         return { newState, std::make_unique<DrawStep>( cardDrawn, newState.resDeck.sizeconfig())};
     }
+}
+
+std::tuple<State, uptr<DiscardStep>> State::stepDiscard(DiscardDecision decision) const {
+    assert(timestep == DREW);
+    assert(players[this->iActive].getActions().size() > MAX_ACTIONS);
+    this->checkConsistency();
+    State newState(*this);
+    newState.timestep = DISCARDED;
+    //newState.players = newState.players.copy()
+    //newState.players[this->iActive] = copy.copy(newState.players[this->iActive])
+    newState.checkConsistency();
+    newState.players[this->iActive].discard(decision.iCardDiscarded);
+    return { newState, std::make_unique<DiscardStep>() };
 }
 
 void State::checkConsistency() const {
@@ -297,6 +313,10 @@ std::tuple<State, uptr<Step>> State::advance(Agent& active, Agent& opponent) con
         ActionOrResource decision = active.getDrawAction(*this);
         return this->stepDraw(decision);
     }
+    case DREW: {
+        DiscardDecision decision = active.getDiscard(*this);
+        return this->stepDiscard(decision);
+    }
     case DISCARDED:
     case MOVEDfirst: {
         MoveDecision decision = active.getMovement(*this, (timestep==DISCARDED ? 0 : 1));
@@ -310,9 +330,9 @@ std::tuple<State, uptr<Step>> State::advance(Agent& active, Agent& opponent) con
         ActionDecision decision = active.getAction(*this);
         return this->stepAct(decision);
     }
-    case DREW: //currently DREW never happens
-    default: //shouldn't happen either
-        return std::make_tuple<State, uptr<Step>>({}, {});
+    default: //shouldn't happen
+        throw 1;
+        //return std::make_tuple<State, uptr<Step>>({}, {});
     }
 }
 

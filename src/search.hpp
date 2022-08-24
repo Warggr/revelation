@@ -7,6 +7,7 @@
 
 struct DecisionList{
     ActionOrResource draw;
+    DiscardDecision discard;
     MoveDecision moves[2];
     AbilityDecision ability;
     ActionDecision action;
@@ -74,6 +75,7 @@ public:
     SearchAgent(unsigned int myId, SearchPolicy* policy): Agent(myId), searchPolicy(policy) {};
     //~SearchAgent() { delete searchPolicy; }
     ActionOrResource getDrawAction(const State&) override { return plans.draw; }
+    DiscardDecision getDiscard(const State&) override { return plans.discard; }
     MoveDecision getMovement(const State&, unsigned nb) override { return plans.moves[nb]; }
     AbilityDecision getAbility(const State&) override { return plans.ability; }
     ActionDecision getAction(const State&) override { return plans.action; }

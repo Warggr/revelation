@@ -45,8 +45,18 @@ const Character& HumanAgent::chooseCharacter(const State& state) const {
 
 ActionOrResource HumanAgent::getDrawAction(const State&) {
     std::cout << "Choose [1] draw action or [2] draw resource: ";
-    uint iSel = input(0, 1);
+    uint iSel = input(1, 2);
     return (iSel == 1) ? ActionOrResource::ACTION : ActionOrResource::RESOURCES;
+}
+
+DiscardDecision HumanAgent::getDiscard(const State& state) {
+    const std::vector<ActionCard>& cards = getMyPlayer(state).getActions();
+    for(uint i=0; i<cards.size(); i++){
+        std::cout << '[' << i << "]: " << to_string(cards[i]) << '\n';
+    }
+    std::cout << "Choose a card to discard: ";
+    uint iSel = input(0, cards.size() - 1);
+    return DiscardDecision( iSel );
 }
 
 MoveDecision HumanAgent::getMovement(const State& state, unsigned int) {

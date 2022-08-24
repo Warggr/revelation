@@ -36,6 +36,8 @@ public:
 
     const std::vector<ActionCard>& getActions() const { return actions; }
 
+    const std::vector<Faction>& getResourceCards() const { return resources; }
+
     friend void to_json(json&j, const Player& player);
 };
 

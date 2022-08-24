@@ -26,6 +26,11 @@ struct DrawStep : public Step {
     void to_json(json& j) const override;
 };
 
+struct DiscardStep : public Step {
+    bool isPass() const override { return true; } //TODO
+    void to_json(json& j) const override;
+};
+
 struct MoveStep : public Step {
     position from;
     position to;

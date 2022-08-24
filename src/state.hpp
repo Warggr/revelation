@@ -47,6 +47,7 @@ public:
     void checkConsistency() const;
 
     std::tuple<State, uptr<DrawStep>> stepDraw(ActionOrResource decision) const;
+    std::tuple<State, uptr<DiscardStep>> stepDiscard(DiscardDecision decision) const;
     std::tuple<State, uptr<MoveStep>> stepMov(MoveDecision decision) const;
     std::tuple<State, uptr<AbilityStep>> stepAbil(const AbilityDecision& decision) const;
     std::tuple<State, uptr<ActionStep>> stepAct(ActionDecision decision) const;

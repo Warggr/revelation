@@ -17,8 +17,9 @@ protected:
 public:
     Agent(unsigned int myId) : myId(myId) {};
     virtual ~Agent() = default;
-    virtual ActionOrResource getDrawAction(const State& state) = 0;
     virtual void onBegin(const State&) {};
+    virtual ActionOrResource getDrawAction(const State& state) = 0;
+    virtual DiscardDecision getDiscard(const State& state) = 0;
     virtual MoveDecision getMovement(const State& state, unsigned nb) = 0;
     virtual AbilityDecision getAbility(const State&) { return {}; };
     virtual ActionDecision getAction(const State& state) = 0;
@@ -30,6 +31,7 @@ class HumanAgent: public Agent {
 public:
     HumanAgent(uint myId);
     ActionOrResource getDrawAction(const State&) override;
+    DiscardDecision getDiscard(const State&) override;
     MoveDecision getMovement(const State& state, unsigned int) override;
     ActionDecision getAction(const State& state) override;
     unsigned int getSpecialAction(const State& state, Effect& effect) override;

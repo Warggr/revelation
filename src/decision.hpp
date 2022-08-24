@@ -11,6 +11,12 @@ public:
     virtual bool isPass() const = 0;
 };
 
+struct DiscardDecision final : public Decision {
+    unsigned int iCardDiscarded;
+    DiscardDecision(unsigned int iCardDiscarded = 0): iCardDiscarded(iCardDiscarded) {};
+    bool isPass() const override { return false; }
+};
+
 class ActionDecision final : public Decision {
 public:
     ActionCard card;

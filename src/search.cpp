@@ -77,6 +77,17 @@ unsigned pushChildStates(const SearchNode& stackFrame, Container<SearchNode>& pu
         return 1;
     }
 
+    case Timestep::DREW: {
+        for(unsigned i = 0; i < state.players[state.iActive].getActions().size(); i++){
+            DiscardDecision decision(i);
+            auto [ newState, step ] = state.stepDiscard(decision);
+            SearchNode newFrame = stackFrame.copy(newState, heuristic.evaluateStep( state.iActive, state, *step ));
+            newFrame.decisions.discard = decision;
+            putBack.addChild( newFrame );
+        }
+        return state.players[state.iActive].getActions().size();
+    }
+
     case Timestep::DISCARDED:{
         std::unordered_set<HashKey> allPossibleMoves;
         //nbChildrenFiltered = 0
