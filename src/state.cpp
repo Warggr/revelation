@@ -174,7 +174,7 @@ void State::checkConsistency() const {
 
 std::tuple<State, uptr<MoveStep>> State::stepMov(MoveDecision decision) const {
     this->checkConsistency();
-    State newState(this->board, this->units, this->players, this->resDeck, this->timestep, this->turnID);
+    State newState(*this);
     newState.checkConsistency();
     if(this->timestep == DISCARDED)
         newState.timestep = MOVEDfirst;
@@ -221,7 +221,7 @@ std::tuple<State, uptr<MoveStep>> State::stepMov(MoveDecision decision) const {
 
 std::tuple<State, uptr<AbilityStep>> State::stepAbil(const AbilityDecision& decision) const {
     assert(this->timestep == MOVEDlast);
-    State newState(this->board, this->units, this->players, this->resDeck, this->timestep, this->turnID);
+    State newState(*this);
     assert(decision.isPass());
     newState.timestep = ABILITYCHOSEN;
     return { newState, std::make_unique<AbilityStep>() };
