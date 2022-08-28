@@ -32,5 +32,6 @@ enum ActionOrResource {
 };
 
 std::string to_string(enum ActionCard card);
+std::string to_string(enum Timestep timestep);
 
 #endif //REVELATION_CONSTANTS_HPP

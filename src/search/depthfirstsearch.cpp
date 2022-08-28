@@ -90,11 +90,11 @@ std::tuple<unsigned, unsigned> AdaptiveDepthFirstSearch::asTuple() {
 
 void SimpleIndentLogger::message( const char* msg ) const {
     for(unsigned i = 0; i < indent; i++) std::cout << "    ";
-    std::cout << msg << '\n';
+    ProgressLogger::message(msg);
 }
 void SimpleIndentLogger::message( const char* msg, float x ) const {
     for(unsigned i = 0; i < indent; i++) std::cout << "    ";
-    std::cout << msg << x << '\n';
+    ProgressLogger::message(msg, x);
 }
 
 void ProgressBar::enter(Timestep timestep, unsigned nbChildren) {
@@ -139,5 +139,13 @@ void ProgressLogger::message(const char* msg) const {
 }
 
 void ProgressLogger::message(const char* msg, float nb) const {
-    std::cout << msg << nb << '\n';
+    std::cout << msg << ' ' << nb << '\n';
+}
+
+void ProgressLogger::enter(Timestep timestep, unsigned nbChildren){
+    message((std::string("ENTER ") + to_string(timestep)).c_str(), nbChildren);
+}
+
+void ProgressLogger::exit(Timestep timestep){
+    message((std::string("EXIT ") + to_string(timestep)).c_str());
 }

@@ -11,6 +11,21 @@ std::string to_string(enum ActionCard card){
     }
 }
 
+#define to_string_line(x) case x: return #x
+
+std::string to_string(enum Timestep step){
+    switch(step){
+        to_string_line(BEGIN);
+        to_string_line(DREW);
+        to_string_line(DISCARDED);
+        to_string_line(MOVEDfirst);
+        to_string_line(MOVEDlast);
+        to_string_line(ABILITYCHOSEN);
+        to_string_line(ACTED);
+        default: return "<Internal Error>";
+    }
+}
+
 class DiscardEffect: public Effect {
     unsigned short int who;
 public:

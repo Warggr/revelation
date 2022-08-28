@@ -9,8 +9,8 @@ public:
     virtual ~ProgressLogger() = default;
     virtual void enterTurn() = 0;
     virtual void exitTurn() = 0;
-    virtual void enter(Timestep timestep, unsigned nbChildren) = 0;
-    virtual void exit(Timestep timestep) = 0;
+    virtual void enter(Timestep timestep, unsigned nbChildren);
+    virtual void exit(Timestep timestep);
     virtual void message(const char* msg) const;
     virtual void message(const char* msg, float nb) const;
 };
@@ -154,6 +154,16 @@ public:
     void exit(Timestep timestep) override;
     void enterTurn() override;
     void exitTurn() override;
+};
+
+class NoOpLogger : public ProgressLogger {
+public:
+    void enterTurn() override {};
+    void exitTurn() override {};
+    void enter(Timestep, unsigned int) override {};
+    void exit(Timestep) override {};
+    void message(const char*) const override {};
+    void message(const char*, float) const override {};
 };
 
 #endif //REVELATION_DEPTHFIRSTSEARCH_HPP
