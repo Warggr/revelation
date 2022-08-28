@@ -6,6 +6,9 @@
 #include <limits>
 
 struct DecisionList{
+#ifndef NDEBUG
+    State beforeDraw, beforeDiscard, beforeMove[2], beforeAbility, beforeAction;
+#endif
     ActionOrResource draw;
     DiscardDecision discard;
     MoveDecision moves[2];
@@ -74,11 +77,11 @@ class SearchAgent: public Agent {
 public:
     SearchAgent(unsigned int myId, SearchPolicy* policy): Agent(myId), searchPolicy(policy) {};
     //~SearchAgent() { delete searchPolicy; }
-    ActionOrResource getDrawAction(const State&) override { return plans.draw; }
-    DiscardDecision getDiscard(const State&) override { return plans.discard; }
-    MoveDecision getMovement(const State&, unsigned nb) override { return plans.moves[nb]; }
-    AbilityDecision getAbility(const State&) override { return plans.ability; }
-    ActionDecision getAction(const State&) override { return plans.action; }
+    ActionOrResource getDrawAction(const State&) override;
+    DiscardDecision getDiscard(const State&) override;
+    MoveDecision getMovement(const State&, unsigned nb) override;
+    AbilityDecision getAbility(const State&) override;
+    ActionDecision getAction(const State&) override;
     unsigned int getSpecialAction(const State&, Effect&) override {
         return plans.specialActions[currentSpecialAction++];
     }

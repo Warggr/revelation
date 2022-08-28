@@ -6,13 +6,72 @@
 #include <unordered_set>
 #include <cstdio>
 #include <cassert>
+#include <iostream>
 
-void SearchAgent::onBegin(const State &state) {
+std::ostream& operator<<(std::ostream& o, const position& pos);
+
+ActionOrResource SearchAgent::getDrawAction(const State& state) {
+#ifndef NDEBUG
+    assert(state == plans.beforeDraw);
+#else
+    (void)state;
+#endif
+    return plans.draw;
+}
+
+DiscardDecision SearchAgent::getDiscard(const State& state) {
+#ifndef NDEBUG
+    assert(state == plans.beforeDiscard);
+#else
+    (void)state;
+#endif
+    return plans.discard;
+}
+
+MoveDecision SearchAgent::getMovement(const State& state, unsigned nb) {
+#ifndef NDEBUG
+    assert(state == plans.beforeMove[nb]);
+#else
+    (void)state;
+#endif
+    return plans.moves[nb];
+}
+
+AbilityDecision SearchAgent::getAbility(const State& state) {
+#ifndef NDEBUG
+    assert(state == plans.beforeAbility);
+#else
+    (void)state;
+#endif
+    return plans.ability;
+}
+
+ActionDecision SearchAgent::getAction(const State& state) {
+#ifndef NDEBUG
+    assert(state == plans.beforeAction);
+#else
+    (void)state;
+#endif
+    return plans.action;
+}
+
+void SearchAgent::onBegin(const State& state) {
     currentSpecialAction = 0;
 //    ProgressLogger* logger; //TODO
     searchPolicy->planAhead(state /*, *logger*/);
     State newState; Heuristic::Value heurVal;
     std::tie(newState, plans, heurVal) = searchPolicy->getResults();
+}
+
+void printBoard(const Board& board){
+    for(uint row = 0; row < 2; row++){
+        for(uint col = 0; col < FULL_BOARD_WIDTH; col++){
+            const BoardTile& tile = board[row][col];
+            if(BoardTile::isEmpty(tile)) std::cout << "[   ]";
+            else std::cout << '[' << static_cast<int>(tile.team) << '.' << tile.index << ']';
+        }
+        std::cout << '\n';
+    }
 }
 
 void SearchPolicy::planAhead(const State& startState){
@@ -67,12 +126,16 @@ unsigned pushChildStates(const SearchNode& stackFrame, Container<SearchNode>& pu
     @returns the number of children inserted this way.
     */
     const State& state = stackFrame.state;
+    state.checkConsistency();
     switch(state.timestep){
     case Timestep::BEGIN:{
         auto decision = ActionOrResource::ACTION;
         auto [ newState, step ] = state.stepDraw( decision );
         SearchNode newFrame = stackFrame.copy(newState, heuristic.evaluateStep( state.iActive, state, *step ));
         newFrame.decisions.draw = decision;
+        #ifndef NDEBUG
+            newFrame.decisions.beforeDraw = state;
+        #endif
         putBack.addChild( newFrame );
         return 1;
     }
@@ -83,6 +146,9 @@ unsigned pushChildStates(const SearchNode& stackFrame, Container<SearchNode>& pu
             auto [ newState, step ] = state.stepDiscard(decision);
             SearchNode newFrame = stackFrame.copy(newState, heuristic.evaluateStep( state.iActive, state, *step ));
             newFrame.decisions.discard = decision;
+            #ifndef NDEBUG
+                newFrame.decisions.beforeDiscard = state;
+            #endif
             putBack.addChild( newFrame );
         }
         return state.players[state.iActive].getActions().size();
@@ -92,13 +158,21 @@ unsigned pushChildStates(const SearchNode& stackFrame, Container<SearchNode>& pu
         std::unordered_set<HashKey> allPossibleMoves;
         //nbChildrenFiltered = 0
 
-        using SubStackFrame = std::tuple<State, std::array<MoveDecision, 2>, Heuristic::Value>;
+        struct ExtendedMoveDecision {
+            MoveDecision dec;
+            #ifndef NDEBUG
+                State stateBefore;
+            #endif
+        };
+
+        using SubStackFrame = std::tuple<State, std::array<ExtendedMoveDecision, 2>, Heuristic::Value>;
 
         std::vector<SubStackFrame> oldStates;
-        oldStates.emplace_back( state, std::array<MoveDecision, 2>(), stackFrame.heurVal );
-        for(unsigned i = 0; i<3; i++){
+        oldStates.emplace_back( state, std::array<ExtendedMoveDecision, 2>(), stackFrame.heurVal );
+        for(unsigned iMoveRound = 0; iMoveRound<=2; iMoveRound++){
             std::vector<SubStackFrame> newStates;
             for( const auto& [ subState, decisions, heurValOld ] : oldStates ){
+                /* add all oldStates to putBack (for round 0, 1, and 2) */
                 Heuristic::Value heurVal = heurValOld;
                 HashKey stateid = hashBoard(subState.units[subState.iActive]);
                 //print("with", [ printDecision(decision) if decision else None for decision in decisions ], ", stateid would be ", stateid);
@@ -107,24 +181,41 @@ unsigned pushChildStates(const SearchNode& stackFrame, Container<SearchNode>& pu
                     continue;
                 }
                 auto newStackFrame = stackFrame.copy(subState, 0);
-                if(i != 2){
+                for(unsigned iPreviousDecision = 0; iPreviousDecision<iMoveRound; iPreviousDecision++){
+                    newStackFrame.decisions.moves[iPreviousDecision] = decisions[iPreviousDecision].dec;
+                    #ifndef NDEBUG
+                        newStackFrame.decisions.beforeMove[iPreviousDecision] = decisions[iPreviousDecision].stateBefore;
+                    #endif
+                }
+                if(iMoveRound != 2){
+                    //add an additional "pass" decision to mark the end of movements
                     MoveDecision decision = MoveDecision::pass();
                     auto [ newSubState, step ] = subState.stepMov(decision);
                     assert(step->isPass());
                     newStackFrame = newStackFrame.copy( newSubState, heuristic.evaluateStep( state.iActive, newSubState, *step ) );
-                    newStackFrame.decisions.moves[i+1] = decision;
+                    newStackFrame.decisions.moves[iMoveRound] = decision;
+                    #ifndef NDEBUG
+                        std::cout << "Set decisions.beforeMove[" << iMoveRound << ']' << '\n';
+                        newStackFrame.decisions.beforeMove[iMoveRound] = subState;
+                    #endif
                 }
+                std::cout << "putback state with ---BOARD---\n";
+                printBoard(subState.getBoard());
                 putBack.addChild( newStackFrame );
                 allPossibleMoves.insert( stateid );
 
-                if(i != 2){
+                /* generate all newStates (round 0 generates 1, 1 generates 2, and 2 is skipped) */
+                if(iMoveRound != 2){
                     for(auto charSel : subState.units[ subState.iActive ]){
                         if(not isDead(charSel)){
                             auto possibleMovs = subState.allMovementsForCharacter(*charSel);
                             for(const auto& movSel : possibleMovs){
-                                std::array<MoveDecision, 2> newDecisions = decisions;
-                                newDecisions[i] = movSel;
-                                auto [ newState, step ] = subState.stepMov( newDecisions[i] );
+                                std::array<ExtendedMoveDecision, 2> newDecisions = decisions;
+                                newDecisions[iMoveRound].dec = movSel;
+                                #ifndef NDEBUG
+                                    newDecisions[iMoveRound].stateBefore = subState;
+                                #endif
+                                auto [ newState, step ] = subState.stepMov( newDecisions[iMoveRound].dec );
                                 heurVal += heuristic.evaluateStep( state.iActive, newState, *step );
 
                                 newStates.emplace_back(newState, newDecisions, heurVal );
@@ -145,6 +236,9 @@ unsigned pushChildStates(const SearchNode& stackFrame, Container<SearchNode>& pu
         auto [ newState, step ] = state.stepAbil( decision );
         SearchNode retVal = stackFrame.copy( newState, heuristic.evaluateStep( state.iActive, state, *step ) );
         retVal.decisions.ability = decision;
+        #ifndef NDEBUG
+            retVal.decisions.beforeAbility = state;
+        #endif
         putBack.addChild( retVal );
         return 1;
     }
@@ -155,8 +249,10 @@ unsigned pushChildStates(const SearchNode& stackFrame, Container<SearchNode>& pu
             auto [ newState, step ] = state.stepAct(passDecision);
             SearchNode newFrame = stackFrame.copy(newState, heuristic.evaluateStep( state.iActive, state, *step ));
             newFrame.decisions.action = passDecision;
+            #ifndef NDEBUG
+                newFrame.decisions.beforeAction = state;
+            #endif
             putBack.addChild( newFrame );
-            //print("Appending to stack "pass"", len(stack));
         }
         ActionDecision decision;
         unsigned nbChildren = 1; // already one child: the "pass" decision
@@ -170,8 +266,10 @@ unsigned pushChildStates(const SearchNode& stackFrame, Container<SearchNode>& pu
                         auto [ newState, step ] = state.stepAct( decision );
                         SearchNode retVal = stackFrame.copy( newState, heuristic.evaluateStep( state.iActive, state, *step ) );
                         retVal.decisions.action = decision;
+                        #ifndef NDEBUG
+                            retVal.decisions.beforeAction = state;
+                        #endif
                         putBack.addChild( retVal );
-                        //print("Appending defense to stack", len(stack));
                         nbChildren += 1;
                     }
                 }
@@ -181,11 +279,14 @@ unsigned pushChildStates(const SearchNode& stackFrame, Container<SearchNode>& pu
                     for(auto victim : victims){
                         decision.subjectPos = state.units[ state.iActive ][ aggressor->teampos ]->pos;
                         decision.objectPos = state.units[ 1 - state.iActive ][ victim->teampos ]->pos;
+                        std::cout << decision.subjectPos << " -|--> " << decision.objectPos << '\n';
                         auto [ newState, step ] = state.stepAct( decision );
                         SearchNode retVal = stackFrame.copy( newState, heuristic.evaluateStep( state.iActive, state, *step ) );
                         retVal.decisions.action = decision;
+                        #ifndef NDEBUG
+                            retVal.decisions.beforeAction = state;
+                        #endif
                         putBack.addChild( retVal );
-                        //print("Appending attack to stack", len(stack));
                         nbChildren += 1;
                     }
                 }
