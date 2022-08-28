@@ -35,6 +35,9 @@ public:
     State() = default;
     State(Board board, std::array<UnitList, 2> units, std::array<Player, 2> players,
           Deck<Faction> resDeck, Timestep timestep, int turnID);
+    bool operator==(const State& other) const {
+        return board == other.board and nbAliveUnits == other.nbAliveUnits and resDeck == other.resDeck and turnID == other.turnID and unresolvedSpecialAbility == other.unresolvedSpecialAbility;
+    }
     static State createStart(const std::array<Team, 2>& teams);
 
     const BoardTile& getBoardField(position coords) const;

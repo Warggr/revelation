@@ -20,6 +20,7 @@ class Deck {
 public:
     Deck() = default;
     Deck(std::vector<T> drawPile, std::vector<T> discardPile, Generator generator);
+    constexpr bool operator==(const Deck& other) const { return drawPile == other.drawPile and discardPile == other.discardPile and generator == other.generator; }
     static Deck create(std::initializer_list<T> cards);
     void discard(T card);
     T draw();
