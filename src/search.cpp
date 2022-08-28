@@ -63,15 +63,17 @@ void SearchAgent::onBegin(const State& state) {
     std::tie(newState, plans, heurVal) = searchPolicy->getResults();
 }
 
-void printBoard(const Board& board){
+std::ostream& operator<<(std::ostream& o, const Board& board){
+    o << "---BOARD---\n";
     for(uint row = 0; row < 2; row++){
         for(uint col = 0; col < FULL_BOARD_WIDTH; col++){
             const BoardTile& tile = board[row][col];
-            if(BoardTile::isEmpty(tile)) std::cout << "[   ]";
-            else std::cout << '[' << static_cast<int>(tile.team) << '.' << tile.index << ']';
+            if(BoardTile::isEmpty(tile)) o << "[   ]";
+            else o << '[' << static_cast<int>(tile.team) << '.' << tile.index << ']';
         }
-        std::cout << '\n';
+        o << '\n';
     }
+    return o;
 }
 
 void SearchPolicy::planAhead(const State& startState){
@@ -195,12 +197,9 @@ unsigned pushChildStates(const SearchNode& stackFrame, Container<SearchNode>& pu
                     newStackFrame = newStackFrame.copy( newSubState, heuristic.evaluateStep( state.iActive, newSubState, *step ) );
                     newStackFrame.decisions.moves[iMoveRound] = decision;
                     #ifndef NDEBUG
-                        std::cout << "Set decisions.beforeMove[" << iMoveRound << ']' << '\n';
                         newStackFrame.decisions.beforeMove[iMoveRound] = subState;
                     #endif
                 }
-                std::cout << "putback state with ---BOARD---\n";
-                printBoard(subState.getBoard());
                 putBack.addChild( newStackFrame );
                 allPossibleMoves.insert( stateid );
 
@@ -279,7 +278,6 @@ unsigned pushChildStates(const SearchNode& stackFrame, Container<SearchNode>& pu
                     for(auto victim : victims){
                         decision.subjectPos = state.units[ state.iActive ][ aggressor->teampos ]->pos;
                         decision.objectPos = state.units[ 1 - state.iActive ][ victim->teampos ]->pos;
-                        std::cout << decision.subjectPos << " -|--> " << decision.objectPos << '\n';
                         auto [ newState, step ] = state.stepAct( decision );
                         SearchNode retVal = stackFrame.copy( newState, heuristic.evaluateStep( state.iActive, state, *step ) );
                         retVal.decisions.action = decision;

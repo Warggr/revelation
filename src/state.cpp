@@ -10,6 +10,8 @@
 
 std::ostream& operator<<(std::ostream& o, const position& pos);
 
+std::ostream& operator<<(std::ostream& o, const Board& board);
+
 std::ostream& operator<<(std::ostream& o, const BoardTile& tile){
     o << static_cast<int>(tile.team) << '[' << tile.index << ']';
     return o;
@@ -134,16 +136,7 @@ std::tuple<State, uptr<DiscardStep>> State::stepDiscard(DiscardDecision decision
 }
 
 void State::checkConsistency() const {
-/*    for(unsigned i = 0; i<2; i++){
-        for(unsigned j = 0; j<FULL_BOARD_WIDTH; j++){
-            const BoardTile& tile = this->board[i][j];
-            if(BoardTile::isEmpty(tile)) std::cout << "  ";
-            else std::cout << this->units[tile.team][tile.index]->uid << this->units[tile.team][tile.index]->team;
-        }
-        std::cout << '\n';
-    }
-
-    std::cout << "iActive is "<< static_cast<int>(iActive) << '\n';*/
+#ifndef NDEBUG
     for(unsigned int i = 0; i<2; i++){
         for(unsigned int j = 0; j<ARMY_SIZE; j++){
             const Character* ch = this->units[i][j].pt();
@@ -151,16 +144,10 @@ void State::checkConsistency() const {
                 const BoardTile& tile = this->getBoardField( ch->pos );
                 if(tile.team != i or tile.index != j){
                     std::cout << "!Error: team" << i << '[' << j << "] is " << ch << " on " << ch->pos << " supposed to be tile " << tile << '\n';
-                    for(int i = 0; i<2; i++){
-                        for(int j = 0; j<FULL_BOARD_WIDTH; j++){
-                            if(BoardTile::isEmpty(board[i][j])) std::cout << "EMPTY ";
-                            else std::cout << '(' << static_cast<int>(board[i][j].team) << ',' << board[i][j].index << ") ";
-                        }
-                        std::cout << '\n';
-                    }
+                    std::cout << board;
                     for(int i = 0; i<2; i++){
                         for(int j = 0; j<ARMY_SIZE; j++){
-                            if(isDead(units[i][j])) std::cout << "DEAD ";
+                            if(isDead(units[i][j])) std::cout << " DEAD ";
                             else std::cout << units[i][j]->pos;
                         }
                         std::cout << '\n';
@@ -170,6 +157,7 @@ void State::checkConsistency() const {
             }
         }
     }
+#endif
 }
 
 std::tuple<State, uptr<MoveStep>> State::stepMov(MoveDecision decision) const {
