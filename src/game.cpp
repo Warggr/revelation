@@ -14,12 +14,13 @@ bool Game::play(bool isLiveServer, bool logToTerminal) {
     if(logToTerminal)
         logger = logger->logToTerminal();
 
-    while(not state.isFinished()) {
+    unsigned short int winner;
+    while((winner = state.getWinner()) == 0) {
         if(state.timestep == Timestep::BEGIN)
             agents[state.iActive]->onBegin(state);
         auto [ newState, step ] = state.advance(*agents[state.iActive], *agents[1 - state.iActive]);
         state = newState;
         logger->addStep(std::move(step));
     }
-    return true; //TODO return winner
+    return winner;
 }

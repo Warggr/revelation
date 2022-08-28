@@ -40,13 +40,14 @@ public:
     }
     static State createStart(const std::array<Team, 2>& teams);
 
+    const Board& getBoard() const { return board; }
     const BoardTile& getBoardField(position coords) const;
     Character* getBoardFieldDeref(position coords);
     const Character* getBoardFieldDeref(position coords) const;
     void setBoardField(position coords, BoardTile value);
     void setBoardFieldDeref(position coords, BoardTile value);
 
-    bool isFinished() const;
+    unsigned short int getWinner() const;
     void checkConsistency() const;
 
     std::tuple<State, uptr<DrawStep>> stepDraw(ActionOrResource decision) const;

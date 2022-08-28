@@ -89,8 +89,14 @@ void State::setBoardFieldDeref(position coords, BoardTile value) {
         this->units[value.team][value.index]->pos = coords;
 }
 
-bool State::isFinished() const {
-    return this->nbAliveUnits[0] == 0 || this->nbAliveUnits[1] == 0;
+unsigned short int State::getWinner() const {
+    const auto nb1 = this->nbAliveUnits[0]; const auto nb2 = this->nbAliveUnits[1];
+    if(nb1 != 0 and nb2 != 0) return 0;
+    else if(nb1 != 0 and nb2 == 0) return 1;
+    else if(nb1 == 0 and nb2 != 0) return 2;
+    else if(nb1 == 0 and nb2 == 0) return 3;
+
+    assert(false);
 }
 
 std::tuple<State, uptr<DrawStep>> State::stepDraw(ActionOrResource decision) const {

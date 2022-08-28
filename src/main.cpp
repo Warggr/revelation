@@ -2,6 +2,7 @@
 #include "agent.hpp"
 #include "search/depthfirstsearch.hpp"
 #include <array>
+#include <iostream>
 
 int main(){
     HumanAgent ag1(0);
@@ -15,5 +16,6 @@ int main(){
     std::array<Team, 2> teams = { mkEurope(), mkNearEast() };
 
 	Game game(std::move(teams), agents);
-	game.play();
+	unsigned short int winner = game.play();
+    std::cout << winner << " won!\n";
 }
