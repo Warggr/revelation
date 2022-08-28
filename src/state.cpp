@@ -291,7 +291,7 @@ std::tuple<State, uptr<BeginStep>> State::beginTurn() const {
                 NullableShared<Character> clone = unit.copy();
                 clone->HP += 50;
                 clone->defShieldHP = 0;
-                ret.units[iActive][i] = clone;
+                ret.units[ret.iActive][i] = clone;
             }
         }
     }
