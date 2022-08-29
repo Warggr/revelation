@@ -205,7 +205,7 @@ unsigned pushChildStates(const SearchNode& stackFrame, Container<SearchNode>& pu
 
                 /* generate all newStates (round 0 generates 1, 1 generates 2, and 2 is skipped) */
                 if(iMoveRound != 2){
-                    for(auto charSel : subState.units[ subState.iActive ]){
+                    for(const auto& charSel : subState.units[ subState.iActive ]){
                         if(not isDead(charSel)){
                             auto possibleMovs = subState.allMovementsForCharacter(*charSel);
                             for(const auto& movSel : possibleMovs){
@@ -259,7 +259,7 @@ unsigned pushChildStates(const SearchNode& stackFrame, Container<SearchNode>& pu
         for(auto card : state.players[ state.iActive ].getActions()){
             decision.card = card;
             if(card == ActionCard::DEFENSE){
-                for(auto subject : state.units[ state.iActive ]){
+                for(const auto& subject : state.units[ state.iActive ]){
                     if(not isDead(subject)){
                         decision.subjectPos = subject->pos;
                         auto [ newState, step ] = state.stepAct( decision );

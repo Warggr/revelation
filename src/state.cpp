@@ -17,54 +17,65 @@ std::ostream& operator<<(std::ostream& o, const BoardTile& tile){
     return o;
 }
 
-State::State(Board board, std::array<UnitList, 2> units, std::array<Player, 2> players,
-             Deck<Faction> resDeck, Timestep timestep, int turnID) :
-        board(board), resDeck(std::move(resDeck)), players(std::move(players)) {
-    this->nbAliveUnits = {ARMY_SIZE, ARMY_SIZE};
-    this->iActive = 0;
-    this->timestep = timestep;
-    this->units = units;
-    this->turnID = turnID;
+void State::operator=(const State& copy){
+    board = copy.board;
+    nbAliveUnits = copy.nbAliveUnits;
+    resDeck = copy.resDeck;
+    turnID = copy.turnID;
+    unresolvedSpecialAbility = copy.unresolvedSpecialAbility;
+    timestep = copy.timestep;
+    iActive = copy.iActive;
+    players = copy.players;
+    for(int iSide = 0; iSide < 2; iSide++){
+        for(int j = 0; j<ARMY_SIZE; j++){
+            if(copy.units[iSide][j]) this->units[iSide][j] = copy.units[iSide][j].copy();
+            //copying all the smart pointers
+        }
+    }
     this->checkConsistency();
+    assert(*this == copy);
 }
 
 State State::createStart(const std::array<Team, 2>& teams) {
-    std::array<UnitList, 2> alive;
+    State retVal;
+    retVal.nbAliveUnits = {ARMY_SIZE, ARMY_SIZE};
+    retVal.turnID = 0;
+    retVal.iActive = 0;
+
     for(int i = 0; i < 2; i++ ) {
         for(int j = 0; j < 2; j++) {
             for(int k = 0; k < ARMY_WIDTH; k++) {
-                alive[i][j*ARMY_WIDTH+k] = NullableShared<Character>( teams[i].characters_unique[ teams[i].characters[j][k] ] );
-                auto* ch = alive[i][j*ARMY_WIDTH+k].pt();
+                retVal.units[i][j*ARMY_WIDTH+k] = NullableShared<Character>(teams[i].characters_unique[ teams[i].characters[j][k] ]);
+                auto* ch = retVal.units[i][j*ARMY_WIDTH+k].get();
                 ch->pos = position( j, k + 1 + i*HALF_BOARD_WIDTH);
                 ch->team = i;
             }
         }
     }
 
-    Board board;
     for(std::size_t i = 0; i < 2; i++) {
         auto sortLambda = [] (const NullableShared<Character>& one, const NullableShared<Character>& two) -> bool{
             return one->im.maxAtk > two->im.maxAtk;
         };
 
-        std::sort(alive[i].begin(), alive[i].end(), sortLambda);
+        std::sort(retVal.units[i].begin(), retVal.units[i].end(), sortLambda);
 
         for(int j = 0; j < ARMY_SIZE; j++) {
-            Character* ch = alive[i][j].pt();
+            Character* ch = retVal.units[i][j].get();
             ch->teampos = j;
-            board[ch->pos.row][ch->pos.column] = BoardTile(i, j);
+            retVal.board[ch->pos.row][ch->pos.column] = BoardTile(i, j);
         }
     }
 
-    std::array<Player, 2> players;
+    // Each player draws 2 cards
     for(int i = 0; i < 2; i++) {
-        for(auto & player : players) {
+        for(auto & player : retVal.players) {
             player.drawAction();
         }
     }
 
-    Deck<Faction> resDeck = Deck<Faction>::create({ REPEAT(BLOOD), REPEAT(MERCURY), REPEAT(HORROR), REPEAT(SPECTRUM), ETHER });
-    return State(board, std::move(alive), players, resDeck, BEGIN, 0);
+    retVal.resDeck = Deck<Faction>::create({ REPEAT(BLOOD), REPEAT(MERCURY), REPEAT(HORROR), REPEAT(SPECTRUM), ETHER });
+    return retVal;
 }
 
 const BoardTile& State::getBoardField(position coords) const {
@@ -73,12 +84,12 @@ const BoardTile& State::getBoardField(position coords) const {
 
 Character* State::getBoardFieldDeref(position coords) {
     const BoardTile& ptr = this->getBoardField(coords);
-    return this->units[ptr.team][ptr.index].pt();
+    return this->units[ptr.team][ptr.index].get();
 }
 
 const Character* State::getBoardFieldDeref(position coords) const {
     const BoardTile& ptr = this->getBoardField(coords);
-    return this->units[ptr.team][ptr.index].pt();
+    return this->units[ptr.team][ptr.index].get();
 }
 
 void State::setBoardField(position coords, BoardTile value) {
@@ -139,7 +150,7 @@ void State::checkConsistency() const {
 #ifndef NDEBUG
     for(unsigned int i = 0; i<2; i++){
         for(unsigned int j = 0; j<ARMY_SIZE; j++){
-            const Character* ch = this->units[i][j].pt();
+            const Character* ch = this->units[i][j].get();
             if(not isDead(ch)){
                 const BoardTile& tile = this->getBoardField( ch->pos );
                 if(tile.team != i or tile.index != j){
@@ -181,8 +192,8 @@ std::tuple<State, uptr<MoveStep>> State::stepMov(MoveDecision decision) const {
 
         BoardTile moverTile = newState.getBoardField(decision.from);
         NullableShared<Character> mover = newState.units[this->iActive][moverTile.index].copy();
-        newState.units[this->iActive][moverTile.index] = mover;
         mover->turnMoved = newState.turnID;
+        newState.units[this->iActive][moverTile.index] = std::move(mover);
 
         newState.setBoardFieldDeref(decision.from, BoardTile::empty());
 
@@ -225,7 +236,7 @@ std::tuple<State, uptr<ActionStep>> State::stepAct(ActionDecision decision) cons
 
     int heroIndex = newState.getBoardField((decision.subjectPos)).index;
     assert(newState.getBoardField(decision.subjectPos).team == this->iActive);
-    Character* hero = newState.units[this->iActive][heroIndex].pt();
+    Character* hero = newState.units[this->iActive][heroIndex].get();
     newState.checkConsistency();
     if(decision.card == SPECIALACTION){
         newState.unresolvedSpecialAbility = hero->getSpecialAction();
@@ -243,7 +254,7 @@ std::tuple<State, uptr<ActionStep>> State::stepAct(ActionDecision decision) cons
 
         assert(newState.getBoardField(decision.objectPos).team == 1 - this->iActive);
 
-        Character* victim = newState.units[1- this->iActive][victimIndex].pt();
+        Character* victim = newState.units[1- this->iActive][victimIndex].get();
         if(decision.card == SOFTATK) {
             setLife = victim->takeDmg(false, hero->im.softAtk);
             step = std::make_unique<ActionStep>(decision.card, decision.subjectPos, decision.objectPos, setLife, hero->im.softAtk );
@@ -256,7 +267,7 @@ std::tuple<State, uptr<ActionStep>> State::stepAct(ActionDecision decision) cons
 
         if(victim->HP <= 0) {
             newState.setBoardField(decision.objectPos, BoardTile::empty());
-            newState.units[1 - this->iActive][ victim->teampos ] = NullableShared<Character>(DEAD_UNIT);
+            newState.units[1 - this->iActive][ victim->teampos ] = { DEAD_UNIT };
             newState.nbAliveUnits[1 - this->iActive] -= 1;
             step->del = true;
         }
@@ -279,7 +290,7 @@ std::tuple<State, uptr<BeginStep>> State::beginTurn() const {
                 NullableShared<Character> clone = unit.copy();
                 clone->HP += 50;
                 clone->defShieldHP = 0;
-                ret.units[ret.iActive][i] = clone;
+                ret.units[ret.iActive][i] = std::move(clone);
             }
         }
     }
@@ -387,7 +398,7 @@ std::vector<const Character*> State::allAttacksForCharacter(const Character* chr
             for(int col = min; col <= max; col++){
                 const BoardTile& tile = this->board[row][col];
                 if(not BoardTile::isEmpty(tile) and tile.team != attackingTeam){
-                    enemies.push_back( this->units[1-attackingTeam][tile.index].pt() );
+                    enemies.push_back( this->units[1-attackingTeam][tile.index].get() );
                 }
             }
         }
@@ -395,20 +406,20 @@ std::vector<const Character*> State::allAttacksForCharacter(const Character* chr
         auto row = chr->pos.row;
         const BoardTile& tile = this->board[1-row][chr->pos.column];
         if(not BoardTile::isEmpty(tile) and tile.team != attackingTeam){
-            enemies.push_back( this->units[1-attackingTeam][tile.index].pt() );
+            enemies.push_back( this->units[1-attackingTeam][tile.index].get() );
         }
         for(int col = chr->pos.column - 1; col >= 0 and col >= chr->pos.column - chr->im.rng; col--){
             const BoardTile& tile = this->board[row][col];
             if(not BoardTile::isEmpty(tile)){
                 if(tile.team != attackingTeam){
-                    enemies.push_back( this->units[1-attackingTeam][tile.index].pt() );
+                    enemies.push_back( this->units[1-attackingTeam][tile.index].get() );
                 }
                 break;
             }
             if(col != chr->pos.column - chr->im.rng){
                 const BoardTile& tile = this->board[1-row][col];
                 if(not BoardTile::isEmpty(tile) and tile.team != attackingTeam){
-                    enemies.push_back( this->units[1-attackingTeam][tile.index].pt() );
+                    enemies.push_back( this->units[1-attackingTeam][tile.index].get() );
                 }
             }
         }
@@ -416,14 +427,14 @@ std::vector<const Character*> State::allAttacksForCharacter(const Character* chr
             const BoardTile& tile = this->board[row][col];
             if(not BoardTile::isEmpty(tile)){
                 if(tile.team != attackingTeam){
-                    enemies.push_back( this->units[1-attackingTeam][tile.index].pt() );
+                    enemies.push_back( this->units[1-attackingTeam][tile.index].get() );
                 }
                 break;
             }
             if(col != chr->pos.column - chr->im.rng){
                 const BoardTile& tile = this->board[1-row][col];
                 if(not BoardTile::isEmpty(tile) and tile.team != attackingTeam){
-                    enemies.push_back( this->units[1-attackingTeam][tile.index].pt() );
+                    enemies.push_back( this->units[1-attackingTeam][tile.index].get() );
                 }
             }
         }
@@ -436,7 +447,7 @@ std::map<const Character*, std::vector<const Character*>> State::allAttacks() co
     std::map<const Character*, std::vector<const Character*>> ret;
     //print(f' iActive : { this->iActive }, units : { [unit.name for unit in this->units[ this->iActive ] ] }')
     for(uint iChar = 0; iChar < ARMY_SIZE; iChar++){
-        const Character* chr = this->units[this->iActive][iChar].pt();
+        const Character* chr = this->units[this->iActive][iChar].get();
         if(isDead(chr)) continue;
         auto enemies = allAttacksForCharacter(chr, this->iActive);
 

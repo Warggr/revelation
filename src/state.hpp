@@ -33,8 +33,8 @@ public:
     std::array<Player, 2> players;
 
     State() = default;
-    State(Board board, std::array<UnitList, 2> units, std::array<Player, 2> players,
-          Deck<Faction> resDeck, Timestep timestep, int turnID);
+    void operator=(const State& copy);
+    State(const State& copy){ *this = copy; } //calling the operator=
     bool operator==(const State& other) const {
         return board == other.board and nbAliveUnits == other.nbAliveUnits and resDeck == other.resDeck and turnID == other.turnID and unresolvedSpecialAbility == other.unresolvedSpecialAbility;
     }
@@ -72,6 +72,6 @@ public:
 constexpr std::nullptr_t DEAD_UNIT = nullptr;
 
 inline bool isDead(const Character* cha){ return cha == nullptr; }
-inline bool isDead(const NullableShared<Character>& cha){ return cha.pt() == nullptr; }
+inline bool isDead(const NullableShared<Character>& cha){ return cha.get() == nullptr; }
 
 #endif //REVELATION_STATE_HPP

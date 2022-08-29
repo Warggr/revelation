@@ -4,7 +4,6 @@
 #include "effect.hpp"
 #include "position.hpp"
 #include "constants.hpp"
-#include "memory.hpp"
 #include "nlohmann/json_fwd.hpp"
 #include <forward_list>
 

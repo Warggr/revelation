@@ -16,7 +16,7 @@ Heuristic::Value Heuristic::evaluateStep( int myId, const State& oldState, const
 
 Heuristic::Value PowerTimesToughnessHeuristic::evaluateMaxForState(int playerId, const State& state, unsigned short nbTurnsRemaining) const {
     int myMaxAtk = 0;
-    for(auto unit : state.units[ playerId ]){ //units are sorted by max atk, so the first in the list is the one with the highest atk
+    for(const auto& unit : state.units[ playerId ]){ //units are sorted by max atk, so the first in the list is the one with the highest atk
         if(not isDead(unit)){
             myMaxAtk = unit->im.maxAtk;
             break;
@@ -24,7 +24,7 @@ Heuristic::Value PowerTimesToughnessHeuristic::evaluateMaxForState(int playerId,
     }
     int nbMaxDamage = myMaxAtk * nbTurnsRemaining;
     Heuristic::Value heurVal = 0;
-    for(auto enemy : state.units[ 1 - playerId ]){
+    for(const auto& enemy : state.units[ 1 - playerId ]){
         if(not isDead(enemy)){
             if(enemy->HP < nbMaxDamage){
                 heurVal += enemy->im.maxAtk * ( enemy->HP + enemy->im.maxHP );

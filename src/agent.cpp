@@ -35,7 +35,7 @@ unsigned int HumanAgent::getSpecialAction(const State& state, Effect& effect) {
 
 const Character& HumanAgent::chooseCharacter(const State& state) const {
     for(uint i=0; i<NB_CHARACTERS; i++)
-        if(not isDead(state.units[myId][i].pt()))
+        if(not isDead(state.units[myId][i].get()))
             std::cout << '[' << i << "]: " << state.units[myId][i]->im.name << '\n';
 
     std::cout << "Enter which character to select: ";
