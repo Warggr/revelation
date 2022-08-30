@@ -18,6 +18,7 @@ std::ostream& operator<<(std::ostream& o, const BoardTile& tile){
 }
 
 void State::operator=(const State& copy){
+    copy.checkConsistency();
     board = copy.board;
     nbAliveUnits = copy.nbAliveUnits;
     resDeck = copy.resDeck;
@@ -28,7 +29,7 @@ void State::operator=(const State& copy){
     players = copy.players;
     for(int iSide = 0; iSide < 2; iSide++){
         for(int j = 0; j<ARMY_SIZE; j++){
-            if(copy.units[iSide][j]) this->units[iSide][j] = copy.units[iSide][j].copy();
+            this->units[iSide][j] = copy.units[iSide][j].copy();
             //copying all the smart pointers
         }
     }
