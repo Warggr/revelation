@@ -2,8 +2,12 @@
 #define REVELATION_DEPTHFIRSTSEARCH_HPP
 
 #include "../search.hpp"
-#include <queue>
+#include <cassert>
 
+/**
+ * In DFS, it is possible to determine when we leave a branch of the search tree.
+ * This enables better logging.
+ */
 class ProgressLogger{
 public:
     virtual ~ProgressLogger() = default;
@@ -15,28 +19,41 @@ public:
     virtual void message(const char* msg, float nb) const;
 };
 
+class LifoStack;
+
 /*
  * Abstract class for different kinds of DFS-like search policies.
  * Classes inheriting from this can specify until which depth to go by overriding @method enterOpponentsTurn.
  */
-class DepthFirstSearch : public SearchPolicy, public Container<SearchNode> {
+class DepthFirstSearch : public SearchPolicy {
+protected:
+    ProgressLogger& logger;
+    virtual SearchPolicy* enterOpponentsTurn() = 0;
+public:
+    DepthFirstSearch(const Heuristic& heuristic, ProgressLogger& logger): SearchPolicy(heuristic), logger(logger) {};
+    virtual ~DepthFirstSearch() = default;
+    void informNbChildren(unsigned nbChildren, Timestep timestep) override { logger.enter(timestep, nbChildren); }
+    bool addEndState(State state, const DecisionList& decisions, Heuristic::Value heurVal) override;
+
+    friend class LifoStack;
+};
+
+class LifoStack: public Container<SearchNode> {
     struct MySearchNode {
         SearchNode frame;
         bool pass2;
         MySearchNode(SearchNode frame, bool pass2): frame(std::move(frame)), pass2(pass2) {};
     };
     std::vector<MySearchNode> stack;
-protected:
-    ProgressLogger& logger;
-    virtual SearchPolicy* enterOpponentsTurn() = 0;
+    DepthFirstSearch* parent;
 public:
-/* DFS behaves as a container, more precisely as a LIFO stack */
+    LifoStack(DepthFirstSearch* parent): parent(parent) {};
     void addChild(const SearchNode& child) override {
         stack.emplace_back( child, false );
     }
     bool hasChildren() override {
         while(not stack.empty() and stack.back().pass2){
-            logger.exit(stack.back().frame.state.timestep);
+            parent->logger.exit(stack.back().frame.state.timestep);
             stack.pop_back();
         }
         return not stack.empty();
@@ -47,37 +64,64 @@ public:
         stack.back().pass2 = true;
         return frame;
     }
-
-    DepthFirstSearch(const Heuristic& heuristic, ProgressLogger& logger): SearchPolicy(heuristic), logger(logger) {};
-    virtual ~DepthFirstSearch() = default;
-    Container<SearchNode>& getContainer() override { return *this; }
-    void informNbChildren(unsigned nbChildren, Timestep timestep) override { logger.enter(timestep, nbChildren); }
-
-    bool addEndState(State state, const DecisionList& decisions, Heuristic::Value heurVal) override;
 };
 
-class StaticDepthFirstSearch : public DepthFirstSearch {
+/**
+ * Some DFS do not have a fixed depth and always return themselves as enterOpponentsTurn.
+ * Since they are called on multiple search levels, they need a different container for each level.
+ */
+class PerpetualDFS: public DepthFirstSearch {
+    std::vector<LifoStack> containers;
+protected:
+    SearchPolicy* enterOpponentsTurn() override { return this; }
+public:
+    PerpetualDFS(const Heuristic& heuristic, ProgressLogger& logger): DepthFirstSearch(heuristic, logger) {};
+    void init(const State&) override { containers.emplace_back(this); }
+    void exit() override { containers.pop_back(); }
+    Container<SearchNode>& getContainer() override {
+        assert(not containers.empty());
+        return containers.back();
+    }
+};
+// All other DFS implementations
+class NormalDFS: public DepthFirstSearch {
+    LifoStack container;
+public:
+    NormalDFS(const Heuristic& heuristic, ProgressLogger& logger): DepthFirstSearch(heuristic, logger), container(this) {};
+    Container<SearchNode>& getContainer() override { return container; }
+};
+
+class StaticDFS : public NormalDFS {
     SearchPolicy* opponentsTurn = nullptr;
 protected:
     SearchPolicy* enterOpponentsTurn() override { return opponentsTurn; }
 public:
-	StaticDepthFirstSearch(const Heuristic& heuristic, ProgressLogger& logger): DepthFirstSearch(heuristic, logger) {};
+	StaticDFS(const Heuristic& heuristic, ProgressLogger& logger): NormalDFS(heuristic, logger) {};
     template<typename PolicyType>
     PolicyType* setOpponentsTurn(PolicyType* t){ opponentsTurn = t; return t; }
 
-    std::tuple<unsigned, unsigned> asTuple() override {
-        unsigned my = 0, your = 0;
+    std::tuple<int, int> asTuple() override {
+        int my = 0, your = 0;
         if(opponentsTurn)
             std::tie(your, my) = opponentsTurn->asTuple();
         return std::make_tuple(my + 1, your);
     }
 };
 
-class AdaptiveDepthFirstSearch : public DepthFirstSearch {
+class UntilSomeoneDiesDFS : public PerpetualDFS {
+    std::array<unsigned short int, 2> nbAliveUnits;
+public:
+    UntilSomeoneDiesDFS(const Heuristic& heuristic, ProgressLogger& logger): PerpetualDFS(heuristic, logger) {};
+    void init(const State& state) override;
+    std::tuple<int, int> asTuple() override { return std::make_tuple(-1, -1); }
+    bool addEndState(State state, const DecisionList& decisions, Heuristic::Value heurVal) override;
+};
+
+class AdaptiveDepthFirstSearch : public NormalDFS {
     constexpr static int usedLevelsMap[] = { 0, 1, 1, -1, 2, 3 };
     constexpr static int nbUsedLevels = 4;
 
-    unsigned maxNodes;
+    const unsigned maxNodes;
     unsigned nodes;
     int currentLevel;
     unsigned sumChildren[nbUsedLevels]{0};
@@ -86,84 +130,15 @@ class AdaptiveDepthFirstSearch : public DepthFirstSearch {
     AdaptiveDepthFirstSearch* opponentsTurn = nullptr;
 
     unsigned estimateNbBranches();
+protected:
+    SearchPolicy* enterOpponentsTurn() override;
+    void init(const State& state) override;
 public:
-    AdaptiveDepthFirstSearch(const Heuristic& heuristic, ProgressLogger& logger, unsigned maxNodes = 1000000): DepthFirstSearch(heuristic, logger),
-        maxNodes(maxNodes), nodes(1), currentLevel(-1) {}
+    AdaptiveDepthFirstSearch(const Heuristic& heuristic, ProgressLogger& logger, unsigned maxNodes = 1000000): NormalDFS(heuristic, logger),
+        maxNodes(maxNodes) {};
     ~AdaptiveDepthFirstSearch(){ if(opponentsTurn) delete opponentsTurn; }
     void informNbChildren(unsigned nbChildren, Timestep timestep) override;
-    SearchPolicy* enterOpponentsTurn() override;
-    std::tuple<unsigned, unsigned> asTuple() override;
-};
-
-class GreedyBestFirstSearchAgent: public SearchPolicy, public Container<SearchNode> {
-    struct MyQueueFrame{
-        SearchNode stackFrame;
-        unsigned depth;
-
-        MyQueueFrame( SearchNode frame, unsigned depth ): stackFrame(std::move(frame)), depth(depth) {};
-        bool operator<(const MyQueueFrame& other) const { return stackFrame.heurVal < other.stackFrame.heurVal; }
-    };
-    std::priority_queue<MyQueueFrame> queue;
-    unsigned maxDepth;
-    unsigned currentDepth = 0;
-public:
-    explicit GreedyBestFirstSearchAgent(const Heuristic& heuristic, unsigned maxDepth): SearchPolicy(heuristic), maxDepth(maxDepth) {};
-
-    void addChild(const SearchNode& child) override {
-        queue.push( MyQueueFrame( child, currentDepth ) );
-    }
-    bool hasChildren() override { return not queue.empty(); }
-    SearchNode popChild() override {
-        auto [ node, depth ] = queue.top();
-        queue.pop();
-        currentDepth = depth;
-        return node;
-    }
-    Container<SearchNode>& getContainer() override { return *this; }
-
-    std::tuple<unsigned int, unsigned int> asTuple() override {
-        return { maxDepth / 2 + maxDepth % 2, maxDepth / 2 };
-    }
-    bool addEndState(State state, const DecisionList& decisions, Heuristic::Value heurVal) override {
-        if(currentDepth == maxDepth){
-            SearchPolicy::addEndState(std::move(state), decisions, heurVal);
-        } else {
-            currentDepth++;
-            addChild({state, decisions, heurVal});
-        }
-        return false;
-    }
-};
-
-class SimpleIndentLogger: public ProgressLogger{
-    unsigned short int indent = 0;
-public:
-    void enterTurn() override { indent += 1; }
-    void exitTurn() override { indent -= 1; }
-    void message( const char* msg ) const override;
-    void message( const char* msg, float x ) const override;
-};
-
-class ProgressBar : public ProgressLogger{
-    std::vector<std::vector<int>> progressStack;
-    std::vector<int> progress;
-public:
-    void message( const char* ) const override {};
-    void message( const char*, float ) const override {};
-    void enter(Timestep timestep, unsigned nbChildren) override;
-    void exit(Timestep timestep) override;
-    void enterTurn() override;
-    void exitTurn() override;
-};
-
-class NoOpLogger : public ProgressLogger {
-public:
-    void enterTurn() override {};
-    void exitTurn() override {};
-    void enter(Timestep, unsigned int) override {};
-    void exit(Timestep) override {};
-    void message(const char*) const override {};
-    void message(const char*, float) const override {};
+    std::tuple<int, int> asTuple() override;
 };
 
 #endif //REVELATION_DEPTHFIRSTSEARCH_HPP

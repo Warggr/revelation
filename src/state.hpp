@@ -41,6 +41,7 @@ public:
     static State createStart(const std::array<Team, 2>& teams);
 
     const Board& getBoard() const { return board; }
+    const std::array<unsigned short int, 2>& getNbAliveUnits() const { return nbAliveUnits; }
     const BoardTile& getBoardField(position coords) const;
     Character* getBoardFieldDeref(position coords);
     const Character* getBoardFieldDeref(position coords) const;

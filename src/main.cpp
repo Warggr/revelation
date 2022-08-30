@@ -1,6 +1,7 @@
 #include "game.hpp"
 #include "agent.hpp"
 #include "search/depthfirstsearch.hpp"
+#include "search/loggers.hpp"
 #include <array>
 #include <iostream>
 

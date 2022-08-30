@@ -41,6 +41,7 @@ State State::createStart(const std::array<Team, 2>& teams) {
     State retVal;
     retVal.nbAliveUnits = {ARMY_SIZE, ARMY_SIZE};
     retVal.turnID = 0;
+    retVal.timestep = Timestep::BEGIN;
     retVal.iActive = 0;
 
     for(int i = 0; i < 2; i++ ) {
@@ -111,6 +112,7 @@ unsigned short int State::getWinner() const {
     else if(nb1 == 0 and nb2 == 0) return 3;
 
     assert(false);
+    return 0;
 }
 
 std::tuple<State, uptr<DrawStep>> State::stepDraw(ActionOrResource decision) const {
@@ -220,6 +222,7 @@ std::tuple<State, uptr<MoveStep>> State::stepMov(MoveDecision decision) const {
 }
 
 std::tuple<State, uptr<AbilityStep>> State::stepAbil(const AbilityDecision& decision) const {
+    (void)decision;
     assert(this->timestep == MOVEDlast);
     State newState(*this);
     assert(decision.isPass());
@@ -455,6 +458,7 @@ std::map<const Character*, std::vector<const Character*>> State::allAttacks() co
         if(!enemies.empty()){
             auto [ iter, wasInserted ] = ret.insert(std::make_pair<>( chr, enemies ));
             assert(wasInserted);
+            (void)iter;
         }
     }
     return ret;

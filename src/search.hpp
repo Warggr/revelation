@@ -39,20 +39,30 @@ public:
     virtual T popChild() = 0;
 };
 
+/**
+ * This class allows to search amongst child states of a start state.
+ * It is kept very general and allows derived classes to specify different ways of searching by overriding different callback methods.
+ * By default, it searches only the states until the end of the turn, and calls the callback method addEndState on each of them.
+ * In what order the states are searched depends on the container returned by getContainer(). For example, depth-first search uses a LIFO stack.
+ */
 class SearchPolicy {
 protected:
     DecisionList bestMoves;
     State bestState;
     const Heuristic& heuristic;
     Heuristic::Value maxHeur, worstOpponentsHeuristic;
+
+    //callback functions that can be overridden
+    virtual void init(const State&){};
+    virtual void exit(){};
 public:
     Heuristic::Value maxHeurAllowed = std::numeric_limits<float>::max();
 
     SearchPolicy(const Heuristic& heuristic): heuristic(heuristic) {};
     virtual ~SearchPolicy() = default;
-    /* SearchPolicy specifies the search-node container (e.g. LIFO stack or priority queue) */
     virtual Container<SearchNode>& getContainer() = 0;
     void planAhead(const State& state);
+    //Return false by default, and true if we should cut off the search directly
     virtual bool addEndState(State state, const DecisionList& decisions, Heuristic::Value heurVal){
         if(heurVal > maxHeur){
             bestMoves = decisions;
@@ -65,18 +75,17 @@ public:
         return std::make_tuple(bestState, bestMoves, maxHeur);
     }
 
-    virtual std::tuple<unsigned, unsigned> asTuple() = 0;
+    virtual std::tuple<int, int> asTuple() = 0;
     /* Callbacks that some implementations use */
     virtual void informNbChildren(unsigned int nbChildren, Timestep timestepLevel){ (void)nbChildren; (void)timestepLevel; }
 };
 
 class SearchAgent: public Agent {
-    SearchPolicy* searchPolicy;
+    SearchPolicy& searchPolicy;
     DecisionList plans {};
     unsigned short int currentSpecialAction = 0;
 public:
-    SearchAgent(unsigned int myId, SearchPolicy* policy): Agent(myId), searchPolicy(policy) {};
-    //~SearchAgent() { delete searchPolicy; }
+    SearchAgent(unsigned int myId, SearchPolicy& policy): Agent(myId), searchPolicy(policy) {};
     ActionOrResource getDrawAction(const State&) override;
     DiscardDecision getDiscard(const State&) override;
     MoveDecision getMovement(const State&, unsigned nb) override;

@@ -57,10 +57,9 @@ ActionDecision SearchAgent::getAction(const State& state) {
 
 void SearchAgent::onBegin(const State& state) {
     currentSpecialAction = 0;
-//    ProgressLogger* logger; //TODO
-    searchPolicy->planAhead(state /*, *logger*/);
+    searchPolicy.planAhead(state);
     State newState; Heuristic::Value heurVal;
-    std::tie(newState, plans, heurVal) = searchPolicy->getResults();
+    std::tie(newState, plans, heurVal) = searchPolicy.getResults();
 }
 
 std::ostream& operator<<(std::ostream& o, const Board& board){
@@ -78,16 +77,17 @@ std::ostream& operator<<(std::ostream& o, const Board& board){
 
 void SearchPolicy::planAhead(const State& startState){
     /*
-    Constructs all descendants of @param state up to a level defined by @param depthPolicy.
-    Specify @param maxHeurAllowed if you want the function to return directly if it reaches a certain heuristic.
+    Constructs all descendants of @param state until the end of turn.
+    The order in which states are processed depend on the container.
+    All end-of-turn states are then given to the callback function this->addEndState().
+    For depth-first search with multiple turns, addEndState recursively calls planAhead again.
     */
-    //searchPolicy->getLogger().enterTurn();
-    //nbPaths = 0
 
     //Reset this
     maxHeur = std::numeric_limits<float>::min();
     worstOpponentsHeuristic = std::numeric_limits<float>::max();
 
+    init(startState);
     Container<SearchNode>& container = getContainer();
     container.addChild( SearchNode(startState, DecisionList(), 0) );
 
@@ -104,7 +104,7 @@ void SearchPolicy::planAhead(const State& startState){
             if(finishEarly) return;
         }
     }
-    //print(nbPaths, "possible futures found");
+    exit();
 }
 
 using HashKey = int;

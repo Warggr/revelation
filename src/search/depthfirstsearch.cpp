@@ -1,5 +1,4 @@
 #include "depthfirstsearch.hpp"
-#include <iostream>
 
 bool DepthFirstSearch::addEndState(State state, const DecisionList& decisions, Heuristic::Value heurVal) {
     /* This is depth-first, so we directly go deeper when we enter an end-of-turn state. */
@@ -7,15 +6,17 @@ bool DepthFirstSearch::addEndState(State state, const DecisionList& decisions, H
     SearchPolicy* subDepth = enterOpponentsTurn();
     if(subDepth) {
         auto [ nbTurnsMe, nbTurnsOpponent ] = subDepth->asTuple();
-        // iActive has already switched to the opponent
-        Heuristic::Value max_bound = heurVal + heuristic.evaluateMaxForState(state.iActive, state, nbTurnsOpponent);
-        Heuristic::Value min_bound = heurVal - heuristic.evaluateMaxForState(1 - state.iActive, state, nbTurnsMe - 1);
-        if(min_bound >= maxHeurAllowed){ // we are in any case over the maximal allowed value
-            bestState = State::invalid();
-            return true;
+        if(nbTurnsMe != -1){ //asTuple returns -1 when counting the number of remaining turns does not make sense
+            // iActive has already switched to the opponent
+            Heuristic::Value max_bound = heurVal + heuristic.evaluateMaxForState(state.iActive, state, nbTurnsOpponent);
+            Heuristic::Value min_bound = heurVal - heuristic.evaluateMaxForState(1 - state.iActive, state, nbTurnsMe - 1);
+            if(min_bound >= maxHeurAllowed){ // we are in any case over the maximal allowed value
+                bestState = State::invalid();
+                return true;
+            }
+            if(max_bound <= maxHeur) // in any case, we already had a better solution
+                return false;
         }
-        if(max_bound <= maxHeur) // in any case, we already had a better solution
-            return false;
 
         logger.message("MINNING with cut-off at", worstOpponentsHeuristic);
         logger.enterTurn();
@@ -39,12 +40,31 @@ bool DepthFirstSearch::addEndState(State state, const DecisionList& decisions, H
     return SearchPolicy::addEndState(state, decisions, heurVal);
 }
 
+void UntilSomeoneDiesDFS::init(const State& state){
+    PerpetualDFS::init(state);
+    nbAliveUnits = state.getNbAliveUnits();
+}
+
+bool UntilSomeoneDiesDFS::addEndState(State state, const DecisionList& decisions, Heuristic::Value heurVal){
+    if(state.getNbAliveUnits() == this->nbAliveUnits)
+        return SearchPolicy::addEndState(state, decisions, heurVal); //do not search further
+    else
+        return DepthFirstSearch::addEndState(state, decisions, heurVal);
+}
+
 unsigned AdaptiveDepthFirstSearch::estimateNbBranches(){
     unsigned nbBranches = currentChildrenCount[ currentLevel ];
     for(int i = currentLevel; i != 0; i--){
         nbBranches = ( nbBranches + sumChildren[ i ] ) * ( currentChildrenCount[ i - 1 ] / (nbChildren[i] + 1) ) + 1;
     }
     return nbBranches;
+}
+
+void AdaptiveDepthFirstSearch::init(const State&){
+    nodes = 1;
+    currentLevel = -1;
+    delete opponentsTurn;
+    opponentsTurn = nullptr;
 }
 
 void AdaptiveDepthFirstSearch::informNbChildren(unsigned nbChildren, Timestep timestep) {
@@ -78,7 +98,7 @@ SearchPolicy* AdaptiveDepthFirstSearch::enterOpponentsTurn() {
     }
 }
 
-std::tuple<unsigned, unsigned> AdaptiveDepthFirstSearch::asTuple() {
+std::tuple<int, int> AdaptiveDepthFirstSearch::asTuple() {
     unsigned log = 0;
     unsigned i = maxNodes;
     while(i > 1){
@@ -86,66 +106,4 @@ std::tuple<unsigned, unsigned> AdaptiveDepthFirstSearch::asTuple() {
         log += 1;
     }
     return { log / 2 + log % 2, log / 2 };
-}
-
-void SimpleIndentLogger::message( const char* msg ) const {
-    for(unsigned i = 0; i < indent; i++) std::cout << "    ";
-    ProgressLogger::message(msg);
-}
-void SimpleIndentLogger::message( const char* msg, float x ) const {
-    for(unsigned i = 0; i < indent; i++) std::cout << "    ";
-    ProgressLogger::message(msg, x);
-}
-
-void ProgressBar::enter(Timestep timestep, unsigned nbChildren) {
-    if(timestep == Timestep::DISCARDED){
-        printf("[%4d\\   1]->", nbChildren);
-        progress.push_back(0);
-    } else if(timestep == Timestep::MOVEDlast){
-        progress[progress.size() - 1] += 1;
-        for(int i =0; i<7; i++) printf("\b");
-        printf("%4d]->", progress[progress.size() - 1]);
-    } else if(timestep == Timestep::ABILITYCHOSEN){
-        printf("<%4d\\   1>->", nbChildren);
-        progress.push_back(0);
-    } else if(timestep == Timestep::ACTED){
-        progress[progress.size()-1] += 1;
-        for(int i =0; i<7; i++) printf("\b");
-        printf("%4d>->", progress[progress.size() - 1]);
-    }
-}
-
-void ProgressBar::exit(Timestep timestep) {
-    if(timestep == Timestep::DISCARDED or timestep == Timestep::ABILITYCHOSEN){
-        for(uint i=0; i<13; i++) printf("\b"); // deleting my progress-frame
-        progress.pop_back();
-    }
-}
-
-void ProgressBar::enterTurn() {
-    progressStack.push_back(std::move(progress));
-    progress = std::vector<int>();
-}
-
-void ProgressBar::exitTurn() {
-    for(uint i = 0; i<13 * progress.size(); i++) printf("\b"); // deleting progress-frames for all states in the turn which were not exited yet
-    fflush(stdout);
-    progress = std::move(progressStack.back());
-    progressStack.pop_back();
-}
-
-void ProgressLogger::message(const char* msg) const {
-    std::cout << msg << '\n';
-}
-
-void ProgressLogger::message(const char* msg, float nb) const {
-    std::cout << msg << ' ' << nb << '\n';
-}
-
-void ProgressLogger::enter(Timestep timestep, unsigned nbChildren){
-    message((std::string("ENTER ") + to_string(timestep)).c_str(), nbChildren);
-}
-
-void ProgressLogger::exit(Timestep timestep){
-    message((std::string("EXIT ") + to_string(timestep)).c_str());
 }

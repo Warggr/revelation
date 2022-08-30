@@ -12,4 +12,5 @@ add_executable(revelation
 	teams.cpp
 	search/heuristic.cpp
 	search/depthfirstsearch.cpp
+	search/loggers.cpp
 )
