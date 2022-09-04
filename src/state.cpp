@@ -37,8 +37,8 @@ void State::operator=(const State& copy){
     assert(*this == copy);
 }
 
-State State::createStart(const std::array<Team, 2>& teams) {
-    State retVal;
+State State::createStart(const std::array<Team, 2>& teams, Generator generator) {
+    State retVal(generator);
     retVal.nbAliveUnits = {ARMY_SIZE, ARMY_SIZE};
     retVal.turnID = 0;
     retVal.timestep = Timestep::BEGIN;
@@ -76,7 +76,7 @@ State State::createStart(const std::array<Team, 2>& teams) {
         }
     }
 
-    retVal.resDeck = Deck<Faction>::create({ REPEAT(BLOOD), REPEAT(MERCURY), REPEAT(HORROR), REPEAT(SPECTRUM), ETHER });
+    retVal.resDeck = Deck<Faction>::create({ REPEAT(BLOOD), REPEAT(MERCURY), REPEAT(HORROR), REPEAT(SPECTRUM), ETHER }, generator);
     return retVal;
 }
 

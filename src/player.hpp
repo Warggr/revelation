@@ -9,8 +9,9 @@
 #include "string"
 #include "deck.hpp"
 #include "constants.hpp"
-#include "initializer_list"
+#include "random.hpp"
 #include "nlohmann/json.hpp"
+#include <initializer_list>
 
 using json = nlohmann::json;
 
@@ -21,8 +22,8 @@ class Player {
 
 public:
     Deck<ActionCard> actionDeck;
-//    Player() = default;
-    Player();
+    Player() = default;
+    Player(Generator generator);
 
     ActionCard drawAction();
 

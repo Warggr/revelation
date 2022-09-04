@@ -4,8 +4,8 @@
 #include <iostream>
 #include <algorithm>
 
-Player::Player() {
-    actionDeck = Deck<ActionCard>::create(startingAbilityDeck);
+Player::Player(Generator generator) {
+    actionDeck = Deck<ActionCard>::create(startingAbilityDeck, generator);
 }
 
 ActionCard Player::drawAction() {

@@ -1,9 +1,15 @@
 #include "state.hpp"
 #include "logger.hpp"
 #include "game.hpp"
+#include <random>
 
-Game::Game(std::array<Team, 2>&& teams, const std::array<Agent*, 2>& agents):
-    state(State::createStart(teams)), teams(std::move(teams)), agents(agents)
+Generator getRandom(){
+    std::random_device rd;
+    return Generator(rd());
+}
+
+Game::Game(std::array<Team, 2>&& teams, const std::array<Agent*, 2>& agents, Generator generator):
+    state(State::createStart(teams, generator)), teams(std::move(teams)), agents(agents)
 {
 };
 

@@ -9,6 +9,7 @@
 #include "character.hpp"
 #include "BoardTile.hpp"
 #include "effect.hpp"
+#include "random.hpp"
 #include "memory.hpp"
 #include "nlohmann/json_fwd.hpp"
 #include <vector>
@@ -33,12 +34,13 @@ public:
     std::array<Player, 2> players;
 
     State() = default;
+    State(Generator& generator): players({ Player(Generator(generator() + 1)), Player(Generator(generator() + 1)) }) {};
     void operator=(const State& copy);
     State(const State& copy){ *this = copy; } //calling the operator=
     bool operator==(const State& other) const {
         return board == other.board and nbAliveUnits == other.nbAliveUnits and resDeck == other.resDeck and turnID == other.turnID and unresolvedSpecialAbility == other.unresolvedSpecialAbility;
     }
-    static State createStart(const std::array<Team, 2>& teams);
+    static State createStart(const std::array<Team, 2>& teams, Generator generator);
 
     const Board& getBoard() const { return board; }
     const std::array<unsigned short int, 2>& getNbAliveUnits() const { return nbAliveUnits; }
