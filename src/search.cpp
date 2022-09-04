@@ -11,47 +11,32 @@
 std::ostream& operator<<(std::ostream& o, const position& pos);
 
 ActionOrResource SearchAgent::getDrawAction(const State& state) {
-#ifndef NDEBUG
     assert(state == plans.beforeDraw);
-#else
     (void)state;
-#endif
     return plans.draw;
 }
 
 DiscardDecision SearchAgent::getDiscard(const State& state) {
-#ifndef NDEBUG
     assert(state == plans.beforeDiscard);
-#else
     (void)state;
-#endif
     return plans.discard;
 }
 
 MoveDecision SearchAgent::getMovement(const State& state, unsigned nb) {
-#ifndef NDEBUG
     assert(state == plans.beforeMove[nb]);
-#else
     (void)state;
-#endif
     return plans.moves[nb];
 }
 
 AbilityDecision SearchAgent::getAbility(const State& state) {
-#ifndef NDEBUG
     assert(state == plans.beforeAbility);
-#else
     (void)state;
-#endif
     return plans.ability;
 }
 
 ActionDecision SearchAgent::getAction(const State& state) {
-#ifndef NDEBUG
     assert(state == plans.beforeAction);
-#else
     (void)state;
-#endif
     return plans.action;
 }
 
@@ -194,7 +179,7 @@ unsigned pushChildStates(const SearchNode& stackFrame, Container<SearchNode>& pu
                     MoveDecision decision = MoveDecision::pass();
                     auto [ newSubState, step ] = subState.stepMov(decision);
                     assert(step->isPass());
-                    newStackFrame = newStackFrame.copy( newSubState, heuristic.evaluateStep( state.iActive, newSubState, *step ) );
+                    newStackFrame = newStackFrame.copy( newSubState, heuristic.evaluateMoveStep( state.iActive, newSubState, *step ) );
                     newStackFrame.decisions.moves[iMoveRound] = decision;
                     #ifndef NDEBUG
                         newStackFrame.decisions.beforeMove[iMoveRound] = subState;
@@ -215,7 +200,7 @@ unsigned pushChildStates(const SearchNode& stackFrame, Container<SearchNode>& pu
                                     newDecisions[iMoveRound].stateBefore = subState;
                                 #endif
                                 auto [ newState, step ] = subState.stepMov( newDecisions[iMoveRound].dec );
-                                heurVal += heuristic.evaluateStep( state.iActive, newState, *step );
+                                heurVal += heuristic.evaluateMoveStep( state.iActive, newState, *step );
 
                                 newStates.emplace_back(newState, newDecisions, heurVal );
                             }
@@ -246,7 +231,7 @@ unsigned pushChildStates(const SearchNode& stackFrame, Container<SearchNode>& pu
         { // the "pass" decision
             ActionDecision passDecision = ActionDecision::pass();
             auto [ newState, step ] = state.stepAct(passDecision);
-            SearchNode newFrame = stackFrame.copy(newState, heuristic.evaluateStep( state.iActive, state, *step ));
+            SearchNode newFrame = stackFrame.copy(newState, heuristic.evaluateActionStep( state.iActive, state, *step ));
             newFrame.decisions.action = passDecision;
             #ifndef NDEBUG
                 newFrame.decisions.beforeAction = state;
@@ -263,7 +248,7 @@ unsigned pushChildStates(const SearchNode& stackFrame, Container<SearchNode>& pu
                     if(not isDead(subject)){
                         decision.subjectPos = subject->pos;
                         auto [ newState, step ] = state.stepAct( decision );
-                        SearchNode retVal = stackFrame.copy( newState, heuristic.evaluateStep( state.iActive, state, *step ) );
+                        SearchNode retVal = stackFrame.copy( newState, heuristic.evaluateActionStep( state.iActive, state, *step ) );
                         retVal.decisions.action = decision;
                         #ifndef NDEBUG
                             retVal.decisions.beforeAction = state;
@@ -279,7 +264,7 @@ unsigned pushChildStates(const SearchNode& stackFrame, Container<SearchNode>& pu
                         decision.subjectPos = state.units[ state.iActive ][ aggressor->teampos ]->pos;
                         decision.objectPos = state.units[ 1 - state.iActive ][ victim->teampos ]->pos;
                         auto [ newState, step ] = state.stepAct( decision );
-                        SearchNode retVal = stackFrame.copy( newState, heuristic.evaluateStep( state.iActive, state, *step ) );
+                        SearchNode retVal = stackFrame.copy( newState, heuristic.evaluateActionStep( state.iActive, state, *step ) );
                         retVal.decisions.action = decision;
                         #ifndef NDEBUG
                             retVal.decisions.beforeAction = state;
@@ -294,6 +279,6 @@ unsigned pushChildStates(const SearchNode& stackFrame, Container<SearchNode>& pu
     }
 
     default:
-        throw std::exception(); //Timestep::ACTED (aka end of turns) are supposed to be handled differently
+        assert(false); return 0; //Timestep::ACTED (aka end of turns) are supposed to be handled differently
     }
 }

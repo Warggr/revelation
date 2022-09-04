@@ -57,7 +57,7 @@ endif()
 target_compile_options(project_warnings INTERFACE -Wall -Wextra -Werror
         -Wnon-virtual-dtor -Wcast-align
         -Wunused -Woverloaded-virtual -Wpedantic
-        -Wnull-dereference -Wdouble-promotion
+        -Wdouble-promotion
         -Wformat=2)
 
 # some GCC specific warnings. These flags are added only if the used compiler is GCC.

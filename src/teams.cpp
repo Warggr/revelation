@@ -2,30 +2,6 @@
 #include "effect.hpp"
 #include "state.hpp"
 
-std::string to_string(enum ActionCard card){
-    switch(card){
-        case DEFENSE: return "Defense";
-        case HARDATK: return "Hard Attack";
-        case SOFTATK: return "Soft Attack";
-        default: return "<Internal Error>";
-    }
-}
-
-#define to_string_line(x) case x: return #x
-
-std::string to_string(enum Timestep step){
-    switch(step){
-        to_string_line(BEGIN);
-        to_string_line(DREW);
-        to_string_line(DISCARDED);
-        to_string_line(MOVEDfirst);
-        to_string_line(MOVEDlast);
-        to_string_line(ABILITYCHOSEN);
-        to_string_line(ACTED);
-        default: return "<Internal Error>";
-    }
-}
-
 class DiscardEffect: public Effect {
     unsigned short int who;
 public:
