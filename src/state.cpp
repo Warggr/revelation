@@ -39,34 +39,39 @@ void State::operator=(const State& copy){
 
 State State::createStart(const std::array<Team, 2>& teams, Generator generator) {
     State retVal(generator);
-    retVal.nbAliveUnits = {ARMY_SIZE, ARMY_SIZE};
     retVal.turnID = 0;
     retVal.timestep = Timestep::BEGIN;
     retVal.iActive = 0;
 
+    std::vector<NullableShared<Character>> units[2];
     for(int i = 0; i < 2; i++ ) {
         for(int j = 0; j < 2; j++) {
             for(int k = 0; k < ARMY_WIDTH; k++) {
-                retVal.units[i][j*ARMY_WIDTH+k] = NullableShared<Character>(teams[i].characters_unique[ teams[i].characters[j][k] ]);
-                auto* ch = retVal.units[i][j*ARMY_WIDTH+k].get();
-                ch->pos = position( j, k + 1 + i*HALF_BOARD_WIDTH);
-                ch->team = i;
+                if(teams[i].characters[j][k] != 0){ //0 indicates an empty field
+                    NullableShared<Character> character_ptr = { teams[i].characters_unique[ teams[i].characters[j][k] - 1 ]};
+                    character_ptr->pos = position( j, k + 1 + i*HALF_BOARD_WIDTH);
+                    character_ptr->team = i;
+                    units[i].push_back(std::move(character_ptr));
+                }
             }
         }
     }
+    retVal.nbAliveUnits = { (short unsigned) units[0].size(), (short unsigned) units[1].size() };
 
     for(std::size_t i = 0; i < 2; i++) {
         auto sortLambda = [] (const NullableShared<Character>& one, const NullableShared<Character>& two) -> bool{
             return one->im.maxAtk > two->im.maxAtk;
         };
 
-        std::sort(retVal.units[i].begin(), retVal.units[i].end(), sortLambda);
+        std::sort(units[i].begin(), units[i].end(), sortLambda);
 
-        for(int j = 0; j < ARMY_SIZE; j++) {
-            Character* ch = retVal.units[i][j].get();
+        for(uint j = 0; j < units[i].size(); j++) {
+            auto& ch = units[i][j];
             ch->teampos = j;
             retVal.board[ch->pos.row][ch->pos.column] = BoardTile(i, j);
+            retVal.units[i][j] = std::move(units[i][j]);
         }
+        for(int j = units[i].size(); j < ARMY_SIZE; j++) assert( retVal.units[i][j].get() == DEAD_UNIT );
     }
 
     // Each player draws 2 cards

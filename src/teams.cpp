@@ -1,6 +1,8 @@
 #include "team.hpp"
 #include "effect.hpp"
 #include "state.hpp"
+#include "random.hpp"
+#include <cassert>
 
 class DiscardEffect: public Effect {
     unsigned short int who;
@@ -36,8 +38,8 @@ Team mkNearEast(){
         std::move(unique_c),
         {
             {
-                { 0, 1, 2 },
-                { 3, 4, 5 }
+                { 1, 2, 3 },
+                { 4, 5, 6 }
             }
         }
     };
@@ -56,9 +58,32 @@ Team mkEurope() {
         std::move(unique_c),
         {
             {
-                { 0, 1, 2 },
-                { 2, 3, 4 }
+                { 1, 2, 3 },
+                { 3, 4, 5 }
             }
         }
     };
+}
+
+Team Team::random(Generator& generator, unsigned short int nbUnits){
+    std::vector<ImmutableCharacter> unique_c;
+    std::array<std::array<unsigned short int, ARMY_WIDTH>, 2> characters = {0};
+
+    assert(nbUnits <= ARMY_SIZE);
+
+    for(uint i = 0; i < nbUnits; i++){
+        unique_c.push_back(ImmutableCharacter::random(generator));
+
+        //Inefficient algorithm to find an empty space. Doesn't matter too much because this function is executed at most two times
+        while(true) {
+            auto rnd = generator();
+            unsigned short row = rnd % 2, column = (rnd >> 1) % 3;
+            if(characters[row][column] != 0) continue;
+            else{
+                characters[row][column] = i + 1;
+                break;
+            }
+        }
+    }
+    return { "random team", std::move(unique_c), characters };
 }

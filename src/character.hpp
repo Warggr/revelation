@@ -4,6 +4,7 @@
 #include "effect.hpp"
 #include "position.hpp"
 #include "constants.hpp"
+#include "random.hpp"
 #include "nlohmann/json_fwd.hpp"
 #include <forward_list>
 
@@ -28,6 +29,7 @@ struct ImmutableCharacter {
         {
         }
     ~ImmutableCharacter();
+    static ImmutableCharacter random(Generator& generator);
 };
 
 struct Character {

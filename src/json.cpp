@@ -34,6 +34,7 @@ void to_json(json& j, const State& state) {
 void to_json(json& j, const Team& team){
     j = {
         {"name", team.name},
+        {"unique_c", team.characters_unique},
         {"characters", json(team.characters)}
     };
 }

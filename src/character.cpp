@@ -30,6 +30,20 @@ ImmutableCharacter::~ImmutableCharacter(){
         delete effect_ptr;
 }
 
+inline bool rndBool(Generator& gen){ return (gen() >> 6) % 2; } //apparently, the lowest bit is often not that random, so I take the 7th one
+
+ImmutableCharacter ImmutableCharacter::random(Generator& gen){
+    return ImmutableCharacter("Bob",
+        std::uniform_int_distribution<short>(0, 150)(gen),
+        std::uniform_int_distribution<short>(0, 80)(gen),
+        std::uniform_int_distribution<short>(0, 80)(gen),
+        std::uniform_int_distribution<unsigned char>(0, 5)(gen),
+        std::uniform_int_distribution<unsigned char>(0, 5)(gen),
+        0,
+        rndBool(gen)
+    );
+}
+
 short Character::takeDmg(bool isHard, short power) {
     (void) isHard; //currently no difference between hard and soft damage
     if(this->defShieldHP > 0) {

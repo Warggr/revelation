@@ -6,7 +6,7 @@
 #include <unordered_set>
 #include <cstdio>
 #include <cassert>
-#include <iostream>
+#include <ostream>
 
 std::ostream& operator<<(std::ostream& o, const position& pos);
 
@@ -80,7 +80,10 @@ void SearchPolicy::planAhead(const State& startState){
         SearchNode node = container.popChild();
 
         const State& state = node.state;
-        if(state.timestep != Timestep::ACTED){
+        if(state.getWinner() != 0){
+            bool finishEarly = addWinState(state, node.decisions);
+            if(finishEarly) return;
+        } else if(state.timestep != Timestep::ACTED){
             unsigned nbChildren = pushChildStates(node, container, heuristic);
             informNbChildren(nbChildren, state.timestep);
         } else {
@@ -89,7 +92,7 @@ void SearchPolicy::planAhead(const State& startState){
             if(finishEarly) return;
         }
     }
-    exit();
+    this->exit();
 }
 
 using HashKey = int;

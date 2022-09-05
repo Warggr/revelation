@@ -71,6 +71,12 @@ public:
         }
         return false;
     }
+    virtual bool addWinState(State state, const DecisionList& decisions){
+        bestMoves = decisions;
+        bestState = std::move(state);
+        maxHeur = std::numeric_limits<float>::max();
+        return true;
+    }
     virtual std::tuple<State, DecisionList, Heuristic::Value> getResults() {
         return std::make_tuple(bestState, bestMoves, maxHeur);
     }
