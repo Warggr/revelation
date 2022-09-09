@@ -40,25 +40,37 @@ void to_json(json& j, const Team& team){
 }
 
 void BeginStep::to_json(json& j) const {
-    (void)j; //TODO
+    j = {
+        {"type", "begin"},
+    };
 }
 
 void DiscardStep::to_json(json& j) const {
-    (void)j; //TODO
+    j = {
+        {"type", "discard"},
+    }; //TODO
 }
 
 void MoveStep::to_json(json& j) const {
-    (void)j; //TODO
+    j = {
+        {"type", "move"},
+    }; //TODO
 }
 
 void DrawStep::to_json(json& j) const {
-    (void)j; //TODO
+    j = {
+        {"type", "draw"},
+    }; //TODO
 }
 
 void AbilityStep::to_json(json& j) const {
-    (void)j; //TODO
+    j = {
+        {"type", "ability"},
+    }; //TODO
 }
 
 void ActionStep::to_json(json& j) const {
-    (void)j; //TODO
+    j = {
+        {"type", "action"},
+    }; //TODO
 }
