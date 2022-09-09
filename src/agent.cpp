@@ -1,6 +1,7 @@
 #include "agent.hpp"
 #include "state.hpp"
 #include "constants.hpp"
+#include <cassert>
 #include <map>
 #include <iostream>
 
@@ -10,6 +11,7 @@ std::ostream& operator<<(std::ostream& o, const position& pos){
 }
 
 uint HumanAgent::input(uint min, uint max){
+    assert(min <= max);
     while(true) {
         uint iSel; std::cin >> iSel;
         if(min <= iSel and iSel <= max) return iSel;
@@ -70,10 +72,13 @@ MoveDecision StepByStepAgent::getMovement(const State& state, unsigned int) {
     std::vector<MoveDecision> possibleMovs = state.allMovementsForCharacter(charSel);
     for(uint i = 0; i<possibleMovs.size(); i++)
         ostream() << '[' << i << "]: to " << possibleMovs[i].to << '\n';
-    ostream() << "Enter which position to select: ";
-    uint iSel = input(0, possibleMovs.size() - 1);
-    MoveDecision movSel = possibleMovs[iSel];
-    return movSel;
+    ostream() << "Enter which position to select or 0 to skip: ";
+    uint iSel = input(0, possibleMovs.size());
+    if(iSel == 0) return MoveDecision::pass();
+    else {
+        MoveDecision movSel = possibleMovs[iSel-1];
+        return movSel;
+    }
 }
 
 ActionDecision StepByStepAgent::getAction(const State& state) {
@@ -97,19 +102,17 @@ ActionDecision StepByStepAgent::getAction(const State& state) {
         if(allPossibleAttacks.empty())
             return ActionDecision::pass();
         std::vector<std::array<const Character*, 2>> array;
-        int i = 1;
         for(const auto& [ unit, enemies ] : allPossibleAttacks){
             ostream() << unit->im.name << '\n';
             for(const auto& enemy : enemies){
-                const char* startCharacter = (enemy == enemies.back()) ? "└" : "├";
-                ostream() << '[' << i << ']' << startCharacter << "─" << enemy->im.name << '\n';
                 array.push_back( { unit, enemy } );
-                i += 1;
+                const char* startCharacter = (enemy == enemies.back()) ? "└" : "├";
+                ostream() << '[' << array.size() << ']' << startCharacter << "─" << enemy->im.name << '\n';
             }
         }
         ostream() << "Enter which attack to select: (or 0 to skip)";
-        uint iSel = input(0, i);
-        if(i == 0) return ActionDecision::pass();
+        uint iSel = input(0, array.size());
+        if(iSel == 0) return ActionDecision::pass();
         ret.subjectPos = array[iSel - 1][0]->pos;
         ret.objectPos = array[iSel - 1][1]->pos;
     }
@@ -120,5 +123,6 @@ RandomAgent::RandomAgent(uint myId): StepByStepAgent(myId), generator(std::rando
 }
 
 uint RandomAgent::input(uint min, uint max){
+    assert(min <= max);
     return std::uniform_int_distribution<uint>(min, max)(generator);
 }

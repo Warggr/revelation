@@ -23,11 +23,6 @@ struct ImmutableCharacter {
 
     ImmutableCharacter(const char* name, short maxHP, short softAtk, short hardAtk, uint8_t mov,
         uint8_t rng, float netWorth, bool usesArcAttack = false, const char* flavor = "");
-    ImmutableCharacter(ImmutableCharacter&& move): specialAction(std::move(specialAction)), name(move.name),
-        maxHP(move.maxHP), softAtk(move.softAtk), hardAtk(move.hardAtk), maxAtk(move.maxAtk), mov(move.mov),
-        rng(move.rng), netWorth(move.netWorth), flavor(move.flavor), usesArcAttack(move.usesArcAttack)
-        {
-        }
     ~ImmutableCharacter();
     static ImmutableCharacter random(Generator& generator);
 };
