@@ -22,7 +22,7 @@ class Logger {
     std::vector<std::unique_ptr<SubLogger>> subLoggers;
 
     const std::array<Player, 2> players;
-    const std::array<Team, 2> teams;
+    const std::array<Team, 2>& teams;
 public:
     Logger(const std::array<Player, 2>& players, const std::array<Team, 2>& teams): players(players), teams(teams) {};
     Logger* liveServer();

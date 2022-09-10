@@ -60,6 +60,7 @@ protected:
     std::ostream& ostream() override { return myostream; }
 public:
     RandomAgent(uint myId);
+    ActionOrResource getDrawAction(const State&) override { return ACTION; }
 };
 
 #endif //REVELATION_AGENT_HPP

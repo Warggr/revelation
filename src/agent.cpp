@@ -11,7 +11,7 @@ std::ostream& operator<<(std::ostream& o, const position& pos){
 }
 
 uint HumanAgent::input(uint min, uint max){
-    assert(min <= max);
+    assert(min <= max and max < 100000); //too high values are usually an overflow
     while(true) {
         uint iSel; std::cin >> iSel;
         if(min <= iSel and iSel <= max) return iSel;
@@ -123,6 +123,6 @@ RandomAgent::RandomAgent(uint myId): StepByStepAgent(myId), generator(std::rando
 }
 
 uint RandomAgent::input(uint min, uint max){
-    assert(min <= max);
+    assert(min <= max and max < 100000); //too high values are usually an overflow
     return std::uniform_int_distribution<uint>(min, max)(generator);
 }

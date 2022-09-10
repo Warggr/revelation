@@ -23,6 +23,9 @@ struct ImmutableCharacter {
 
     ImmutableCharacter(const char* name, short maxHP, short softAtk, short hardAtk, uint8_t mov,
         uint8_t rng, float netWorth, bool usesArcAttack = false, const char* flavor = "");
+    //ImmutableCharacter manages resources (namely specialAction which needs to be deleted), so it must not have a copy ctor
+    ImmutableCharacter(const ImmutableCharacter& copy) = delete;
+    ImmutableCharacter(ImmutableCharacter&& move) = default;
     ~ImmutableCharacter();
     static ImmutableCharacter random(Generator& generator);
 };
