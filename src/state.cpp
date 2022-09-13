@@ -137,7 +137,8 @@ std::tuple<State, uptr<DrawStep>> State::stepDraw() const {
 
 std::tuple<State, uptr<DiscardStep>> State::stepDiscard(DiscardDecision decision) const {
     assert(timestep == DREW);
-    assert(players[this->iActive].getActions().size() > MAX_ACTIONS);
+    assert(players[this->iActive].getActions().size() > MAX_ACTIONS
+        or players[this->iActive].getResourceCards().size() > MAX_RESOURCES);
     this->checkConsistency();
     State newState(*this);
     newState.timestep = DISCARDED;

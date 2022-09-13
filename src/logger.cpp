@@ -1,49 +1,43 @@
 #include "logger.hpp"
+#include "nlohmann/json.hpp"
 
-Logger::~Logger(){
-}
+using json = nlohmann::json;
+
+class FileLogger : public SubLogger {
+    std::ostream& file;
+    bool firststep;
+public:
+    FileLogger(std::ostream& file, const std::array<Player, 2>& players, const std::array<Team, 2>& teams): file(file) {
+        firststep = true;
+        json js = { {"players", players}, {"teams", teams} };
+        file << "{\"start\":" <<  js << ",\"steps\":[";
+    }
+    ~FileLogger() override {
+        file << "]}";
+    }
+    void addStep(const Step* step) override {
+        json j = *step;
+        if(not firststep) file << ',';
+        else firststep = false;
+        file << j << '\n';
+    }
+};
 
 Logger* Logger::liveServer(){
     return this; //TODO
 }
 
-Logger* Logger::logToTerminal(){
-    return this; //TODO
+Logger* Logger::logToFile(std::ostream& stream){
+    subLoggers.push_back(std::make_unique<FileLogger>(stream, players, teams));
+    return this;
 }
 
-/* class BaseLogger : public Logger {
-    std::array<Player, 2> players;
-    std::vector<Step*> steps;
-public:
-    BaseLogger(std::array<Player, 2> players) : players(players) {}
-
-    void addStep(Step* step) {
-        steps.push_back(step);
-    }
-
-    def all(self)
-
-    :
-    return { "teams" : self.players, "steps" : self.steps }
-
-    void exit() {
-        now = datetime.datetime.now()
-        file = open(now.strftime('%m.%d-%H:%M') + '-replay.json', 'x')
-        JSONlib.
-                dump(f, self
-                .
-
-                        all()
-
-        )
-    }
+void Logger::addStep(const uptr<Step>& step) {
+    for(const auto& sub : subLoggers)
+        sub->addStep(step.get());
 }
 
-class Decorator(Logger):
-    def __init__(self, parent):
-        self.parent = parent
-    def all(self):
-        return self.parent.all()
+/*
 
 class LiveServerAndLogger(Decorator):
     def __init__(self, parent):
@@ -97,11 +91,10 @@ class LiveServerAndLogger(Decorator):
         self.serverThread.join()
         self.parent.__exit__(type, value, traceback)
 
-class PrintLogger(Decorator):
-    def __init__(self, parent):
-        super().__init__(parent)
-        print('Log will be printed')
-    def addStep(self, step : Step):
-        self.parent.addStep(step)
-        print(step)
+    virtual json all() {
+        return { 
+            {"teams", self.players},
+            {"steps", self.steps}
+        };
+    }
 */

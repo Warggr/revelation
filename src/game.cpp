@@ -14,11 +14,11 @@ Game::Game(std::array<Team, 2>&& teams, const std::array<Agent*, 2>& agents, Gen
 };
 
 bool Game::play(bool isLiveServer, bool logToTerminal) {
-    auto* logger = new Logger(teams);
+    auto* logger = new Logger(state.players, teams);
     if(isLiveServer)
         logger = logger->liveServer();
     if(logToTerminal)
-        logger = logger->logToTerminal();
+        logger = logger->logToFile(std::cout);
 
     unsigned short int winner;
     while((winner = state.getWinner()) == 0) {
@@ -28,5 +28,6 @@ bool Game::play(bool isLiveServer, bool logToTerminal) {
         state = newState;
         logger->addStep(std::move(step));
     }
+    delete logger;
     return winner;
 }
