@@ -473,7 +473,7 @@ class SearchAgent(AIAgent):
     def onBegin(self, state : 'State'):
         #print('----ON BEGIN----')
         assert state.iActive == self.myId
-        (state, decisions, heuristic) = SearchAgent.planAhead( state, AdaptiveDepthPolicy() )
+        (state, decisions, heuristic) = SearchAgent.planAhead( state, FixedDepthPolicy([]) )
         #print('Found', state, decisions, heuristic)
         #decision = [ dec for dec in decisions if isinstance(dec, ActionDecision) ][0]
         #print('ActionDecision:', decision.card)

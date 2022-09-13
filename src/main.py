@@ -85,7 +85,7 @@ teams = {
 
 agentTypes = (
     HumanAgent if len(sys.argv) > 1 and sys.argv[1] == '-h' else SearchAgent,
-    HumanAgent if len(sys.argv) > 2 and sys.argv[2] == '-h' else SearchAgent,
+    SearchAgent if len(sys.argv) > 2 and sys.argv[2] == '-s' else HumanAgent,
 )
 
 agents = (
