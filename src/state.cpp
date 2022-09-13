@@ -77,7 +77,7 @@ State State::createStart(const std::array<Team, 2>& teams, Generator generator) 
     // Each player draws 2 cards
     for(int i = 0; i < 2; i++) {
         for(auto & player : retVal.players) {
-            player.drawAction();
+            player.drawCard();
         }
     }
 
@@ -120,7 +120,7 @@ unsigned short int State::getWinner() const {
     return 0;
 }
 
-std::tuple<State, uptr<DrawStep>> State::stepDraw(ActionOrResource decision) const {
+std::tuple<State, uptr<DrawStep>> State::stepDraw() const {
     assert(timestep == BEGIN);
     this->checkConsistency();
     State newState(*this);
@@ -129,16 +129,10 @@ std::tuple<State, uptr<DrawStep>> State::stepDraw(ActionOrResource decision) con
     //newState.players[this->iActive] = copy.copy(newState.players[this->iActive])
     newState.checkConsistency();
     std::variant<ActionCard, Faction> cardDrawn;
-    if(decision == ACTION) {
-        cardDrawn = newState.players[iActive].drawAction();
-        if(newState.players[iActive].getActions().size() <= MAX_ACTIONS) newState.timestep = DISCARDED;
-            // no need to discard anything - so we skip discard step and pretend we have already discarded
-        return { newState, std::make_unique<DrawStep>(cardDrawn, newState.players[iActive].actionDeck.sizeconfig()) };
-    } else {
-        cardDrawn = newState.players[iActive].drawResource(newState.resDeck);
-        if(newState.players[iActive].getResourceCards().size() <= MAX_RESOURCES) newState.timestep = DISCARDED;
-        return { newState, std::make_unique<DrawStep>( cardDrawn, newState.resDeck.sizeconfig())};
-    }
+    cardDrawn = newState.players[iActive].drawCard();
+    if(newState.players[iActive].deck.size() <= MAX_ACTIONS + MAX_RESOURCES) newState.timestep = DISCARDED;
+    // no need to discard anything - so we skip discard step and pretend we have already discarded
+    return { newState, std::make_unique<DrawStep>(cardDrawn, newState.players[iActive].deck.sizeconfig()) };
 }
 
 std::tuple<State, uptr<DiscardStep>> State::stepDiscard(DiscardDecision decision) const {
@@ -324,8 +318,7 @@ std::tuple<State, uptr<Step>> State::advance(Agent& active, Agent& opponent) con
     case ACTED:
         return this->beginTurn();
     case BEGIN: {
-        ActionOrResource decision = active.getDrawAction(*this);
-        return this->stepDraw(decision);
+        return this->stepDraw();
     }
     case DREW: {
         DiscardDecision decision = active.getDiscard(*this);

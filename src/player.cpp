@@ -3,20 +3,26 @@
 #include "constants.hpp"
 #include <iostream>
 #include <algorithm>
+#include "random.hpp"
 
-Player::Player(Generator generator) {
+Player::Player(Generator generator, Deck<Faction> resourceDeck) {
     actionDeck = Deck<ActionCard>::create(startingAbilityDeck, generator);
+    for(size_t i = 0; i < actionDeck.size(); i++) {
+        this->deck.at(i) = actionDeck.at(i);
+    }
+
+    for(size_t i = 0; i < resourceDeck.size(); i++) {
+        this->deck.at(i + actionDeck.size()) = resourceDeck.at(i);
+    }
 }
 
-ActionCard Player::drawAction() {
-    ActionCard cardDrawn = actionDeck.draw();
-    actions.insert(actions.end(), cardDrawn);
-    return cardDrawn;
-}
-
-Faction Player::drawResource(Deck<Faction> resourceDeck)  {
-    Faction cardDrawn = resourceDeck.draw();
-    resources.insert(resources.end(), cardDrawn);
+std::variant<ActionCard, Faction> Player::drawCard() {
+    std::variant<ActionCard, Faction> cardDrawn = this->deck.draw();
+    if(cardDrawn.index() == 0) {
+        actions.insert(actions.end(), std::get<0>(cardDrawn));
+    } else {
+        resources.insert(resources.end(), std::get<1>(cardDrawn));
+    }
     return cardDrawn;
 }
 

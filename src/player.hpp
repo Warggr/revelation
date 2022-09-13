@@ -12,6 +12,7 @@
 #include "random.hpp"
 #include "nlohmann/json.hpp"
 #include <initializer_list>
+#include <variant>
 
 using json = nlohmann::json;
 
@@ -22,12 +23,11 @@ class Player {
 
 public:
     Deck<ActionCard> actionDeck;
+    Deck<std::variant<ActionCard, Faction>> deck;
     Player() = default;
-    Player(Generator generator);
+    Player(Generator generator, Deck<Faction> resourceDeck);
 
-    ActionCard drawAction();
-
-    Faction drawResource(Deck<Faction> resourceDeck);
+    std::variant<ActionCard, Faction> drawCard();
 
     void discard(ActionCard card);
 

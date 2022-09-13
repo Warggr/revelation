@@ -22,6 +22,8 @@ public:
     void discard(T card);
     T draw();
     std::tuple<int, int> sizeconfig() const;
+    size_t size();
+    T at(size_t i);
 };
 
 #endif //REVELATION_DECK_HPP

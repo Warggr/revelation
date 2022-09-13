@@ -34,7 +34,7 @@ public:
     std::array<Player, 2> players;
 
     State() = default;
-    State(Generator& generator): players({ Player(Generator(generator() + 1)), Player(Generator(generator() + 1)) }) {};
+    State(Generator& generator): players({ Player(Generator(generator() + 1), resDeck), Player(Generator(generator() + 1), resDeck) }) {};
     void operator=(const State& copy);
     State(const State& copy){ *this = copy; } //calling the operator=
     bool operator==(const State& other) const {
@@ -53,7 +53,7 @@ public:
     unsigned short int getWinner() const;
     void checkConsistency() const;
 
-    std::tuple<State, uptr<DrawStep>> stepDraw(ActionOrResource decision) const;
+    std::tuple<State, uptr<DrawStep>> stepDraw() const;
     std::tuple<State, uptr<DiscardStep>> stepDiscard(DiscardDecision decision) const;
     std::tuple<State, uptr<MoveStep>> stepMov(MoveDecision decision) const;
     std::tuple<State, uptr<AbilityStep>> stepAbil(const AbilityDecision& decision) const;
