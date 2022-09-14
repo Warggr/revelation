@@ -130,6 +130,7 @@
 		}
 		socket.onerror = (err) => { console.error(err); }
 	}
+
 	const urlParams = new URLSearchParams(window.location.search);
 	const liveurl = urlParams.get('liveurl');
 	if(liveurl){

@@ -9,8 +9,10 @@ function discard(name){
 }
 
 function draw(name){
+	console.log("draw(" + name + ")");
 	let resource = document.createElement('li');
 	resource.textContent = name;
+	console.log(resource.textContent);
 	resourceLists[iActive].appendChild(resource);	
 }
 
@@ -47,6 +49,7 @@ function bluePrintCharacter(charDom){
 
 function apply(step, backwards) {
 	switch(step.action){
+		case 'beginturn': return { 'action' : 'beginturn' };
 		case 'pass': return { 'action' : 'pass' };
 		case 'move': {
 			let fieldFrom = boardDom.children[ step.frm[1] + FULL_BOARD_WIDTH*step.frm[0] ];
@@ -117,11 +120,10 @@ var resourceLists = [];
 var screen = null;
 var iActive = 0;
 
-function createState(teams){
+function createState(teams, names, board){
 	for(let team of teams)
-		for(let row of team.characters)
-			for(let char of row)
-				if(!char.hp) char.hp = char.maxHP;
+		for(let row of team)
+				if(!row.hp) row.hp = row.maxHP;
 
 	let outerScreen = document.getElementById('screen');
 	outerScreen.textContent = '';
@@ -149,10 +151,10 @@ function createState(teams){
 	let headers = [];
 
 	for(let i=0; i<2; i++){
-		teamNames[i] = teams[i].name;
+		teamNames[i] = names[i];
 
 		let header = document.createElement('div');
-		header.innerHTML = `<h3>${teams[i].name}</h3>`;
+		header.innerHTML = `<h3>${names[i].name}</h3>`;
 		let resourceList = document.createElement('ul');
 		resourceList.classList.add('resource-list');
 		resourceLists.push(resourceList);
@@ -163,10 +165,33 @@ function createState(teams){
 		header.classList.add('teamIndex-' + i);
 		headers.push(header);
 
-		for(let j=0; j<2; j++)
-			for(let k=0; k<ARMY_WIDTH; k++){
-				let charDom = characterFactory( teams[i].characters[j][k], i );
-				boardDom.children[k + 1 + HALF_BOARD_WIDTH*i + FULL_BOARD_WIDTH*j].appendChild(charDom);
+		for(let j=0; j<2; j++) {
+			let team = teams[i];
+			let pos = board[j];
+			if (i == 0) {
+				for (let k = 0; k < HALF_BOARD_WIDTH; k++) {
+					let poss = pos[k];
+					let charDom;
+					console.log(poss);
+					if(poss != null) {
+						let posChar = poss[1];
+						charDom = characterFactory(team[posChar], i);
+						console.log(charDom);
+						boardDom.children[k + FULL_BOARD_WIDTH*j].appendChild(charDom);
+					}
+				}
+			} else {
+				for (let k = HALF_BOARD_WIDTH; k < FULL_BOARD_WIDTH; k++) {
+					let charDom;
+					let poss = pos[k];
+					console.log(poss);
+					if(poss != null) {
+						let posChar = poss[1];
+						charDom = characterFactory(team[posChar], i);
+						boardDom.children[k + FULL_BOARD_WIDTH * j].appendChild(charDom);
+					}
+				}
+			}
 		}
 	}
 
@@ -178,8 +203,10 @@ function createState(teams){
 
 function readGame(content){
 	let ret = JSON.parse(content);
-	let teams = ret.teams;
-	let state = createState(teams);
+	let teams = ret.state.aliveUnits;
+	let names = ret.game.teamNames;
+	let board = ret.state.board;
+	let state = createState(teams, names, board);
 
 	return { state : state, steps : ret.steps }
 }
