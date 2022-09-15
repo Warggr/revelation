@@ -11,6 +11,7 @@ function discard(name){
 function draw(name){
 	console.log("draw(" + name + ")");
 	let resource = document.createElement('li');
+
 	resource.textContent = name;
 	console.log(resource.textContent);
 	resourceLists[iActive].appendChild(resource);	
@@ -48,20 +49,61 @@ function bluePrintCharacter(charDom){
 }
 
 function apply(step, backwards) {
+	console.log(step);
 	switch(step.action){
 		case 'beginturn': return { 'action' : 'beginturn' };
 		case 'pass': return { 'action' : 'pass' };
 		case 'move': {
-			let fieldFrom = boardDom.children[ step.frm[1] + FULL_BOARD_WIDTH*step.frm[0] ];
-			let fieldTo = boardDom.children[ step.to[1] + FULL_BOARD_WIDTH*step.to[0] ];
-			let unit = fieldFrom.firstChild;
-			if(unit.id != 'cid-' + step.target) console.warn('Target is named ' + unit.id + ' instead of cid-' + step.target);
-			fieldTo.appendChild(unit);
-			if(step.isCOF){
-				fieldFrom.appendChild(fieldTo.firstChild);
-			}
+			let fieldFrom;
+			let fieldTo;
+			let unit;
+			let moves = step.moves;
+			for(let i = 0; i < moves.length; i++) {
+				switch (moves[i].toLowerCase()) {
+					case "right":
+						fieldFrom = boardDom.children[ step.frm[1] + FULL_BOARD_WIDTH*step.frm[0] ];
+						fieldTo = boardDom.children[ step.frm[1] + 1 + FULL_BOARD_WIDTH*step.frm[0] ];
+						unit = fieldFrom.firstChild;
+						if(unit.id != 'cid-' + step.target) console.warn('Target is named ' + unit.id + ' instead of cid-' + step.target);
+						if(!fieldTo.hasChildNodes()) {
+							fieldTo.appendChild(unit);
+						} else {
+							fieldTo.appendChild(unit);
+							fieldFrom.appendChild(fieldTo.firstChild);
+						}
 
-			return { 'action' : 'move', 'target' : step.target, 'frm' : step.to, 'to' : step.frm, 'isCOF' : step.isCOF };			
+						step.frm[1]++;
+						break;
+					case "left":
+						fieldFrom = boardDom.children[ step.frm[1] + FULL_BOARD_WIDTH*step.frm[0] ];
+						fieldTo = boardDom.children[ step.frm[1] - 1 + FULL_BOARD_WIDTH*step.frm[0] ];
+						unit = fieldFrom.firstChild;
+						if(unit.id != 'cid-' + step.target) console.warn('Target is named ' + unit.id + ' instead of cid-' + step.target);
+						fieldTo.appendChild(unit);
+						fieldFrom.appendChild(fieldTo.firstChild);
+						step.frm[1]--;
+						break;
+					case "down":
+						fieldFrom = boardDom.children[ step.frm[1] + FULL_BOARD_WIDTH*step.frm[0] ];
+						fieldTo = boardDom.children[ step.frm[1] + FULL_BOARD_WIDTH ];
+						unit = fieldFrom.firstChild;
+						if(unit.id != 'cid-' + step.target) console.warn('Target is named ' + unit.id + ' instead of cid-' + step.target);
+						fieldTo.appendChild(unit);
+						fieldFrom.appendChild(fieldTo.firstChild);
+						step.frm[0] = 1;
+						break;
+					case "up":
+						fieldFrom = boardDom.children[ step.frm[1] + FULL_BOARD_WIDTH*step.frm[0] ];
+						fieldTo = boardDom.children[ step.frm[1] ];
+						unit = fieldFrom.firstChild;
+						if(unit.id != 'cid-' + step.target) console.warn('Target is named ' + unit.id + ' instead of cid-' + step.target);
+						fieldTo.appendChild(unit);
+						fieldFrom.appendChild(fieldTo.firstChild);
+						step.frm[0] = 0;
+						break;
+				}
+			}
+			return { 'action' : 'move', 'target' : step.target, 'frm' : step.to, 'to' : step.frm, 'firstCOF' : step.firstCOF };
 		}
 		case 'draw': {
 			let textContent = step.clss + ' - ' + step.value;
@@ -97,14 +139,14 @@ function apply(step, backwards) {
 			}
 		}
 		case 'def': {
-			let subject = boardDom.children[ step.subject[1] + FULL_BOARD_WIDTH*step.object[0] ];
+			let subject = boardDom.children[ step.subject[1] + FULL_BOARD_WIDTH*step.subject[0] ];
 			if(!backwards){
 				discard('action - ' + step.cardLost.toUpperCase());
-				subject.children[1].children[0].textContent = step.permanent;
+				subject.children[0].children[1].children[0].textContent = step.permanent;
 				iActive = 1 - iActive;
 			} else {
 				iActive = 1 - iActive;
-				subject.children[1].children[0].textContent = step.permanent - 50;
+				subject.children[0].children[1].children[0].textContent = step.permanent - 50;
 				draw('action - ' + step.cardLost.toUpperCase());
 			}
 			return step;
@@ -172,19 +214,16 @@ function createState(teams, names, board){
 				for (let k = 0; k < HALF_BOARD_WIDTH; k++) {
 					let poss = pos[k];
 					let charDom;
-					console.log(poss);
 					if(poss != null) {
 						let posChar = poss[1];
 						charDom = characterFactory(team[posChar], i);
-						console.log(charDom);
-						boardDom.children[k + FULL_BOARD_WIDTH*j].appendChild(charDom);
+						boardDom.children[k + FULL_BOARD_WIDTH * j].appendChild(charDom);
 					}
 				}
 			} else {
 				for (let k = HALF_BOARD_WIDTH; k < FULL_BOARD_WIDTH; k++) {
 					let charDom;
 					let poss = pos[k];
-					console.log(poss);
 					if(poss != null) {
 						let posChar = poss[1];
 						charDom = characterFactory(team[posChar], i);

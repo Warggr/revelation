@@ -22,8 +22,8 @@
         {"name": "Knight", "cid": "l", "maxHP": 90, "HP": 90, "softAtk": 50, "hardAtk": 10, "mov": 3, "rng": 1, "netWorth": 520.5, "flavor": ""},
         {"name": "Crossbowman", "cid": "g", "maxHP": 40, "HP": 40, "softAtk": 40, "hardAtk": 20, "mov": 2, "rng": 3, "netWorth": 489.1, "flavor": ""},
         {"name": "Fanatics", "cid": "i", "maxHP": 20, "HP": 20, "softAtk": 20, "hardAtk": 10, "mov": 2, "rng": 1, "netWorth": 288.7, "flavor": ""},
-        {"name": "Fanatics", "cid": "j", "maxHP": 20, "HP": 20, "softAtk": 20, "hardAtk": 10, "mov": 2, "rng": 1, "netWorth": 288.7, "flavor": ""},
-        {"name": "Fanatics", "cid": "k", "maxHP": 20, "HP": 20, "softAtk": 20, "hardAtk": 10, "mov": 2, "rng": 1, "netWorth": 288.7, "flavor": ""}
+        {"name": "Fanatics1", "cid": "j", "maxHP": 20, "HP": 20, "softAtk": 20, "hardAtk": 10, "mov": 2, "rng": 1, "netWorth": 288.7, "flavor": ""},
+        {"name": "Fanatics2", "cid": "k", "maxHP": 20, "HP": 20, "softAtk": 20, "hardAtk": 10, "mov": 2, "rng": 1, "netWorth": 288.7, "flavor": ""}
       ]
     ]
   },
@@ -32,9 +32,9 @@
     {"action": "move", "frm": [0, 1], "to": [1, 2], "target": "a", "moves": ["RIGHT", "DOWN"], "firstCOF": 0},
     {"action": "move", "frm": [0, 3], "to": [0, 2], "target": "c", "moves": ["LEFT"], "firstCOF": 0},
     {"action": "pass", "message": "Abilities not implemented yet"},
-    {"action": "atk", "cardLost": "softAtk", "subject": [0, 3], "object": [0, 6], "setLife": -30, "lostLife": 70, "delete": true},
+    {"action": "atk", "cardLost": "hardAtk", "subject": [0, 3], "object": [0, 6], "setLife": -30, "lostLife": 70, "delete": true},
     {"action": "beginturn"},
-    {"action": "draw", "clss": "action", "value": "HARDATK", "newDeckSize": [5, 0]},
+    {"action": "draw", "clss": "action", "value": "DEFENSE", "newDeckSize": [5, 0]},
     {"action": "move", "frm": [0, 7], "to": [1, 7], "target": "h", "moves": ["DOWN"], "firstCOF": 0},
     {"action": "move", "frm": [0, 7], "to": [0, 9], "target": "k", "moves": ["RIGHT", "RIGHT"], "firstCOF": 2},
     {"action": "pass", "message": "Abilities not implemented yet"},
@@ -177,5 +177,4 @@
     {"action": "pass", "message": "Abilities not implemented yet"},
     {"action": "atk", "cardLost": "softAtk", "subject": [0, 4], "object": [0, 7], "setLife": -10, "lostLife": 30, "delete": true}
   ],
-  "game": {"teamNames": ["Near East", "Europe"]}
-}
+  "game": {"teamNames": ["Near East", "Europe"]}}
