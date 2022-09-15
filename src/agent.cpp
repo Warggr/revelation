@@ -51,12 +51,6 @@ const Character& StepByStepAgent::chooseCharacter(const State& state) {
     return *possibleValues[iSel];
 }
 
-ActionOrResource StepByStepAgent::getDrawAction(const State&) {
-    ostream() << "Choose [1] draw action or [2] draw resource: ";
-    uint iSel = input(1, 2);
-    return (iSel == 1) ? ActionOrResource::ACTION : ActionOrResource::RESOURCES;
-}
-
 DiscardDecision StepByStepAgent::getDiscard(const State& state) {
     const std::vector<ActionCard>& cards = getMyPlayer(state).getActions();
     for(uint i=0; i<cards.size(); i++){

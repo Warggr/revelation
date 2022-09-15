@@ -10,12 +10,6 @@
 
 std::ostream& operator<<(std::ostream& o, const position& pos);
 
-ActionOrResource SearchAgent::getDrawAction(const State& state) {
-    assert(state == plans.beforeDraw);
-    (void)state;
-    return plans.draw;
-}
-
 DiscardDecision SearchAgent::getDiscard(const State& state) {
     assert(state == plans.beforeDiscard);
     (void)state;
@@ -119,13 +113,8 @@ unsigned pushChildStates(const SearchNode& stackFrame, Container<SearchNode>& pu
     state.checkConsistency();
     switch(state.timestep){
     case Timestep::BEGIN:{
-        auto decision = ActionOrResource::ACTION;
-        auto [ newState, step ] = state.stepDraw( decision );
+        auto [ newState, step ] = state.stepDraw( );
         SearchNode newFrame = stackFrame.copy(newState, heuristic.evaluateStep( state.iActive, state, *step ));
-        newFrame.decisions.draw = decision;
-        #ifndef NDEBUG
-            newFrame.decisions.beforeDraw = state;
-        #endif
         putBack.addChild( newFrame );
         return 1;
     }

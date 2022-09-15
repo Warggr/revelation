@@ -26,7 +26,7 @@ void to_json(json& j, const Player& player){
 }
 
 void to_json(json& j, const State& state) {
-    j = {"resourceDeck", state.resDeck.sizeconfig()};
+    j = {};
     j["players"] = json(state.players);
     j["board"] = json(state.board);
 }

@@ -12,8 +12,10 @@ public:
 };
 
 struct DiscardDecision final : public Decision {
+    bool discardedAction;
     unsigned int iCardDiscarded;
-    DiscardDecision(unsigned int iCardDiscarded = 0): iCardDiscarded(iCardDiscarded) {};
+    DiscardDecision(bool discardedAction = true, unsigned int iCardDiscarded = 0):
+        discardedAction(discardedAction), iCardDiscarded(iCardDiscarded) {};
     bool isPass() const override { return false; }
 };
 

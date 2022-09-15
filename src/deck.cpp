@@ -5,6 +5,7 @@
 #include "deck.hpp"
 #include <algorithm>
 #include <random>
+#include <variant>
 
 template <typename T>
 Deck<T>::Deck(std::vector<T> drawPile, std::vector<T> discardPile, Generator generator): generator(generator) {
@@ -54,5 +55,5 @@ template <typename T>
 T Deck<T>::at(size_t i) {
     return this->drawPile.at(i);
 }
-template class Deck<ActionCard>;
-template class Deck<Faction>;
+template class Deck<std::variant<ActionCard, Faction>>;
+//Explicitly instantiate all templates that will be used (else we get linker errors)

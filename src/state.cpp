@@ -21,7 +21,6 @@ void State::operator=(const State& copy){
     copy.checkConsistency();
     board = copy.board;
     nbAliveUnits = copy.nbAliveUnits;
-    resDeck = copy.resDeck;
     turnID = copy.turnID;
     unresolvedSpecialAbility = copy.unresolvedSpecialAbility;
     timestep = copy.timestep;
@@ -81,7 +80,6 @@ State State::createStart(const std::array<Team, 2>& teams, Generator generator) 
         }
     }
 
-    retVal.resDeck = Deck<Faction>::create({ REPEAT(BLOOD), REPEAT(MERCURY), REPEAT(HORROR), REPEAT(SPECTRUM), ETHER }, generator);
     return retVal;
 }
 
@@ -145,8 +143,11 @@ std::tuple<State, uptr<DiscardStep>> State::stepDiscard(DiscardDecision decision
     //newState.players = newState.players.copy()
     //newState.players[this->iActive] = copy.copy(newState.players[this->iActive])
     newState.checkConsistency();
-    newState.players[this->iActive].discard(decision.iCardDiscarded);
-    return { newState, std::make_unique<DiscardStep>() };
+    if(decision.discardedAction)
+        newState.players[this->iActive].discardAction(decision.iCardDiscarded);
+    else
+        newState.players[this->iActive].discardResource(decision.iCardDiscarded);
+    return { newState, std::make_unique<DiscardStep>() }; //TODO put correct step
 }
 
 void State::checkConsistency() const {

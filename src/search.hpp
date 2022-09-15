@@ -7,9 +7,8 @@
 
 struct DecisionList{
 #ifndef NDEBUG
-    State beforeDraw, beforeDiscard, beforeMove[2], beforeAbility, beforeAction;
+    State beforeDiscard, beforeMove[2], beforeAbility, beforeAction;
 #endif
-    ActionOrResource draw;
     DiscardDecision discard;
     MoveDecision moves[2];
     AbilityDecision ability;
@@ -92,7 +91,6 @@ class SearchAgent: public Agent {
     unsigned short int currentSpecialAction = 0;
 public:
     SearchAgent(unsigned int myId, SearchPolicy& policy): Agent(myId), searchPolicy(policy) {};
-    ActionOrResource getDrawAction(const State&) override;
     DiscardDecision getDiscard(const State&) override;
     MoveDecision getMovement(const State&, unsigned nb) override;
     AbilityDecision getAbility(const State&) override;

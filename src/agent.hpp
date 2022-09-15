@@ -20,7 +20,6 @@ public:
     Agent(unsigned int myId) : myId(myId) {};
     virtual ~Agent() = default;
     virtual void onBegin(const State&) {};
-    virtual ActionOrResource getDrawAction(const State& state) = 0;
     virtual DiscardDecision getDiscard(const State& state) = 0;
     virtual MoveDecision getMovement(const State& state, unsigned nb) = 0;
     virtual AbilityDecision getAbility(const State&) { return {}; };
@@ -35,7 +34,6 @@ protected:
     virtual std::ostream& ostream() = 0;
 public:
     StepByStepAgent(uint myId) : Agent(myId) {};
-    ActionOrResource getDrawAction(const State&) override;
     DiscardDecision getDiscard(const State&) override;
     MoveDecision getMovement(const State& state, unsigned int) override;
     ActionDecision getAction(const State& state) override;
@@ -60,7 +58,6 @@ protected:
     std::ostream& ostream() override { return myostream; }
 public:
     RandomAgent(uint myId);
-    ActionOrResource getDrawAction(const State&) override { return ACTION; }
 };
 
 #endif //REVELATION_AGENT_HPP

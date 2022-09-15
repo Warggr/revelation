@@ -27,10 +27,6 @@ enum ActionCard {
     HARDATK , SOFTATK , DEFENSE, SPECIALACTION
 };
 
-enum ActionOrResource {
-    ACTION = true, RESOURCES = false
-};
-
 inline std::string to_string(enum ActionCard card){
     switch(card){
         case DEFENSE: return "Defense";

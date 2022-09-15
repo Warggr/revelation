@@ -24,7 +24,6 @@ using UnitList = std::array<NullableShared<Character>, ARMY_SIZE>;
 class State {
     Board board;
     std::array<unsigned short int, 2> nbAliveUnits;
-    Deck<Faction> resDeck;
     int turnID;
     std::forward_list<Effect*> unresolvedSpecialAbility;
 public:
@@ -34,11 +33,11 @@ public:
     std::array<Player, 2> players;
 
     State() = default;
-    State(Generator& generator): players({ Player(Generator(generator() + 1), resDeck), Player(Generator(generator() + 1), resDeck) }) {};
+    State(Generator& generator): players({ Player(Generator(generator() + 1)), Player(Generator(generator() + 1)) }) {};
     void operator=(const State& copy);
     State(const State& copy){ *this = copy; } //calling the operator=
     bool operator==(const State& other) const {
-        return board == other.board and nbAliveUnits == other.nbAliveUnits and resDeck == other.resDeck and turnID == other.turnID and unresolvedSpecialAbility == other.unresolvedSpecialAbility;
+        return board == other.board and nbAliveUnits == other.nbAliveUnits and turnID == other.turnID and unresolvedSpecialAbility == other.unresolvedSpecialAbility;
     }
     static State createStart(const std::array<Team, 2>& teams, Generator generator);
 

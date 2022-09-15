@@ -1,19 +1,13 @@
 #include "player.hpp"
 #include "deck.hpp"
 #include "constants.hpp"
+#include "random.hpp"
 #include <iostream>
 #include <algorithm>
-#include "random.hpp"
+#include <cassert>
 
-Player::Player(Generator generator, Deck<Faction> resourceDeck) {
-    actionDeck = Deck<ActionCard>::create(startingAbilityDeck, generator);
-    for(size_t i = 0; i < actionDeck.size(); i++) {
-        this->deck.at(i) = actionDeck.at(i);
-    }
-
-    for(size_t i = 0; i < resourceDeck.size(); i++) {
-        this->deck.at(i + actionDeck.size()) = resourceDeck.at(i);
-    }
+Player::Player(Generator generator) {
+    deck = Deck<CombatDeckCard>::create(startingAbilityDeck, generator);
 }
 
 std::variant<ActionCard, Faction> Player::drawCard() {
@@ -26,25 +20,36 @@ std::variant<ActionCard, Faction> Player::drawCard() {
     return cardDrawn;
 }
 
-void Player::discard(ActionCard card) {
-    if(std::find(actions.begin(), actions.end(), card) == actions.end()) {
-        std::cout << "Actions: \n";
-        for(auto i: actions)
-            std::cout << i << " , ";
-        std::cout << "Card " << card;
-        throw 1;
-    }
-    std::remove(actions.begin(), actions.end(), card);
-    actionDeck.discard(card);
+std::ostream& operator<<(std::ostream& os, const CombatDeckCard& card){
+    if(card.index() == 0) return os << std::get<0>(card);
+    else return os << std::get<1>(card);
 }
 
-void Player::discard(unsigned int iCard) {
+void Player::discard(CombatDeckCard card) {
+    if(card.index() == 0) discardAction(std::get<ActionCard>(card));
+    else discardResource(std::get<Faction>(card));
+}
+
+void Player::discardAction(unsigned int iCard) {
     auto card = actions[iCard];
     actions.erase(actions.begin() + iCard);
-    actionDeck.discard(card);
+    deck.discard(card);
 }
 
-void Player::useActionCard(ActionCard cardValue) {
-    std::remove(actions.begin(), actions.end(), cardValue);
-    actionDeck.discard(cardValue);
+void Player::discardAction(ActionCard card) {
+    assert(std::find(actions.begin(), actions.end(), card) != actions.end());
+    std::remove(actions.begin(), actions.end(), card);
+    deck.discard(card);
+}
+
+void Player::discardResource(unsigned int iCard) {
+    auto card = resources[iCard];
+    actions.erase(actions.begin() + iCard);
+    deck.discard(card);
+}
+
+void Player::discardResource(Faction card) {
+    assert(std::find(resources.begin(), resources.end(), card) != resources.end());
+    std::remove(actions.begin(), actions.end(), card);
+    deck.discard(card);
 }

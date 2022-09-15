@@ -17,7 +17,7 @@ public:
         return retVal;
     }
     std::unique_ptr<Step> resolve(State& state, unsigned int decision) override {
-        state.players[who].discard(decision);
+        state.players[who].discardAction(decision);
         return nullptr; //TODO create Step subclass for this
     }
 };

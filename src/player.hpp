@@ -16,24 +16,26 @@
 
 using json = nlohmann::json;
 
+using CombatDeckCard = std::variant<ActionCard, Faction>;
+std::ostream& operator<<(const CombatDeckCard& card, std::ostream& os);
+
 class Player {
-    static constexpr std::initializer_list<ActionCard> startingAbilityDeck = { DEFENSE, DEFENSE, HARDATK, HARDATK, HARDATK, HARDATK, SOFTATK, SOFTATK, SOFTATK, SOFTATK };
+    static constexpr std::initializer_list<CombatDeckCard> startingAbilityDeck = { DEFENSE, DEFENSE, HARDATK, HARDATK, HARDATK, HARDATK, SOFTATK, SOFTATK, SOFTATK, SOFTATK };
     std::vector<ActionCard> actions;
     std::vector<Faction> resources;
 
 public:
-    Deck<ActionCard> actionDeck;
-    Deck<std::variant<ActionCard, Faction>> deck;
+    Deck<CombatDeckCard> deck;
     Player() = default;
-    Player(Generator generator, Deck<Faction> resourceDeck);
+    Player(Generator generator);
 
-    std::variant<ActionCard, Faction> drawCard();
+    CombatDeckCard drawCard();
 
-    void discard(ActionCard card);
-
-    void discard(unsigned int card);
-
-    void useActionCard(ActionCard cardValue);
+    void discard(CombatDeckCard card);
+    void discardAction(unsigned int card);
+    void discardAction(ActionCard card);
+    void discardResource(unsigned int card);
+    void discardResource(Faction card);
 
     const std::vector<ActionCard>& getActions() const { return actions; }
 
