@@ -6,7 +6,7 @@
 #include <vector>
 #include <string>
 
-class State; class Character;
+class State; struct Character;
 
 // abstract / interface
 class Effect {

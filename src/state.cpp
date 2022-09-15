@@ -394,6 +394,9 @@ std::vector<const Character*> State::allAttacksForCharacter(const Character* chr
     //std::cout << "-|===> for " << chr->uid << chr->team << '@' << chr << '\n';
 
     assert(chr->team == attackingTeam);
+    if(chr->turnMoved == this->turnID and chr->im.rng > 1){
+        return {}; //Ranged characters can't attack after they have moved, so we return an empty list
+    }
     if(chr->im.usesArcAttack){
         for(int row = 0; row < 2; row++){
             int deltaRow = (chr->pos.row == row ? 0 : 1);

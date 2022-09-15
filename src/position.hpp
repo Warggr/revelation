@@ -32,7 +32,7 @@ inline position getNeighbour(const position& pos, Direction dir) {
     case RIGHT:
         return {pos.row, static_cast<unsigned int>(pos.column + 1)};
     default:
-        return pos; //throw error
+        return pos; //assert(false); this shouldn't happen
     }
 }
 

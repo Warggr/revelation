@@ -2,6 +2,7 @@
 #include "state.hpp"
 #include "agent.hpp"
 #include "position.hpp"
+#include "search/heuristic.hpp"
 #include <tuple>
 #include <unordered_set>
 #include <cstdio>
