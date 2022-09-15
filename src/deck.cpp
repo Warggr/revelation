@@ -4,8 +4,8 @@
 
 #include "deck.hpp"
 #include <algorithm>
-#include <random>
 #include <variant>
+#include <random>
 
 template <typename T>
 Deck<T>::Deck(std::vector<T> drawPile, std::vector<T> discardPile, Generator generator): generator(generator) {
