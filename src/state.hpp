@@ -34,7 +34,7 @@ public:
 
     State() = default;
     State(Generator& generator): players({ Player(Generator(generator() + 1)), Player(Generator(generator() + 1)) }) {};
-    void operator=(const State& copy);
+    State& operator=(const State& copy);
     State(const State& copy){ *this = copy; } //calling the operator=
     bool operator==(const State& other) const {
         return board == other.board and nbAliveUnits == other.nbAliveUnits and turnID == other.turnID and unresolvedSpecialAbility == other.unresolvedSpecialAbility;

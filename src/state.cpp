@@ -17,7 +17,7 @@ std::ostream& operator<<(std::ostream& o, const BoardTile& tile){
     return o;
 }
 
-void State::operator=(const State& copy){
+State& State::operator=(const State& copy){
     copy.checkConsistency();
     board = copy.board;
     nbAliveUnits = copy.nbAliveUnits;
@@ -34,6 +34,7 @@ void State::operator=(const State& copy){
     }
     this->checkConsistency();
     assert(*this == copy);
+    return *this;
 }
 
 State State::createStart(const std::array<Team, 2>& teams, Generator generator) {
@@ -254,8 +255,8 @@ std::tuple<State, uptr<ActionStep>> State::stepAct(ActionDecision decision) cons
     }
     newState.players[this->iActive].discard(decision.card);
     if(decision.card == DEFENSE) {
-        short newShieldHP = hero->buff();
-        return std::make_tuple(newState, std::make_unique<ActionStep>( decision.card, decision.subjectPos, decision.objectPos, newShieldHP, 50 ));
+        hero->buff();
+        return std::make_tuple(newState, std::make_unique<ActionStep>( decision.subjectPos, decision.objectPos, hero->defShieldHP, 50 ));
     } else {
         hero->turnAttacked = newState.turnID;
         int setLife = 0;

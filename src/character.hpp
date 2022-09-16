@@ -45,7 +45,7 @@ struct Character {
 
     Character(const ImmutableCharacter& chr);
 
-    short buff();
+    void buff();
 
     short getAtk(bool isHard, short turnID) const;
 

@@ -65,7 +65,6 @@ short Character::getAtk(bool isHard, short turnID) const {
     }
 }
 
-short Character::buff() {
+void Character::buff() {
     this->defShieldHP = im.maxHP;
-    return this->defShieldHP;
 }

@@ -53,16 +53,24 @@ struct AbilityStep : public Step {
 };
 
 struct ActionStep final : public Step {
+    struct atkHPValueHolder { unsigned int newHP; unsigned int lostHP; };
+    struct defHPValueHolder { unsigned int tempHP; unsigned int permanentHP; };
+public:
     ActionCard cardLost;
     position subject, object;
-    unsigned int setHP;
-    unsigned int lostHP;
+    union {
+        atkHPValueHolder atk;
+        defHPValueHolder def;
+    };
     bool del = false;
 
-    constexpr ActionStep(ActionCard cardLost, position subject, position object, unsigned int setHP, int diffHP):
-        cardLost(cardLost), subject(subject), object(object), setHP(setHP), lostHP(diffHP) {};
+    constexpr ActionStep(ActionCard card, position subject, position object, unsigned int newHP, unsigned int lostHP):
+            cardLost(card), subject(subject), object(object), atk( {newHP, lostHP} ) {};
+    constexpr ActionStep(position subject, position object, unsigned int tempHP, unsigned int permanentHP):
+            cardLost(DEFENSE), subject(subject), object(object), def( {tempHP, permanentHP} ) {};
+
     ~ActionStep() final = default;
-    bool isPass() const override { return lostHP == 0; }
+    bool isPass() const override { return atk.lostHP == 0; }
     void to_json(json& j) const override;
 
     static /*constexpr*/ ActionStep pass() { return { ActionCard::HARDATK, position(), position(), 0, 0 }; }
