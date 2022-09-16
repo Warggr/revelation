@@ -52,13 +52,21 @@ const Character& StepByStepAgent::chooseCharacter(const State& state) {
 }
 
 DiscardDecision StepByStepAgent::getDiscard(const State& state) {
-    const std::vector<ActionCard>& cards = getMyPlayer(state).getActions();
-    for(uint i=0; i<cards.size(); i++){
-        ostream() << '[' << i << "]: " << to_string(cards[i]) << '\n';
+    uint i = 0;
+    for(const auto& card : getMyPlayer(state).getActions()) {
+        ostream() << '[' << i++ << "]: " << to_string(card) << '\n';
     }
+    for(const auto& card : getMyPlayer(state).getResourceCards()){
+        i++;
+        ostream() << '[' << i++ << "]: " << to_string(card) << '\n';
+    }
+    const uint actionsSize = getMyPlayer(state).getActions().size();
     ostream() << "Choose a card to discard: ";
-    uint iSel = input(0, cards.size() - 1);
-    return DiscardDecision( iSel );
+    uint iSel = input(0, i-1);
+    if(iSel < actionsSize)
+        return DiscardDecision(true, iSel);
+    else
+        return DiscardDecision(false,iSel - actionsSize);
 }
 
 MoveDecision StepByStepAgent::getMovement(const State& state, unsigned int) {

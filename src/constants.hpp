@@ -5,8 +5,7 @@
 #include "position.hpp"
 #include <string>
 
-constexpr int MAX_RESOURCES = 3;
-constexpr int MAX_ACTIONS = 4;
+constexpr int MAX_CARDS_IN_HAND = 7;
 constexpr int MAX_ABILITIES = 4;
 
 constexpr int ARMY_WIDTH = 3;
@@ -47,6 +46,18 @@ inline std::string to_string(enum Timestep step){
         to_string_line(MOVEDlast);
         to_string_line(ABILITYCHOSEN);
         to_string_line(ACTED);
+        default: return "<Internal Error>";
+    }
+}
+
+inline std::string to_string(enum Faction faction){
+    switch(faction){
+        to_string_line(NONE);
+        to_string_line(BLOOD);
+        to_string_line(MERCURY);
+        to_string_line(HORROR);
+        to_string_line(SPECTRUM);
+        to_string_line(ETHER);
         default: return "<Internal Error>";
     }
 }
