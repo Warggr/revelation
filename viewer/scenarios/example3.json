@@ -47,7 +47,7 @@
     {"action": "atk", "cardLost": "softAtk", "subject": [1, 4], "object": [1, 8], "setLife": 20, "lostLife": 70},
     {"action": "beginturn"},
     {"action": "draw", "clss": "action", "value": "SOFTATK", "newDeckSize": [4, 1]},
-    {"action": "move", "frm": [1, 7], "to": [0, 7], "target": "h", "moves": ["UP"], "firstCOF": 1},
+    {"action": "move", "frm": [1, 7], "to": [0, 7], "target": "h", "moves": ["DOWN"], "firstCOF": 1},
     {"action": "move", "frm": [1, 8], "to": [1, 5], "target": "l", "moves": ["LEFT", "LEFT", "LEFT"], "firstCOF": 3},
     {"action": "pass", "message": "Abilities not implemented yet"},
     {"action": "atk", "cardLost": "softAtk", "subject": [1, 5], "object": [1, 4], "setLife": 10, "lostLife": 50},

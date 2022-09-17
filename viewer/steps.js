@@ -58,52 +58,99 @@ function apply(step, backwards) {
 			let fieldTo;
 			let unit;
 			let moves = step.moves;
-			for(let i = 0; i < moves.length; i++) {
-				switch (moves[i].toLowerCase()) {
-					case "right":
-						fieldFrom = boardDom.children[ step.frm[1] + FULL_BOARD_WIDTH*step.frm[0] ];
-						fieldTo = boardDom.children[ step.frm[1] + 1 + FULL_BOARD_WIDTH*step.frm[0] ];
-						unit = fieldFrom.firstChild;
-						if(unit.id != 'cid-' + step.target) console.warn('Target is named ' + unit.id + ' instead of cid-' + step.target);
-						if(!fieldTo.hasChildNodes()) {
-							fieldTo.appendChild(unit);
-						} else {
+			if(!backwards) {
+				for(let i = 0; i < moves.length; i++) {
+					switch (moves[i].toLowerCase()) {
+						case "right":
+							fieldFrom = boardDom.children[ step.frm[1] + FULL_BOARD_WIDTH*step.frm[0] ];
+							fieldTo = boardDom.children[ step.frm[1] + 1 + FULL_BOARD_WIDTH*step.frm[0] ];
+							unit = fieldFrom.firstChild;
+							if(unit.id != 'cid-' + step.target) console.warn('Target is named ' + unit.id + ' instead of cid-' + step.target);
+							if(!fieldTo.hasChildNodes()) {
+								fieldTo.appendChild(unit);
+							} else {
+								fieldTo.appendChild(unit);
+								fieldFrom.appendChild(fieldTo.firstChild);
+							}
+							step.frm[1]++;
+							break;
+						case "left":
+							fieldFrom = boardDom.children[ step.frm[1] + FULL_BOARD_WIDTH*step.frm[0] ];
+							fieldTo = boardDom.children[ step.frm[1] - 1 + FULL_BOARD_WIDTH*step.frm[0] ];
+							unit = fieldFrom.firstChild;
+							if(unit.id != 'cid-' + step.target) console.warn('Target is named ' + unit.id + ' instead of cid-' + step.target);
+							if(!fieldTo.hasChildNodes()) {
+								fieldTo.appendChild(unit);
+							} else {
+								fieldTo.appendChild(unit);
+								fieldFrom.appendChild(fieldTo.firstChild);
+							}
+							step.frm[1]--;
+							break;
+						case "down":
+							fieldFrom = boardDom.children[ step.frm[1] + FULL_BOARD_WIDTH*step.frm[0] ];
+							fieldTo = boardDom.children[ step.frm[1] + FULL_BOARD_WIDTH ];
+							unit = fieldFrom.firstChild;
+							if(unit.id != 'cid-' + step.target) console.warn('Target is named ' + unit.id + ' instead of cid-' + step.target);
 							fieldTo.appendChild(unit);
 							fieldFrom.appendChild(fieldTo.firstChild);
-						}
-
-						step.frm[1]++;
-						break;
-					case "left":
-						fieldFrom = boardDom.children[ step.frm[1] + FULL_BOARD_WIDTH*step.frm[0] ];
-						fieldTo = boardDom.children[ step.frm[1] - 1 + FULL_BOARD_WIDTH*step.frm[0] ];
-						unit = fieldFrom.firstChild;
-						if(unit.id != 'cid-' + step.target) console.warn('Target is named ' + unit.id + ' instead of cid-' + step.target);
-						fieldTo.appendChild(unit);
-						fieldFrom.appendChild(fieldTo.firstChild);
-						step.frm[1]--;
-						break;
-					case "down":
-						fieldFrom = boardDom.children[ step.frm[1] + FULL_BOARD_WIDTH*step.frm[0] ];
-						fieldTo = boardDom.children[ step.frm[1] + FULL_BOARD_WIDTH ];
-						unit = fieldFrom.firstChild;
-						if(unit.id != 'cid-' + step.target) console.warn('Target is named ' + unit.id + ' instead of cid-' + step.target);
-						fieldTo.appendChild(unit);
-						fieldFrom.appendChild(fieldTo.firstChild);
-						step.frm[0] = 1;
-						break;
-					case "up":
-						fieldFrom = boardDom.children[ step.frm[1] + FULL_BOARD_WIDTH*step.frm[0] ];
-						fieldTo = boardDom.children[ step.frm[1] ];
-						unit = fieldFrom.firstChild;
-						if(unit.id != 'cid-' + step.target) console.warn('Target is named ' + unit.id + ' instead of cid-' + step.target);
-						fieldTo.appendChild(unit);
-						fieldFrom.appendChild(fieldTo.firstChild);
-						step.frm[0] = 0;
-						break;
+							step.frm[0] = 1;
+							break;
+						case "up":
+							fieldFrom = boardDom.children[ step.frm[1] + FULL_BOARD_WIDTH*step.frm[0] ];
+							fieldTo = boardDom.children[ step.frm[1] ];
+							unit = fieldFrom.firstChild;
+							if(unit.id != 'cid-' + step.target) console.warn('Target is named ' + unit.id + ' instead of cid-' + step.target);
+							fieldTo.appendChild(unit);
+							fieldFrom.appendChild(fieldTo.firstChild);
+							step.frm[0] = 0;
+							break;
+					}
 				}
+				return { 'action' : 'move', 'frm' : step.to, 'to' : step.frm, 'target' : step.target, moves: step.moves, 'firstCOF' : step.firstCOF };
+			} else {
+				for(let i = moves.length - 1; i >= 0; i--) {
+					switch (moves[i].toLowerCase()) {
+						case "right":
+							step.frm[1]--;
+							fieldTo = boardDom.children[ step.frm[1] + FULL_BOARD_WIDTH*step.frm[0] ];
+							fieldFrom = boardDom.children[ step.frm[1] + 1 + FULL_BOARD_WIDTH*step.frm[0] ];
+							unit = fieldFrom.firstChild;
+							if(!fieldTo.hasChildNodes()) {
+								fieldTo.appendChild(unit);
+							} else {
+								fieldTo.appendChild(unit);
+								fieldFrom.appendChild(fieldTo.firstChild);
+							}
+							break;
+						case "left":
+							step.frm[1]++;
+							fieldFrom = boardDom.children[ step.frm[1] - 1 + FULL_BOARD_WIDTH*step.frm[0]];
+							fieldTo = boardDom.children[ step.frm[1] + FULL_BOARD_WIDTH*step.frm[0] ];
+							unit = fieldFrom.firstChild;
+							fieldTo.appendChild(unit);
+							fieldFrom.appendChild(fieldTo.firstChild);
+							break;
+						case "down":
+							fieldFrom = boardDom.children[ step.frm[1] + FULL_BOARD_WIDTH];
+							fieldTo = boardDom.children[ step.frm[1] ];
+							unit = fieldFrom.firstChild;
+							fieldTo.appendChild(unit);
+							fieldFrom.appendChild(fieldTo.firstChild);
+							step.frm[0] = 0;
+							break;
+						case "up":
+							fieldFrom = boardDom.children[ step.frm[1] ];
+							fieldTo = boardDom.children[ step.frm[1] + FULL_BOARD_WIDTH];
+							unit = fieldFrom.firstChild;
+							fieldTo.appendChild(unit);
+							fieldFrom.appendChild(fieldTo.firstChild);
+							step.frm[0] = 1;
+							break;
+					}
+				}
+				return step;
 			}
-			return { 'action' : 'move', 'target' : step.target, 'frm' : step.to, 'to' : step.frm, 'firstCOF' : step.firstCOF };
 		}
 		case 'draw': {
 			let textContent = step.clss + ' - ' + step.value;
@@ -194,9 +241,8 @@ function createState(teams, names, board){
 
 	for(let i=0; i<2; i++){
 		teamNames[i] = names[i];
-
 		let header = document.createElement('div');
-		header.innerHTML = `<h3>${names[i].name}</h3>`;
+		header.innerHTML = `<h3>${teamNames[i]}</h3>`;
 		let resourceList = document.createElement('ul');
 		resourceList.classList.add('resource-list');
 		resourceLists.push(resourceList);
