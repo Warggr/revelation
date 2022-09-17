@@ -1,6 +1,8 @@
 #ifndef REVELATION_DECISION_HPP
 #define REVELATION_DECISION_HPP
 
+#include "constants.hpp"
+
 /** class Decision is like an interface, except that it has no methods at all.
  * We can just assume that every Decision can be dynamic_cast to one of the decision classes (ActionDecision, MoveDecision, etc.)
  * We could even not created this class at all and used a void* instead of Decision* in all methods.

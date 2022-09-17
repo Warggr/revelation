@@ -17,7 +17,7 @@ std::ostream& operator<<(std::ostream& o, const BoardTile& tile){
     return o;
 }
 
-void State::operator=(const State& copy){
+State& State::operator=(const State& copy){
     copy.checkConsistency();
     board = copy.board;
     nbAliveUnits = copy.nbAliveUnits;
@@ -34,6 +34,7 @@ void State::operator=(const State& copy){
     }
     this->checkConsistency();
     assert(*this == copy);
+    return *this;
 }
 
 State State::createStart(const std::array<Team, 2>& teams, Generator generator) {
@@ -128,15 +129,15 @@ std::tuple<State, uptr<DrawStep>> State::stepDraw() const {
     newState.checkConsistency();
     std::variant<ActionCard, Faction> cardDrawn;
     cardDrawn = newState.players[iActive].drawCard();
-    if(newState.players[iActive].deck.size() <= MAX_ACTIONS + MAX_RESOURCES) newState.timestep = DISCARDED;
-    // no need to discard anything - so we skip discard step and pretend we have already discarded
+    if(newState.players[iActive].getActions().size() + newState.players[iActive].getResourceCards().size() <= MAX_CARDS_IN_HAND )
+        newState.timestep = DISCARDED;
+        // no need to discard anything - so we skip discard step and pretend we have already discarded
     return { newState, std::make_unique<DrawStep>(cardDrawn, newState.players[iActive].deck.sizeconfig()) };
 }
 
 std::tuple<State, uptr<DiscardStep>> State::stepDiscard(DiscardDecision decision) const {
     assert(timestep == DREW);
-    assert(players[this->iActive].getActions().size() > MAX_ACTIONS
-        or players[this->iActive].getResourceCards().size() > MAX_RESOURCES);
+    assert(players[this->iActive].getActions().size() + players[this->iActive].getResourceCards().size() > MAX_CARDS_IN_HAND);
     this->checkConsistency();
     State newState(*this);
     newState.timestep = DISCARDED;
@@ -152,6 +153,11 @@ std::tuple<State, uptr<DiscardStep>> State::stepDiscard(DiscardDecision decision
 
 void State::checkConsistency() const {
 #ifndef NDEBUG
+    for(unsigned int i = 0; i<2; i++){
+        const Player& pl = this->players[i];
+        auto decksize = pl.deck.sizeconfig();
+        assert(std::get<0>(decksize) + std::get<1>(decksize) + pl.getActions().size() + pl.getResourceCards().size() == 10);
+    }
     for(unsigned int i = 0; i<2; i++){
         for(unsigned int j = 0; j<ARMY_SIZE; j++){
             const Character* ch = this->units[i][j].get();
@@ -249,8 +255,8 @@ std::tuple<State, uptr<ActionStep>> State::stepAct(ActionDecision decision) cons
     }
     newState.players[this->iActive].discard(decision.card);
     if(decision.card == DEFENSE) {
-        short newShieldHP = hero->buff();
-        return std::make_tuple(newState, std::make_unique<ActionStep>( decision.card, decision.subjectPos, decision.objectPos, newShieldHP, 50 ));
+        hero->buff();
+        return std::make_tuple(newState, std::make_unique<ActionStep>( decision.subjectPos, decision.objectPos, hero->defShieldHP, 50 ));
     } else {
         hero->turnAttacked = newState.turnID;
         int setLife = 0;

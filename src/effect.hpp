@@ -2,6 +2,7 @@
 #define REVELATION_EFFECT_HPP
 
 #include "step.hpp"
+#include "decision.hpp"
 #include <memory>
 #include <vector>
 #include <string>

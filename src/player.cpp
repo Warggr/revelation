@@ -2,7 +2,7 @@
 #include "deck.hpp"
 #include "constants.hpp"
 #include "random.hpp"
-#include <iostream>
+#include <ostream>
 #include <algorithm>
 #include <cassert>
 
@@ -31,25 +31,29 @@ void Player::discard(CombatDeckCard card) {
 }
 
 void Player::discardAction(unsigned int iCard) {
+    assert(iCard < actions.size());
     auto card = actions[iCard];
     actions.erase(actions.begin() + iCard);
     deck.discard(card);
 }
 
 void Player::discardAction(ActionCard card) {
-    assert(std::find(actions.begin(), actions.end(), card) != actions.end());
-    std::remove(actions.begin(), actions.end(), card);
+    auto cardPosition = std::find(actions.begin(), actions.end(), card);
+    assert(cardPosition != actions.end());
+    actions.erase(cardPosition);
     deck.discard(card);
 }
 
 void Player::discardResource(unsigned int iCard) {
+    assert(iCard < resources.size());
     auto card = resources[iCard];
     actions.erase(actions.begin() + iCard);
     deck.discard(card);
 }
 
 void Player::discardResource(Faction card) {
-    assert(std::find(resources.begin(), resources.end(), card) != resources.end());
-    std::remove(actions.begin(), actions.end(), card);
+    auto cardPosition = std::find(resources.begin(), resources.end(), card);
+    assert(cardPosition != resources.end());
+    resources.erase(cardPosition);
     deck.discard(card);
 }
