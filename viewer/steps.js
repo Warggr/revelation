@@ -305,7 +305,7 @@ function createState(teams, names, board){
 function readGame(content){
 	let ret = JSON.parse(content);
 	let teams = ret.state.aliveUnits;
-	let names = ret.game.teamNames;
+	let names = ret.state.teamNames;
 	let board = ret.state.board;
 	let state = createState(teams, names, board);
 

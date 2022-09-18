@@ -14,9 +14,10 @@ Game::Game(std::array<Team, 2>&& teams, const std::array<Agent*, 2>& agents, Gen
 };
 
 bool Game::play(bool isLiveServer, bool logToTerminal) {
-    auto* logger = new Logger(state.players, teams);
-    if(isLiveServer)
-        logger = logger->liveServer();
+    auto* logger = new Logger(state, teams);
+    if(isLiveServer) {
+        logger = logger->liveServer("0.0.0.0", 8000);
+    }
     if(logToTerminal)
         logger = logger->logToFile(std::cout);
 

@@ -14,3 +14,6 @@ add_executable(revelation
 	search/depthfirstsearch.cpp
 	search/loggers.cpp
 )
+
+add_subdirectory(network)
+target_link_libraries(revelation PRIVATE network)

@@ -25,9 +25,9 @@ int main(){
 
     std::cout << "Using seed " << seed << '\n';
 
-    json j ( teams ); std::cout << j << '\n';
+    json j ( teams );
 
 	Game game(std::move(teams), agents, seed);
-	unsigned short int winner = game.play();
+	unsigned short int winner = game.play(true, true);
     std::cout << winner << " won!\n";
 }

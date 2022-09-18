@@ -1,6 +1,7 @@
 #include "team.hpp"
 #include "step_impl.hpp"
 #include "state.hpp"
+#include "logger.hpp"
 #include "BoardTile.hpp"
 #include "nlohmann/json.hpp"
 
@@ -99,4 +100,10 @@ void ActionStep::to_json(json& j) const {
         j["setLife"] = atk.newHP;
         j["lostLife"] = atk.lostHP;
     }
+}
+
+json makeStartStateJson(const State& state, const std::array<Team, 2>& teams){
+    json j = state;
+    j["teamnames"] = {  teams[0].name, teams[1].name };
+    return j;
 }
