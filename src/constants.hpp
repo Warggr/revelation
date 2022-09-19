@@ -62,6 +62,16 @@ inline std::string to_string(enum Faction faction){
     }
 }
 
+inline std::string to_string(enum Direction dir){
+    switch(dir){
+        to_string_line(UP);
+        to_string_line(DOWN);
+        to_string_line(LEFT);
+        to_string_line(RIGHT);
+        default: return "<Internal Error>";
+    }
+}
+
 #undef to_string_line
 
 #endif //REVELATION_CONSTANTS_HPP

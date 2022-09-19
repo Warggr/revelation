@@ -28,7 +28,7 @@ function characterFactory(char, iTeam){
 	charDom.classList.add('character');
 	charDom.classList.add('team-' + (iTeam+1));
 	charDom.innerHTML = 
-		`<h1>${char.name}</h1><div class="stats"><div class="hp">${char.hp}</div><div class="maxHP">${char.maxHP}</div>`+
+		`<h1>${char.name}</h1><div class="stats"><div class="HP">${char.HP}</div><div class="maxHP">${char.maxHP}</div>`+
 		`<div class="atk softAtk">${char.softAtk}</div><div class="atk hardAtk">${char.hardAtk}</div><div class="mov">${char.mov}</div><div class="rng">${char.rng}</div>`+
 		`<div class="netWorth">${char.netWorth}</div><i>${char.flavor}</i>`;
 	return charDom;
@@ -37,7 +37,7 @@ function characterFactory(char, iTeam){
 function bluePrintCharacter(charDom){
 	let stats = charDom.children[1];
 	return {
-		hp : Number( stats.children[0].textContent ),
+		HP : Number( stats.children[0].textContent ),
 		maxHP : Number( stats.children[1].textContent ),
 		softAtk : Number( stats.children[2].textContent ),
 		hardAtk : Number( stats.children[3].textContent ),
@@ -155,7 +155,9 @@ function moveBack(step) {
 function apply(step, backwards) {
 	console.log(step);
 	switch(step.action){
-		case 'beginturn': return { 'action' : 'beginturn' };
+		case 'beginTurn':
+			iActive = 1 - iActive;
+			return { 'action' : 'beginTurn' };
 		case 'pass': return { 'action' : 'pass' };
 		case 'move': {
 			let fieldFrom;
@@ -176,7 +178,7 @@ function apply(step, backwards) {
 		}
 		case 'atk': {
 			if(!backwards){
-				discard('action - ' + step.cardLost.toUpperCase());
+				discard('action - ' + step.cardLost);
 
 				let victim = boardDom.children[ step.object[1] + FULL_BOARD_WIDTH*step.object[0] ].firstChild;
 				victim.children[1].children[0].textContent = step.setLife;
@@ -197,20 +199,20 @@ function apply(step, backwards) {
 					charDom = boardDom.children[ step.object[1] + FULL_BOARD_WIDTH*step.object[0] ].firstChild;
 				}
 				charDom.children[1].children[0].textContent = step.setLife + step.lostLife;
-				draw('action - ' + step.cardLost.toUpperCase());
+				draw('action - ' + step.cardLost);
 				return step;
 			}
 		}
 		case 'def': {
 			let subject = boardDom.children[ step.subject[1] + FULL_BOARD_WIDTH*step.subject[0] ];
 			if(!backwards){
-				discard('action - ' + step.cardLost.toUpperCase());
+				discard('action - ' + step.cardLost);
 				subject.children[0].children[1].children[0].textContent = step.permanent;
 				iActive = 1 - iActive;
 			} else {
 				iActive = 1 - iActive;
 				subject.children[0].children[1].children[0].textContent = step.permanent - 50;
-				draw('action - ' + step.cardLost.toUpperCase());
+				draw('action - ' + step.cardLost);
 			}
 			return step;
 		}
@@ -228,7 +230,7 @@ var iActive = 0;
 function createState(teams, names, board){
 	for(let team of teams)
 		for(let row of team)
-				if(!row.hp) row.hp = row.maxHP;
+				if(!row.HP) row.HP = row.maxHP;
 
 	let outerScreen = document.getElementById('screen');
 	outerScreen.textContent = '';

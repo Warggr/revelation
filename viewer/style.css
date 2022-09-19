@@ -33,7 +33,7 @@ div.character > div.stats > div {
 	margin: 0 5px;
 }
 
-div.character > div.stats > div.hp::after {
+div.character > div.stats > div.HP::after {
 	content: 'HP';
 }
 div.character > div.stats > div.maxHP::before {

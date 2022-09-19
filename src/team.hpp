@@ -15,7 +15,6 @@ struct Team {
     std::array<std::array<unsigned short int, ARMY_WIDTH>, 2> characters;
 
     static Team random(Generator& generator, unsigned short int nbUnits);
-    friend void to_json(json& j, const Team& team);
 };
 
 Team mkEurope();

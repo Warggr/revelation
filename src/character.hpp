@@ -5,7 +5,6 @@
 #include "position.hpp"
 #include "constants.hpp"
 #include "random.hpp"
-#include "nlohmann/json_fwd.hpp"
 #include <forward_list>
 
 struct ImmutableCharacter {
@@ -53,7 +52,5 @@ struct Character {
 
     std::forward_list<Effect*> getSpecialAction() { return im.specialAction; }
 };
-
-void to_json(nlohmann::json& j, const ImmutableCharacter& chr);
 
 #endif //REVELATION_CHARACTER_HPP

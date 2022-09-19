@@ -7,7 +7,16 @@
 
 using json = nlohmann::json;
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(BoardTile, team, index)
+void to_json(json& j, const BoardTile& tile){
+    if(not BoardTile::isEmpty(tile))
+        j = { tile.team, tile.index };
+}
+
+void to_json(json& j, const Faction& faction){ j = to_string(faction); }
+
+void to_json(json& j, const ActionCard& card){ j = to_string(card); }
+
+void to_json(json& j, const Direction& dir){ j = to_string(dir); }
 
 void make_pass_step(json& j, const char* message){
     j["action"] = "pass";
@@ -15,8 +24,7 @@ void make_pass_step(json& j, const char* message){
 }
 
 void to_json(json& j, const position& pos){
-    j["row"] = pos.row;
-    j["column"] = pos.column;
+    j = {pos.row, pos.column};
 }
 
 void to_json(json& j, const ImmutableCharacter& chr){
@@ -32,6 +40,12 @@ void to_json(json& j, const ImmutableCharacter& chr){
     };
 }
 
+void to_json(json& j, const Character& chr){
+    to_json(j, chr.im);
+    j["cid"] = std::string(1, chr.uid);
+    j["HP"] = chr.HP;
+}
+
 void to_json(json& j, const Player& player){
     j["actionDeckSize"] = player.deck.sizeconfig();
 }
@@ -39,22 +53,30 @@ void to_json(json& j, const Player& player){
 void to_json(json& j, const State& state) {
     j["players"] = state.players;
     j["board"] = state.board;
+    auto aliveUnits = json::array();
+    for(const auto& team : state.units){
+        json j_team;
+        for(const auto& unit : team){
+            if(unit) j_team.emplace_back(*unit);
+            else j_team.emplace_back(nullptr);
+        }
+        aliveUnits.push_back(j_team);
+    }
+    j["aliveUnits"] = aliveUnits;
 }
 
-void to_json(json& j, const Team& team){
-    j["name"] = team.name;
-    j["unique_c"] = team.characters_unique;
-    j["characters"] = team.characters;
+json makeStartStateJson(const State& state, const std::array<Team, 2>& teams){
+    json j = state;
+    j["teamNames"] = {  teams[0].name, teams[1].name };
+    return j;
 }
 
 void BeginStep::to_json(json& j) const {
-    j = {
-        {"action", "begin"},
-    };
+    j["action"] = "beginTurn";
 }
 
 void DrawStep::to_json(json& j) const {
-    j["type"] = "draw";
+    j["action"] = "draw";
     j["newDeckSize"] = json(size);
     if(std::holds_alternative<ActionCard>(cardDrawn)){
         j["clss"] = "action";
@@ -75,7 +97,7 @@ void MoveStep::to_json(json& j) const {
     j["action"] = "move";
     j["frm"] = from;
     j["to"] = json(to);
-    j["target"] = uid;
+    j["target"] = std::string(1, uid);
     j["moves"] = moves;
     j["firstCOF"] = firstCOF;
 }
@@ -87,7 +109,7 @@ void AbilityStep::to_json(json& j) const {
 
 void ActionStep::to_json(json& j) const {
     if(isPass()) return make_pass_step(j, "No action selected");
-    j["cardlost"] = cardLost;
+    j["cardLost"] = cardLost;
     if(this->cardLost == DEFENSE){
         j["action"] = "def";
         j["subject"] = subject;
@@ -100,10 +122,4 @@ void ActionStep::to_json(json& j) const {
         j["setLife"] = atk.newHP;
         j["lostLife"] = atk.lostHP;
     }
-}
-
-json makeStartStateJson(const State& state, const std::array<Team, 2>& teams){
-    json j = state;
-    j["teamnames"] = {  teams[0].name, teams[1].name };
-    return j;
 }

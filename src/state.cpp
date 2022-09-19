@@ -259,7 +259,6 @@ std::tuple<State, uptr<ActionStep>> State::stepAct(ActionDecision decision) cons
         return std::make_tuple(newState, std::make_unique<ActionStep>( decision.subjectPos, decision.objectPos, hero->defShieldHP, 50 ));
     } else {
         hero->turnAttacked = newState.turnID;
-        int setLife = 0;
         int victimIndex = newState.getBoardField(decision.objectPos).index;
         uptr<ActionStep> step;
 
@@ -267,11 +266,11 @@ std::tuple<State, uptr<ActionStep>> State::stepAct(ActionDecision decision) cons
 
         Character* victim = newState.units[1- this->iActive][victimIndex].get();
         if(decision.card == SOFTATK) {
-            setLife = victim->takeDmg(false, hero->im.softAtk);
-            step = std::make_unique<ActionStep>(decision.card, decision.subjectPos, decision.objectPos, setLife, hero->im.softAtk );
+            short lostHP = victim->takeDmg(false, hero->im.softAtk);
+            step = std::make_unique<ActionStep>(decision.card, decision.subjectPos, decision.objectPos, victim->HP, lostHP );
         } else if(decision.card == HARDATK) {
-            setLife = victim->takeDmg(true, hero->im.hardAtk);
-            step = std::make_unique<ActionStep>(decision.card, decision.subjectPos, decision.objectPos, setLife, hero->im.hardAtk );
+            short lostHP = victim->takeDmg(true, hero->im.hardAtk);
+            step = std::make_unique<ActionStep>(decision.card, decision.subjectPos, decision.objectPos, victim->HP, lostHP );
         } else {
             throw std::invalid_argument("decision.card is neither hard, soft, nor defense");
         }
