@@ -1,6 +1,5 @@
 {
   "state": {
-    "resourceDeck": [17, 0],
     "players": [
       {"actionDeckSize": [6, 0]},
       {"actionDeckSize": [6, 0]}
@@ -25,7 +24,8 @@
         {"name": "Fanatics1", "cid": "j", "maxHP": 20, "HP": 20, "softAtk": 20, "hardAtk": 10, "mov": 2, "rng": 1, "netWorth": 288.7, "flavor": ""},
         {"name": "Fanatics2", "cid": "k", "maxHP": 20, "HP": 20, "softAtk": 20, "hardAtk": 10, "mov": 2, "rng": 1, "netWorth": 288.7, "flavor": ""}
       ]
-    ]
+    ],
+    "teamNames": ["Near East", "Europe"]
   },
   "steps": [
     {"action": "draw", "clss": "action", "value": "HARDATK", "newDeckSize": [5, 0]},
@@ -176,5 +176,5 @@
     {"action": "pass", "message": "Did not move"},
     {"action": "pass", "message": "Abilities not implemented yet"},
     {"action": "atk", "cardLost": "softAtk", "subject": [0, 4], "object": [0, 7], "setLife": -10, "lostLife": 30, "delete": true}
-  ],
-  "game": {"teamNames": ["Near East", "Europe"]}}
+  ]
+}
