@@ -4,17 +4,14 @@ const FULL_BOARD_WIDTH = 2* HALF_BOARD_WIDTH;
 
 function discard(name){
 	let allResources = [...resourceLists[iActive].children];
-	let allSuitableResources = allResources.filter( el => (el.textContent == name ) );
+	let allSuitableResources = allResources.filter( el => (el.textContent.toLowerCase() == name.toLowerCase() ) );
 	allSuitableResources[0].remove();
 }
 
 function draw(name){
-	console.log("draw(" + name + ")");
 	let resource = document.createElement('li');
-
 	resource.textContent = name;
-	console.log(resource.textContent);
-	resourceLists[iActive].appendChild(resource);	
+	resourceLists[iActive].appendChild(resource);
 }
 
 function teamClass(iTeam){
@@ -179,14 +176,25 @@ function apply(step, backwards) {
 		case 'atk': {
 			if(!backwards){
 				discard('action - ' + step.cardLost);
-
+				let attacker = boardDom.children[ step.subject[1] + FULL_BOARD_WIDTH*step.object[0] ].firstChild;
 				let victim = boardDom.children[ step.object[1] + FULL_BOARD_WIDTH*step.object[0] ].firstChild;
+				document.getElementById(attacker.id).classList.add("img");
+				document.getElementById(victim.id).classList.add("img");
 				victim.children[1].children[0].textContent = step.setLife;
 				if(step.delete){
 					step.deleted = bluePrintCharacter(victim);
 					victim.remove();
+				} else {
+					setTimeout(function() {
+						document.getElementById(victim.id).classList.remove("img");
+					}, 5000);
 				}
 				iActive = 1 - iActive;
+
+				setTimeout(function() {
+					document.getElementById(attacker.id).classList.remove("img");
+				}, 5000);
+
 				return step;
 			} else {
 				iActive = 1 - iActive;
