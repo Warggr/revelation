@@ -4,9 +4,10 @@
 
 #include "http_session.hpp"
 #include "spectator.hpp"
+#include "server.hpp"
 #include <iostream>
 
-HttpSession::HttpSession(tcp::socket&& socket, ConnectionList& server)
+HttpSession::HttpSession(tcp::socket&& socket, Server& server)
     : socket_(std::move(socket))
     , server(server)
 {
@@ -40,9 +41,14 @@ void HttpSession::on_read(error_code ec, std::size_t){
     // See if it is a WebSocket Upgrade
     if(websocket::is_upgrade(req_)){
         // The websocket connection is established! Transfer the socket and the request to the Server
-        server.addSpectator(std::move(socket_)).run(std::move(req_));
-        delete this; //don't schedule any further network operations, delete this, and die.
-        return;
+        RoomId roomId = 1; //TODO read the room ID from the request
+        if(server.rooms.find(roomId) != server.rooms.end()) {
+            ServerRoom& room = server.rooms[roomId];
+            AgentId id = 1; // TODO read from the request whether actor or spectator
+            room.addSpectator(std::move(socket_), id).run(std::move(req_));
+            delete this; //don't schedule any further network operations, delete this, and die.
+            return;
+        }
     }
 
     // Returns a bad request response

@@ -1,6 +1,7 @@
 #include "state.hpp"
 #include "logger.hpp"
 #include "game.hpp"
+#include "network/room.hpp"
 #include <random>
 
 Generator getRandom(){
@@ -13,11 +14,10 @@ Game::Game(std::array<Team, 2>&& teams, const std::array<Agent*, 2>& agents, Gen
 {
 };
 
-bool Game::play(bool isLiveServer, bool logToTerminal) {
+bool Game::play(ServerRoom* serverRoom, bool logToTerminal) {
     auto* logger = new Logger(state, teams);
-    if(isLiveServer) {
-        logger = logger->liveServer("0.0.0.0", 8000);
-    }
+    if(serverRoom)
+        logger = logger->liveServer(*serverRoom);
     if(logToTerminal)
         logger = logger->logToFile(std::cout);
 

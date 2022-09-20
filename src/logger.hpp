@@ -10,6 +10,7 @@
 #include <memory>
 
 using json = nlohmann::json;
+class ServerRoom;
 
 json makeStartStateJson(const State& startState, const std::array<Team, 2>& teams);
 
@@ -29,7 +30,7 @@ class Logger {
 public:
     Logger(const State& startState, const std::array<Team, 2>& teams)
         : startState(makeStartStateJson(startState, teams).dump()) {};
-    Logger* liveServer(const char* ipAddress, unsigned short port);
+    Logger* liveServer(ServerRoom& server);
     Logger* logToFile(std::ostream& file);
     void addStep(const uptr<Step>& step);
 };

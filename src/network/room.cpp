@@ -2,28 +2,35 @@
 // Copyright (c) 2018 Vinnie Falco (vinnie dot falco at gmail dot com)
 // Distributed under the Boost Software License, Version 1.0. (See copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include "connection_list.hpp"
+#include "room.hpp"
 #include "spectator.hpp"
+#include "network_agent.hpp"
 #include <algorithm>
 
-ConnectionList::ConnectionList(const std::string& greeterMessage){
+ServerRoom::ServerRoom() = default;
+
+void ServerRoom::setGreeterMessage(const std::string& greeterMessage) {
     this->greeterMessage = "{\"state\":";
     this->greeterMessage += greeterMessage;
     this->greeterMessage += ",\"steps\":[";
     firstStep = true;
+    for(const auto& client : sessions){
+        auto message = std::make_shared<const std::string>(this->greeterMessage + "]}");
+        client->send(message);
+    }
 }
 
-void ConnectionList::leave(Spectator& session){
+void ServerRoom::leave(Spectator& session){
     sessions.erase(&session);
 }
 
-void ConnectionList::join(Spectator& session){
+void ServerRoom::join(Spectator& session){
     sessions.insert(&session);
-    auto message = std::make_shared<const std::string>(greeterMessage + "]}");
+    auto message = std::make_shared<const std::string>(this->greeterMessage + "]}");
     session.send(message);
 }
 
-void ConnectionList::send(const std::string& message){
+void ServerRoom::send(const std::string& message){
     if(firstStep) firstStep = false;
     else greeterMessage += ',';
     greeterMessage += message;
@@ -36,7 +43,13 @@ void ConnectionList::send(const std::string& message){
         session->send(ss);
 }
 
-Spectator& ConnectionList::addSpectator(tcp::socket&& socket){
-    auto ptr = new Spectator(std::move(socket), *this);
+Spectator& ServerRoom::addSpectator(tcp::socket&& socket, AgentId id){
+    auto ptr = new Spectator(std::move(socket), *this, id);
     return *ptr;
+}
+
+void ServerRoom::onConnectAgent(AgentId id, Spectator* agent) {
+    WaitingAgent waiting = waitingAgents.extract(id).mapped();
+    waiting.agent = agent;
+    waiting.release_on_connect.release();
 }

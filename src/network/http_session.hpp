@@ -5,9 +5,10 @@
 #define CPPCON2018_HTTP_SESSION_HPP
 
 #include "net.hpp"
-#include "connection_list.hpp"
 #include <boost/beast.hpp>
 #include <memory>
+
+class Server;
 
 namespace beast = boost::beast;
 namespace http = boost::beast::http;
@@ -17,15 +18,15 @@ class HttpSession {
     tcp::socket socket_;
     beast::flat_buffer buffer_;
     http::request<http::string_body> req_;
-    ConnectionList& server;
+    Server& server;
 
     void fail(error_code ec, char const* what);
     void on_read(error_code ec, std::size_t);
     void on_write(error_code ec, std::size_t, bool close);
-    explicit HttpSession(tcp::socket&& socket, ConnectionList& server);
+    explicit HttpSession(tcp::socket&& socket, Server& server);
     void run();
 public:
-    static void start(tcp::socket&& socket, ConnectionList& server){
+    static void start(tcp::socket&& socket, Server& server){
         //Sessions delete themselves when they don't have any tasks anymore.
         auto* session = new HttpSession(std::move(socket), server);
         session->run();

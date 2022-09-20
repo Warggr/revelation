@@ -3,6 +3,8 @@
 #include "search/depthfirstsearch.hpp"
 #include "search/loggers.hpp"
 #include "random.hpp"
+#include "network/server.hpp"
+#include "network/network_agent.hpp"
 #include <array>
 #include <iostream>
 
@@ -13,10 +15,14 @@ int main(){
     AdaptiveDepthFirstSearch pol2(heur, noop);
     UntilSomeoneDiesDFS pol1(heur, bar);
     SearchAgent ag2( 1, pol2 );
-    SearchAgent ag1( 1, pol1 );*/
-    HumanAgent ag1(0);
-    RandomAgent ag2(1);
-    std::array<Agent*, 2> agents = { &ag1, &ag2 };
+    SearchAgent ag1( 1, pol1 );
+    RandomAgent ag1(0);
+    RandomAgent ag2(1);*/
+    Server server("0.0.0.0", 8000);
+    ServerRoom& room = server.addRoom().second;
+    auto networkAgents = NetworkAgent::makeAgents(2, room);
+
+    std::array<Agent*, 2> agents = { &networkAgents[0], &networkAgents[1] };
 
     //Generator seedForTeams = getRandom();
     std::array<Team, 2> teams = { mkEurope(), mkNearEast() };
@@ -26,6 +32,6 @@ int main(){
     std::cout << "Using seed " << seed << '\n';
 
 	Game game(std::move(teams), agents, seed);
-	unsigned short int winner = game.play(true, true);
+	unsigned short int winner = game.play(&room, true);
     std::cout << winner << " won!\n";
 }

@@ -3,9 +3,10 @@
 // Distributed under the Boost Software License, Version 1.0. (See copy at http://www.boost.org/LICENSE_1_0.txt)
 #include "listener.hpp"
 #include "http_session.hpp"
+#include "server.hpp"
 #include <iostream>
 
-Listener::Listener(net::io_context& ioc, const tcp::endpoint& endpoint, ConnectionList& server)
+Listener::Listener(Server& server, net::io_context& ioc, const tcp::endpoint& endpoint)
     : acceptor(ioc)
     , socket(ioc)
     , server(server)

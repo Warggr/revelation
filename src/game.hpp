@@ -2,6 +2,8 @@
 #include "logger.hpp"
 #include "random.hpp"
 
+class ServerRoom;
+
 class Game {
 public:
     State state;
@@ -9,5 +11,5 @@ public:
     std::array<Agent*, 2> agents;
     Game(std::array<Team, 2>&& teams, const std::array<Agent*, 2>& agents, Generator generator=getRandom());
 
-    bool play(bool isLiveServer = false, bool logToTerminal = false);
+    bool play(ServerRoom* room = nullptr, bool logToTerminal = false);
 };

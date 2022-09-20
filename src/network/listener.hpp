@@ -5,21 +5,19 @@
 #define CPPCON2018_LISTENER_HPP
 
 #include "net.hpp"
-#include <memory>
-#include <string>
 
-class ConnectionList;
+class Server;
 
 // Accepts incoming connections and launches the sessions
 class Listener {
     tcp::acceptor acceptor;
     tcp::socket socket;
-    ConnectionList& server;
+    Server& server;
 
     void fail(error_code ec, char const* what);
     void on_accept(error_code ec);
 public:
-    Listener(net::io_context& ioc, const tcp::endpoint& endpoint, ConnectionList& server);
+    Listener(Server& server, net::io_context& ioc, const tcp::endpoint& endpoint);
     void listen(); // Start accepting incoming connections
 };
 

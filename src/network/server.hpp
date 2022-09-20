@@ -1,16 +1,22 @@
 #ifndef REVELATION_SERVER_HPP
 #define REVELATION_SERVER_HPP
 
-#include "connection_list.hpp"
+#include "room.hpp"
 #include "listener.hpp"
+#include <unordered_map>
+
+using RoomId = unsigned short int;
 
 class Server {
-public:
+    RoomId lastUsedIdentifier = 0;
     net::io_context ioc; // The io_context is required for all I/O
-    ConnectionList connections; //The Server contains all established WebSocket connections.
-    Listener listener; // The Listener listens for new clients and adds them to the Server
+    Listener listener; // The Listener listens for new clients and adds them to the Rooms
+public:
+    std::unordered_map<RoomId, ServerRoom> rooms; //Each room contains a list of established WebSocket connections.
 
-    Server(const char* ipAddress, unsigned short port, const std::string& message);
+    Server(const char* ipAddress, unsigned short port);
+
+    std::pair<RoomId, ServerRoom&> addRoom();
 
     void start(){
         //! this function runs indefinitely.
@@ -21,10 +27,6 @@ public:
 
     void stop(){
         ioc.stop();
-    }
-
-    void send(std::string&& message){
-        connections.send(message);
     }
 };
 

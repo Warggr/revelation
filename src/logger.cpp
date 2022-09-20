@@ -24,22 +24,20 @@ public:
 };
 
 class LiveServerAndLogger : public SubLogger {
-    Server server;
-    std::thread networkThread;
+    ServerRoom& serverRoom;
 public:
-    LiveServerAndLogger(const char* ipAddress, unsigned short port, const std::string& start): server(ipAddress, port, std::string(start)){
-        networkThread = std::thread(&Server::start, &server);
+    LiveServerAndLogger(ServerRoom& serverRoom, const std::string& start): serverRoom(serverRoom){
+        serverRoom.setGreeterMessage(start);
     };
     ~LiveServerAndLogger() override {
-        server.stop(); networkThread.join();
     }
     void addStep(const json& j) override {
-        server.send(j.dump());
+        serverRoom.send(j.dump());
     }
 };
 
-Logger* Logger::liveServer(const char* ipAddress, unsigned short port){
-    subLoggers.push_back(std::make_unique<LiveServerAndLogger>(ipAddress, port, startState));
+Logger* Logger::liveServer(ServerRoom& server){
+    subLoggers.push_back(std::make_unique<LiveServerAndLogger>(server, startState));
     return this;
 }
 
