@@ -157,10 +157,6 @@ function apply(step, backwards) {
 			return { 'action' : 'beginTurn' };
 		case 'pass': return { 'action' : 'pass' };
 		case 'move': {
-			let fieldFrom;
-			let fieldTo;
-			let unit;
-			let moves = step.moves;
 			if(!backwards) {
 				return moveForward(step);
 			} else {
@@ -187,13 +183,15 @@ function apply(step, backwards) {
 				} else {
 					setTimeout(function() {
 						document.getElementById(victim.id).classList.remove("img");
-					}, 5000);
+					}, 1000);
+					document.getElementById(victim.id).children[1].children[0].classList.add("body");
+					setTimeout(function() {
+						document.getElementById(victim.id).children[1].children[0].classList.remove("body");
+					}, 1000);
 				}
-				iActive = 1 - iActive;
-
 				setTimeout(function() {
 					document.getElementById(attacker.id).classList.remove("img");
-				}, 5000);
+				}, 1000);
 
 				return step;
 			} else {
@@ -250,7 +248,10 @@ function createState(teams, names, board){
 
 	boardDom = document.createElement('div');
 	boardDom.id = 'board';
-	boardDom.style.flex = 2;
+	boardDom.style.flex = 3;
+	boardDom.style.margin = "0 auto";
+	boardDom.style.left = 0;
+	boardDom.style.right = 0;
 	screen.appendChild(boardDom);
 
 	for(let i = 0; i < 2; i++){
@@ -273,7 +274,7 @@ function createState(teams, names, board){
 		resourceList.classList.add('resource-list');
 		resourceLists.push(resourceList);
 		header.appendChild(resourceList);
-		header.style.cssText += 'flex:1;'
+		header.style.cssText += 'margin:1;'
 		header.classList.add(teamClass(i));
 		header.classList.add('header');
 		header.classList.add('teamIndex-' + i);

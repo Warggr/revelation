@@ -1,9 +1,8 @@
 div#board {
 	width: 100%;
 	display: grid;
-	grid-template-columns: repeat(10, minmax(0, 1fr));
+	grid-template-columns: repeat(10, 130px);
 	grid-template-rows: repeat(2, 50%);
-	grid-auto-flow: row;
 }
 
 div.board-field {
@@ -88,4 +87,24 @@ div.character.team-2.img  {
 	box-shadow: 0 0 0 0 rgba(0, 0, 0, 1);
 	transform: scale(1);
 	animation: border-pulsate 5s;
+}
+
+@keyframes text-pulsate {
+	0% {
+		transform: scale(0);
+	}
+	50% {
+		transform: scale(1.2);
+	}
+	70% {
+		transform: scale(0.8);
+	}
+	100% {
+		transform: scale(1);
+	}
+}
+
+div.HP.body {
+	color: red;
+	animation: text-pulsate 2s;
 }
