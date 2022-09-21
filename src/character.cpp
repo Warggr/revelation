@@ -10,7 +10,7 @@ Character::Character(const ImmutableCharacter& im):
     turnMoved(-1), turnAttacked(-1),
     defShieldHP(0)
 {
-};
+}
 
 ImmutableCharacter::ImmutableCharacter(const char* name, short maxHP, short softAtk, short hardAtk, uint8_t mov,
                      uint8_t rng, float netWorth, bool usesArcAttack, const char* flavor) : usesArcAttack(usesArcAttack) {

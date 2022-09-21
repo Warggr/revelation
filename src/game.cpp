@@ -12,7 +12,7 @@ Generator getRandom(){
 Game::Game(std::array<Team, 2>&& teams, const std::array<Agent*, 2>& agents, Generator generator):
     state(State::createStart(teams, generator)), teams(std::move(teams)), agents(agents)
 {
-};
+}
 
 bool Game::play(ServerRoom* serverRoom, bool logToTerminal) {
     auto* logger = new Logger(state, teams);

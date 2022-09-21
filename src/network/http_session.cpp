@@ -34,6 +34,7 @@ bool read_request_path(const boost::string_view& str, RoomId& roomId, AgentId& a
     unsigned int iter = 0;
     if(str[iter++] != '/') return false;
     roomId = 0;
+    agentId = 0;
     do{
         char digit = str[iter++] - '0';
         if(0 > digit or digit > 9) return false;
@@ -53,11 +54,15 @@ void HttpSession::on_read(error_code ec, std::size_t){
     // This means they closed the connection
     if(ec == http::error::end_of_stream){
         socket_.shutdown(tcp::socket::shutdown_send, ec);
+        delete this;
         return;
     }
 
     // Handle the error, if any
-    if(ec) return fail(ec, "read");
+    if(ec){
+        delete this;
+        return fail(ec, "read");
+    }
 
     const char* error_message;
 
@@ -120,8 +125,7 @@ void HttpSession::on_write(error_code ec, std::size_t, bool close){
         return;
     }
 
-    // Clear contents of the request message,
-    // otherwise the read behavior is undefined.
+    // Clear contents of the request message, otherwise the read behavior is undefined.
     req_ = {};
 
     // Read another request
