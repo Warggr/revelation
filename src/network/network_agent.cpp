@@ -5,12 +5,8 @@
 #include <algorithm>
 
 NetworkAgent::NetworkAgent(uint myId, Spectator* sender)
-: StepByStepAgent(myId), sender(sender), sender_as_ostream(sender->asOStream())
+: StepByStepAgent(myId), sender(sender)
 {
-}
-
-NetworkAgent::NetworkAgent(NetworkAgent&& move) noexcept
-: StepByStepAgent(move), sender(move.sender), sender_as_ostream(sender->asOStream()) {
 }
 
 std::vector<NetworkAgent> NetworkAgent::makeAgents(unsigned short int nb, ServerRoom& room, unsigned int startingId){
@@ -31,10 +27,26 @@ uint NetworkAgent::input(uint min, uint max) {
         std::string str = sender->get();
         try {
             long int_val = std::stol(str);
-            if (int_val > 0) {
+            if (int_val >= 0) {
                 uint uint_val = static_cast<uint>(int_val);
                 if (min <= uint_val and uint_val <= max) return uint_val;
             }
         } catch(std::invalid_argument&){ }
+        sender->send(std::make_shared<std::string>("!Wrong value"));
     }
+}
+
+void NetworkAgent::addOption(const std::string_view& option, int) {
+    optionList += '"';
+    optionList += option;
+    optionList += "\",";
+}
+
+void NetworkAgent::closeOptionList(const std::string_view& message){
+    auto message_summary = std::make_shared<std::string>("[");
+    optionList.swap(*message_summary);
+    *message_summary += '"';
+    *message_summary += message;
+    *message_summary += "\"]";
+    sender->send(message_summary);
 }

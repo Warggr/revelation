@@ -29,8 +29,9 @@ HumanAgent::HumanAgent(uint myId) : StepByStepAgent(myId) {
 unsigned int StepByStepAgent::getSpecialAction(const State& state, Effect& effect) {
     std::vector<std::string> descriptions = effect.getOptions(state);
     for(unsigned int i=0; i<descriptions.size(); i++){
-        ostream() << '[' << i << "]: " << descriptions[i] << '\n';
+        addOption( descriptions[i], i);
     }
+    closeOptionList("Choose a special action");
     uint iSel = input(0, descriptions.size() - 1);
     return iSel;
 }
@@ -40,28 +41,27 @@ const Character& StepByStepAgent::chooseCharacter(const State& state) {
     unsigned int j = 0;
     for(uint i=0; i<NB_CHARACTERS; i++){
         if(not isDead(state.units[myId][i].get())){
-            ostream() << '[' << j << "]: " << state.units[myId][i]->im.name << '\n';
+            addOption(state.units[myId][i]->im.name, j);
             possibleValues[j] = state.units[myId][i].get();
             j += 1;
         }
     }
 
-    ostream() << "Enter which character to select: ";
-    uint iSel = input(1, j) - 1;
+    closeOptionList("Enter which character to select");
+    uint iSel = input(0, j-1);
     return *possibleValues[iSel];
 }
 
 DiscardDecision StepByStepAgent::getDiscard(const State& state) {
     uint i = 0;
     for(const auto& card : getMyPlayer(state).getActions()) {
-        ostream() << '[' << i++ << "]: " << to_string(card) << '\n';
+        addOption( to_string(card), i++);
     }
     for(const auto& card : getMyPlayer(state).getResourceCards()){
-        i++;
-        ostream() << '[' << i++ << "]: " << to_string(card) << '\n';
+        addOption( to_string(card), i++);
     }
     const uint actionsSize = getMyPlayer(state).getActions().size();
-    ostream() << "Choose a card to discard: ";
+    closeOptionList("Choose a card to discard: ");
     uint iSel = input(0, i-1);
     if(iSel < actionsSize)
         return DiscardDecision(true, iSel);
@@ -72,9 +72,13 @@ DiscardDecision StepByStepAgent::getDiscard(const State& state) {
 MoveDecision StepByStepAgent::getMovement(const State& state, unsigned int) {
     const Character& charSel = chooseCharacter(state);
     std::vector<MoveDecision> possibleMovs = state.allMovementsForCharacter(charSel);
-    for(uint i = 0; i<possibleMovs.size(); i++)
-        ostream() << '[' << i << "]: to " << possibleMovs[i].to << '\n';
-    ostream() << "Enter which position to select or 0 to skip: ";
+    std::vector<std::string> options(possibleMovs.size() + 1);
+    addOption("Skip", 0);
+    for(uint i = 0; i<possibleMovs.size(); i++){
+        std::stringstream str; str << "to " << possibleMovs[i].to; //an ugly way to create a string by using the operator<<
+        addOption(str.str(), i + 1);
+    }
+    closeOptionList("Enter which position to select or 0 to skip");
     uint iSel = input(0, possibleMovs.size());
     if(iSel == 0) return MoveDecision::pass();
     else {
@@ -88,10 +92,11 @@ ActionDecision StepByStepAgent::getAction(const State& state) {
     const std::vector<ActionCard>& cards = getMyPlayer(state).getActions();
     if(cards.empty())
         return ActionDecision::pass();
+    addOption("skip", 0);
     for(uint i=0; i<cards.size(); i++){
-        ostream() << '[' << (i+1) << "]: " << to_string(cards[i]) << '\n';
+        addOption(to_string(cards[i]), i+1);
     }
-    ostream() << "Choose a card, any card (or 0 to skip): ";
+    closeOptionList("Choose a card, any card (or 0 to skip)");
     uint iSel = input(0, cards.size());
 
     if(iSel == 0)
@@ -104,15 +109,14 @@ ActionDecision StepByStepAgent::getAction(const State& state) {
         if(allPossibleAttacks.empty())
             return ActionDecision::pass();
         std::vector<std::array<const Character*, 2>> array;
+        addOption("Skip", 0);
         for(const auto& [ unit, enemies ] : allPossibleAttacks){
-            ostream() << unit->im.name << '\n';
             for(const auto& enemy : enemies){
                 array.push_back( { unit, enemy } );
-                const char* startCharacter = (enemy == enemies.back()) ? "└" : "├";
-                ostream() << '[' << array.size() << ']' << startCharacter << "─" << enemy->im.name << '\n';
+                addOption(std::string(unit->im.name) + " -> " + enemy->im.name, array.size());
             }
         }
-        ostream() << "Enter which attack to select: (or 0 to skip)";
+        closeOptionList("Enter which attack to select: (or 0 to skip)");
         uint iSel = input(0, array.size());
         if(iSel == 0) return ActionDecision::pass();
         ret.subjectPos = array[iSel - 1][0]->pos;

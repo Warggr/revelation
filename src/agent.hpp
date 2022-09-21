@@ -31,7 +31,8 @@ class StepByStepAgent: public Agent {
     const Character& chooseCharacter(const State& state);
 protected:
     virtual uint input(uint min, uint max) = 0;
-    virtual std::ostream& ostream() = 0;
+    virtual void addOption(const std::string_view& option, int i) = 0;
+    virtual void closeOptionList(const std::string_view& message) = 0;
 public:
     StepByStepAgent(uint myId) : Agent(myId) {};
     DiscardDecision getDiscard(const State&) override;
@@ -43,19 +44,22 @@ public:
 class HumanAgent: public StepByStepAgent {
 protected:
     uint input(uint min, uint max) override;
-    std::ostream& ostream() override { return std::cout; }
+    void addOption(const std::string_view& option, int i) override {
+        std::cout << '[' << i << "]:" << option << '\n';
+    }
+    void closeOptionList(const std::string_view& message) override {
+        std::cout << message << ": ";
+    }
 public:
     HumanAgent(uint myId);
 };
 
 class RandomAgent: public StepByStepAgent {
     std::minstd_rand generator;
-    class NoopOstream: public std::ostream {
-        template<typename T> std::ostream& operator<<(const T&){ /*do nothing*/ return *this; }
-    } myostream;
 protected:
     uint input(uint min, uint max) override;
-    std::ostream& ostream() override { return myostream; }
+    void addOption(const std::string_view&, int) override {};
+    void closeOptionList(const std::string_view&) override {};
 public:
     RandomAgent(uint myId);
 };

@@ -9,13 +9,13 @@ class ServerRoom;
 
 class NetworkAgent : public StepByStepAgent {
     Spectator* sender;
-    std::ostream sender_as_ostream;
+    std::string optionList = std::string("[");
 protected:
-    std::ostream& ostream() override{ return sender_as_ostream; }
     uint input(uint min, uint max) override;
+    void addOption(const std::string_view& option, int i) override;
+    void closeOptionList(const std::string_view& message) override;
 public:
     NetworkAgent(uint myId, Spectator* sender);
-    NetworkAgent(NetworkAgent&& move) noexcept;
     static std::vector<NetworkAgent> makeAgents(unsigned short int nb, ServerRoom& room, unsigned int startingId = 0);
 };
 
