@@ -15,6 +15,7 @@
 struct WaitingAgent {
     Spectator*& agent;
     Semaphore& release_on_connect;
+    bool claimed;
 };
 
 /* Represents a room on the server on which a game takes place (or will take place shortly) */
@@ -31,14 +32,14 @@ public:
     void setGreeterMessage(const std::string& greeterMessage);
 
     //Create a Spectator and allows it to join once it has done the websocket handshake
-    Spectator& addSpectator(tcp::socket&& socket, AgentId id = 0);
+    Spectator* addSpectator(tcp::socket&& socket, AgentId id = 0);
 
     void join (Spectator& session);
     void leave (Spectator& session);
     void send  (const std::string& message);
 
     void expectNewAgent(AgentId id, Spectator*& agent, Semaphore& release_once_found){
-        waitingAgents.insert({ id, {agent, release_once_found} });
+        waitingAgents.insert({ id, {agent, release_once_found, false} });
     }
 
     void onConnectAgent(AgentId id, Spectator* agent);

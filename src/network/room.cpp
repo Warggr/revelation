@@ -26,8 +26,13 @@ void ServerRoom::leave(Spectator& session){
 
 void ServerRoom::join(Spectator& session){
     sessions.insert(&session);
-    auto message = std::make_shared<const std::string>(this->greeterMessage + "]}");
-    session.send(message);
+    if(this->greeterMessage.size() != 0){
+        auto message = std::make_shared<const std::string>(this->greeterMessage + "]}");
+        session.send(message);
+    } else {
+        auto message = std::make_shared<const std::string>("Welcome! The game has not started yet");
+        session.send(message);
+    }
 }
 
 void ServerRoom::send(const std::string& message){
@@ -43,9 +48,13 @@ void ServerRoom::send(const std::string& message){
         session->send(ss);
 }
 
-Spectator& ServerRoom::addSpectator(tcp::socket&& socket, AgentId id){
+Spectator* ServerRoom::addSpectator(tcp::socket&& socket, AgentId id){
+    auto iter_agent = waitingAgents.find(id);
+    if(iter_agent == waitingAgents.end()) return nullptr; //no such seat
+    if(iter_agent->second.claimed) return nullptr; //seat already claimed
+
     auto ptr = new Spectator(std::move(socket), *this, id);
-    return *ptr;
+    return ptr;
 }
 
 void ServerRoom::onConnectAgent(AgentId id, Spectator* agent) {

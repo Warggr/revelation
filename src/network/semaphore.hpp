@@ -11,8 +11,6 @@ private:
     int count;
 public:
     explicit Semaphore(int count = 0): count(count) {  };
-    //Assumes that nobody is waiting for the semaphore. Do NOT move semaphores that might be in use.
-    Semaphore(Semaphore&& move): count(move.count){};
     void acquire(unsigned short int i = 1){
         std::unique_lock<std::mutex> lock(m);
         count -= i;

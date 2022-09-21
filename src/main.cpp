@@ -7,6 +7,7 @@
 #include "network/network_agent.hpp"
 #include <array>
 #include <iostream>
+#include <thread>
 
 int main(){
     /*PowerTimesToughnessHeuristic heur;
@@ -20,8 +21,10 @@ int main(){
     RandomAgent ag2(1);*/
     Server server("0.0.0.0", 8000);
     ServerRoom& room = server.addRoom().second;
-    auto networkAgents = NetworkAgent::makeAgents(2, room);
 
+    std::thread network_thread(&Server::start, &server);
+
+    auto networkAgents = NetworkAgent::makeAgents(2, room);
     std::array<Agent*, 2> agents = { &networkAgents[0], &networkAgents[1] };
 
     //Generator seedForTeams = getRandom();

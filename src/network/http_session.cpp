@@ -28,6 +28,25 @@ void HttpSession::fail(error_code ec, char const* what){
     std::cerr << what << ": " << ec.message() << "\n";
 }
 
+//Writes the read values to @param roomId and @param agentId and returns a bool to indicate errors, C-style.
+bool read_request_path(const boost::string_view& str, RoomId& roomId, AgentId& agentId){
+    unsigned int iter = 0;
+    if(str[iter++] != '/') return false;
+    roomId = 0;
+    do{
+        char digit = str[iter++] - '0';
+        if(0 > digit or digit > 9) return false;
+        roomId = 10*roomId + digit;
+    } while(str[iter] != '/' and iter < str.size());
+    iter++; //consume the /
+    do{
+        char digit = str[iter++] - '0';
+        if(0 > digit or digit > 9) return false;
+        agentId = 10*agentId + digit;
+    } while(iter < str.size());
+    return true;
+}
+
 void HttpSession::on_read(error_code ec, std::size_t){
     // This means they closed the connection
     if(ec == http::error::end_of_stream){
@@ -38,16 +57,30 @@ void HttpSession::on_read(error_code ec, std::size_t){
     // Handle the error, if any
     if(ec) return fail(ec, "read");
 
+    const char* error_message;
+
     // See if it is a WebSocket Upgrade
-    if(websocket::is_upgrade(req_)){
+    if(not websocket::is_upgrade(req_)){
+        error_message = "This server supports only WebSockets.";
+    } else {
         // The websocket connection is established! Transfer the socket and the request to the Server
-        RoomId roomId = 1; //TODO read the room ID from the request
-        if(server.rooms.find(roomId) != server.rooms.end()) {
-            ServerRoom& room = server.rooms[roomId];
-            AgentId id = 1; // TODO read from the request whether actor or spectator
-            room.addSpectator(std::move(socket_), id).run(std::move(req_));
-            delete this; //don't schedule any further network operations, delete this, and die.
-            return;
+        RoomId roomId; AgentId agentId;
+        if(!read_request_path(req_.target(), roomId, agentId)){
+            error_message = "Wrong path";
+        } else {
+            if (server.rooms.find(roomId) == server.rooms.end()) {
+                error_message = "Room not found";
+            } else {
+                ServerRoom &room = server.rooms[roomId];
+                Spectator *spec = room.addSpectator(std::move(socket_), agentId);
+                if (!spec) {
+                    error_message = "Room did not accept you";
+                } else {
+                    spec->run(std::move(req_));
+                    delete this; //don't schedule any further network operations, delete this, and die.
+                    return;
+                }
+            }
         }
     }
 
@@ -56,7 +89,7 @@ void HttpSession::on_read(error_code ec, std::size_t){
     res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
     res.set(http::field::content_type, "text/html");
     res.keep_alive(req_.keep_alive());
-    res.body() = "This server supports only WebSockets.";
+    res.body() = error_message;
     res.prepare_payload();
 
     // The lifetime of the message has to extend
