@@ -4,6 +4,7 @@
 #include "room.hpp"
 #include "listener.hpp"
 #include <unordered_map>
+#include <iostream>
 
 using RoomId = unsigned short int;
 
@@ -19,6 +20,7 @@ public:
     std::pair<RoomId, ServerRoom&> addRoom();
 
     void start(){
+        std::cout << "(network) Starting server...\n";
         //! this function runs indefinitely.
         //! To stop it, you need to call stop() (presumably from another thread)
         listener.listen();
@@ -26,6 +28,7 @@ public:
     }
 
     void stop(){
+        std::cout << "(network) ...stopping server\n";
         ioc.stop();
     }
 };

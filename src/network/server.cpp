@@ -6,9 +6,11 @@
 Server::Server(const char* ipAddress, unsigned short port)
     : listener( *this, ioc, tcp::endpoint{net::ip::make_address(ipAddress), port} )
 {
+    std::cout << "(main) Starting server\n";
 }
 
 std::pair<RoomId, ServerRoom&> Server::addRoom() {
+    std::cout << "(main) Add room to server\n";
     auto newRoomId = lastUsedIdentifier++;
     auto [iter, success] = rooms.insert({newRoomId, ServerRoom()});
     //assert(success);

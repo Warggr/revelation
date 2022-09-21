@@ -11,6 +11,7 @@ HttpSession::HttpSession(tcp::socket&& socket, Server& server)
     : socket_(std::move(socket))
     , server(server)
 {
+    std::cout << "(async listener) Creating HttpSession\n";
 }
 
 void HttpSession::run(){
@@ -48,6 +49,7 @@ bool read_request_path(const boost::string_view& str, RoomId& roomId, AgentId& a
 }
 
 void HttpSession::on_read(error_code ec, std::size_t){
+    std::cout << "(async http) read message\n";
     // This means they closed the connection
     if(ec == http::error::end_of_stream){
         socket_.shutdown(tcp::socket::shutdown_send, ec);
@@ -63,6 +65,7 @@ void HttpSession::on_read(error_code ec, std::size_t){
     if(not websocket::is_upgrade(req_)){
         error_message = "This server supports only WebSockets.";
     } else {
+        std::cout << "(async http) websocket upgrade heard!\n";
         // The websocket connection is established! Transfer the socket and the request to the Server
         RoomId roomId; AgentId agentId;
         if(!read_request_path(req_.target(), roomId, agentId)){
@@ -98,12 +101,14 @@ void HttpSession::on_read(error_code ec, std::size_t){
     using response_type = typename std::decay<decltype(res)>::type;
     auto sp = std::make_shared<response_type>(std::forward<decltype(res)>(res));
 
+    std::cout << "(async http) prepare response\n";
     // Write the response
     http::async_write(this->socket_, *sp,
         [&, sp](error_code ec, std::size_t bytes){ on_write(ec, bytes, sp->need_eof()); });
 }
 
 void HttpSession::on_write(error_code ec, std::size_t, bool close){
+    std::cout << "(async http) write HTTP response\n";
     // Handle the error, if any
     if(ec) return fail(ec, "write");
 

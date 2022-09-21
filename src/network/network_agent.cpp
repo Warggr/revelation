@@ -10,12 +10,15 @@ NetworkAgent::NetworkAgent(uint myId, Spectator* sender)
 }
 
 std::vector<NetworkAgent> NetworkAgent::makeAgents(unsigned short int nb, ServerRoom& room, unsigned int startingId){
+    std::cout << "(main) make agents\n";
     std::vector<Spectator*> notConnectedAgents(nb);
     Semaphore semaphore(0);
     for(int i = 0; i<nb; i++){
         room.expectNewAgent(i+1, notConnectedAgents[i], semaphore);
     }
+    std::cout << "(main) wait for agents...\n";
     semaphore.acquire(nb); //waits until all nb threads have released the semaphore once
+    std::cout << "(main) found agents!\n";
     std::vector<NetworkAgent> retVal;
     for(int i = 0; i<nb; i++)
         retVal.emplace_back(startingId + i, notConnectedAgents[i]);

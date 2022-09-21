@@ -6,6 +6,7 @@
 #include "spectator.hpp"
 #include "network_agent.hpp"
 #include <algorithm>
+#include <iostream>
 
 ServerRoom::ServerRoom() = default;
 
@@ -25,6 +26,7 @@ void ServerRoom::leave(Spectator& session){
 }
 
 void ServerRoom::join(Spectator& session){
+    std::cout << "(async) spectator joined\n";
     sessions.insert(&session);
     if(this->greeterMessage.size() != 0){
         auto message = std::make_shared<const std::string>(this->greeterMessage + "]}");
@@ -58,6 +60,7 @@ Spectator* ServerRoom::addSpectator(tcp::socket&& socket, AgentId id){
 }
 
 void ServerRoom::onConnectAgent(AgentId id, Spectator* agent) {
+    std::cout << "(async) agent connected\n";
     WaitingAgent waiting = waitingAgents.extract(id).mapped();
     waiting.agent = agent;
     waiting.release_on_connect.release();

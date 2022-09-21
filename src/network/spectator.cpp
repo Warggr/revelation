@@ -19,6 +19,7 @@ void Spectator::fail(error_code ec, char const* what){
 }
 
 void Spectator::on_accept(error_code ec){
+    std::cout << "(async spectator) Accept message\n";
     // Handle the error, if any
     if(ec){
         delete this;
@@ -39,13 +40,16 @@ void Spectator::on_accept(error_code ec){
 }
 
 std::string Spectator::get(){
+    std::cout << "(main) Getting string, waiting for mutex...\n";
     nb_messages_unread.acquire();
+    std::cout << "(main) String mutex acquired\n";
     std::string retVal = reading_queue.front();
     reading_queue.pop();
     return retVal;
 }
 
 void Spectator::send(const std::shared_ptr<const std::string>& message){
+    std::cout << "(main) Sending message\n";
     bool queue_empty = writing_queue.empty();
 
     // Always add to queue
@@ -63,6 +67,7 @@ void Spectator::send(const std::shared_ptr<const std::string>& message){
 }
 
 void Spectator::on_write(error_code ec, std::size_t){
+    std::cout << "(async spectator) Message written\n";
     // Handle the error, if any
     if(ec) return fail(ec, "write");
 
@@ -78,9 +83,14 @@ void Spectator::on_write(error_code ec, std::size_t){
             });
 }
 
-void Spectator::on_read(error_code ec, std::size_t) {
+void Spectator::on_read(error_code ec, std::size_t size) {
+    std::cout << "(async spectator) Read message of size " << size << '\n';
     // Handle the error, if any
     if (ec) return fail(ec, "read");
+
+    if(size == 0){
+        //TODO handle client closing the connection
+    }
 
     // Add to queue
     reading_queue.push(beast::buffers_to_string(buffer.data()));

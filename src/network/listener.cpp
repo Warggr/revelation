@@ -31,6 +31,7 @@ Listener::Listener(Server& server, net::io_context& ioc, const tcp::endpoint& en
 }
 
 void Listener::listen(){
+    std::cout << "(network) start accepting connections\n";
     // Start accepting a connection
     acceptor.async_accept(
         socket,
@@ -48,6 +49,8 @@ void Listener::fail(error_code ec, char const* what){
 
 // Handle a connection
 void Listener::on_accept(error_code ec){
+    std::cout << "(async listener) accept connection\n";
+
     if(ec) return fail(ec, "accept");
 
     // Launch a new session for this connection
