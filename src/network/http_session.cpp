@@ -92,6 +92,9 @@ void HttpSession::on_read(error_code ec, std::size_t){
         }
     }
 
+    std::cout << "(async http) prepare response\n";
+    std::cout << "(async http) " << error_message << '\n';
+
     // Returns a bad request response
     http::response<http::string_body> res{http::status::bad_request, req_.version()};
     res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
@@ -106,7 +109,6 @@ void HttpSession::on_read(error_code ec, std::size_t){
     using response_type = typename std::decay<decltype(res)>::type;
     auto sp = std::make_shared<response_type>(std::forward<decltype(res)>(res));
 
-    std::cout << "(async http) prepare response\n";
     // Write the response
     http::async_write(this->socket_, *sp,
         [&, sp](error_code ec, std::size_t bytes){ on_write(ec, bytes, sp->need_eof()); });
