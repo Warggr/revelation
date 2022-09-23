@@ -1,5 +1,5 @@
 #include "agent.hpp"
-#include "state.hpp"
+#include "gameplay/state.hpp"
 #include "constants.hpp"
 #include <cassert>
 #include <map>

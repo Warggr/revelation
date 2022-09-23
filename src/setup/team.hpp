@@ -1,8 +1,9 @@
 #ifndef REVELATION_TEAM_HPP
 #define REVELATION_TEAM_HPP
 
-#include "character.hpp"
+#include "unique_character.hpp"
 #include "random.hpp"
+#include "constants.hpp"
 #include "nlohmann/json_fwd.hpp"
 #include <string>
 #include <array>

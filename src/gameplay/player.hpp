@@ -13,11 +13,13 @@
 #include "nlohmann/json.hpp"
 #include <initializer_list>
 #include <variant>
+#include <vector>
+#include <iosfwd>
 
 using json = nlohmann::json;
 
 using CombatDeckCard = std::variant<ActionCard, Faction>;
-std::ostream& operator<<(const CombatDeckCard& card, std::ostream& os);
+std::ostream& operator<<(std::ostream& os, const CombatDeckCard& card);
 
 class Player {
     static constexpr std::initializer_list<CombatDeckCard> startingAbilityDeck = { DEFENSE, DEFENSE, HARDATK, HARDATK, HARDATK, HARDATK, SOFTATK, SOFTATK, SOFTATK, SOFTATK };

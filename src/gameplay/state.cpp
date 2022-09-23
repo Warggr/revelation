@@ -1,19 +1,27 @@
-#include "team.hpp"
-#include "constants.hpp"
-#include "agent.hpp"
 #include "state.hpp"
 #include "step.hpp"
+#include "setup/team.hpp"
+#include "constants.hpp"
 #include <cassert>
 #include <memory>
 #include <iostream>
 #define REPEAT(x) x, x, x, x
 
-std::ostream& operator<<(std::ostream& o, const position& pos);
-
-std::ostream& operator<<(std::ostream& o, const Board& board);
-
 std::ostream& operator<<(std::ostream& o, const BoardTile& tile){
     o << static_cast<int>(tile.team) << '[' << tile.index << ']';
+    return o;
+}
+
+std::ostream& operator<<(std::ostream& o, const Board& board){
+    o << "---BOARD---\n";
+    for(uint row = 0; row < 2; row++){
+        for(uint col = 0; col < FULL_BOARD_WIDTH; col++){
+            const BoardTile& tile = board[row][col];
+            if(BoardTile::isEmpty(tile)) o << "[   ]";
+            else o << '[' << static_cast<int>(tile.team) << '.' << tile.index << ']';
+        }
+        o << '\n';
+    }
     return o;
 }
 
@@ -306,48 +314,6 @@ std::tuple<State, uptr<BeginStep>> State::beginTurn() const {
     }
     ret.checkConsistency();
     return std::make_tuple(ret, std::make_unique<BeginStep>());
-}
-
-std::tuple<State, uptr<Step>> State::advance(Agent& active, Agent& opponent) const {
-    if(!unresolvedSpecialAbility.empty()){
-        State copy(*this);
-
-        Effect* effect = copy.unresolvedSpecialAbility.front();
-        copy.unresolvedSpecialAbility.pop_front();
-
-        Agent& whoDecides = effect->opponentChooses() ? opponent : active;
-        unsigned int decision = whoDecides.getSpecialAction(copy, *effect);
-
-        uptr<Step> step = effect->resolve(copy, decision);
-        return std::make_tuple<State, uptr<Step>>( std::move(copy), std::move(step) );
-    }
-    switch(this->timestep){
-    case ACTED:
-        return this->beginTurn();
-    case BEGIN: {
-        return this->stepDraw();
-    }
-    case DREW: {
-        DiscardDecision decision = active.getDiscard(*this);
-        return this->stepDiscard(decision);
-    }
-    case DISCARDED:
-    case MOVEDfirst: {
-        MoveDecision decision = active.getMovement(*this, (timestep==DISCARDED ? 0 : 1));
-        return this->stepMov(decision);
-    }
-    case MOVEDlast: {
-        AbilityDecision decision = active.getAbility(*this);
-        return this->stepAbil(decision);
-    }
-    case ABILITYCHOSEN: {
-        ActionDecision decision = active.getAction(*this);
-        return this->stepAct(decision);
-    }
-    default: //shouldn't happen
-        throw 1;
-        //return std::make_tuple<State, uptr<Step>>({}, {});
-    }
 }
 
 std::vector<MoveDecision> State::allMovementsForCharacter(const Character& hero) const {

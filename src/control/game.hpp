@@ -1,5 +1,5 @@
-#include "state.hpp"
-#include "logger.hpp"
+#include "gameplay/state.hpp"
+#include "logging/logger.hpp"
 #include "random.hpp"
 
 class ServerRoom;

@@ -1,7 +1,7 @@
-#include "team.hpp"
-#include "step_impl.hpp"
-#include "state.hpp"
 #include "logger.hpp"
+#include "gameplay/step_impl.hpp"
+#include "gameplay/state.hpp"
+#include "setup/team.hpp"
 #include "BoardTile.hpp"
 #include "nlohmann/json.hpp"
 

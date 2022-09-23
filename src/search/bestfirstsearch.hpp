@@ -1,7 +1,7 @@
 #ifndef REVELATION_BESTFIRSTSEARCH_HPP
 #define REVELATION_BESTFIRSTSEARCH_HPP
 
-#include "../search.hpp"
+#include "search.hpp"
 #include <queue>
 
 class GreedyBestFirstSearchAgent: public SearchPolicy, public Container<SearchNode> {

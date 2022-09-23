@@ -1,8 +1,9 @@
 #ifndef REVELATION_NETWORK_AGENT_HPP
 #define REVELATION_NETWORK_AGENT_HPP
 
-#include "../agent.hpp"
-#include <memory>
+#include "control/agent.hpp"
+#include <vector>
+#include <string>
 
 class Spectator;
 class ServerRoom;

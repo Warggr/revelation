@@ -1,9 +1,7 @@
-#ifndef REVELATION_CHARACTER_HPP
-#define REVELATION_CHARACTER_HPP
+#ifndef REVELATION_UNIQUE_CHARACTER_HPP
+#define REVELATION_UNIQUE_CHARACTER_HPP
 
 #include "effect.hpp"
-#include "position.hpp"
-#include "constants.hpp"
 #include "random.hpp"
 #include <forward_list>
 
@@ -29,28 +27,4 @@ struct ImmutableCharacter {
     static ImmutableCharacter random(Generator& generator);
 };
 
-struct Character {
-    static char s_uid;
-    char uid;
-    const ImmutableCharacter& im;
-    unsigned int team = 3;
-    uint8_t teampos = -1;
-    short int HP;
-    position pos;
-    int turnMoved;
-    int turnAttacked;
-    short defShieldHP;
-    bool hasUsedSpecialAction = false;
-
-    Character(const ImmutableCharacter& chr);
-
-    void buff();
-
-    short getAtk(bool isHard, short turnID) const;
-
-    short takeDmg(bool isHard, short power);
-
-    std::forward_list<Effect*> getSpecialAction() { return im.specialAction; }
-};
-
-#endif //REVELATION_CHARACTER_HPP
+#endif //REVELATION_UNIQUE_CHARACTER_HPP

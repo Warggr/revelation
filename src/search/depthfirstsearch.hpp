@@ -1,7 +1,7 @@
 #ifndef REVELATION_DEPTHFIRSTSEARCH_HPP
 #define REVELATION_DEPTHFIRSTSEARCH_HPP
 
-#include "../search.hpp"
+#include "search.hpp"
 #include <cassert>
 
 /**

@@ -1,6 +1,6 @@
 #include "heuristic.hpp"
-#include "../step.hpp"
-#include "../state.hpp"
+#include "gameplay/step.hpp"
+#include "gameplay/state.hpp"
 
 Heuristic::Value Heuristic::evaluateStep( int myId, const State& oldState, const Step& step) const {
     auto* actionStep = dynamic_cast<const ActionStep*>(&step);

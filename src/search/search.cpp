@@ -1,15 +1,13 @@
 #include "search.hpp"
-#include "state.hpp"
-#include "agent.hpp"
+#include "heuristic.hpp"
+#include "control/agent.hpp"
+#include "gameplay/state.hpp"
 #include "position.hpp"
-#include "search/heuristic.hpp"
 #include <tuple>
 #include <unordered_set>
 #include <cstdio>
 #include <cassert>
 #include <ostream>
-
-std::ostream& operator<<(std::ostream& o, const position& pos);
 
 DiscardDecision SearchAgent::getDiscard(const State& state) {
     assert(state == plans.beforeDiscard);
@@ -40,19 +38,6 @@ void SearchAgent::onBegin(const State& state) {
     searchPolicy.planAhead(state);
     State newState; Heuristic::Value heurVal;
     std::tie(newState, plans, heurVal) = searchPolicy.getResults();
-}
-
-std::ostream& operator<<(std::ostream& o, const Board& board){
-    o << "---BOARD---\n";
-    for(uint row = 0; row < 2; row++){
-        for(uint col = 0; col < FULL_BOARD_WIDTH; col++){
-            const BoardTile& tile = board[row][col];
-            if(BoardTile::isEmpty(tile)) o << "[   ]";
-            else o << '[' << static_cast<int>(tile.team) << '.' << tile.index << ']';
-        }
-        o << '\n';
-    }
-    return o;
 }
 
 void SearchPolicy::planAhead(const State& startState){

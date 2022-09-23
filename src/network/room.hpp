@@ -10,6 +10,7 @@
 #include "semaphore.hpp"
 #include "net.hpp"
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 
 struct WaitingAgent {

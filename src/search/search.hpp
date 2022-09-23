@@ -1,9 +1,11 @@
 #ifndef REVELATION_SEARCH_HPP
 #define REVELATION_SEARCH_HPP
 
-#include "state.hpp"
-#include "search/heuristic.hpp"
+#include "heuristic.hpp"
+#include "control/agent.hpp"
+#include "gameplay/state.hpp"
 #include <limits>
+#include <vector>
 
 struct DecisionList{
 #ifndef NDEBUG

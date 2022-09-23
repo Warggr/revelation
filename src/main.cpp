@@ -1,5 +1,5 @@
-#include "game.hpp"
-#include "agent.hpp"
+#include "control/game.hpp"
+#include "control/agent.hpp"
 #include "search/depthfirstsearch.hpp"
 #include "search/loggers.hpp"
 #include "random.hpp"

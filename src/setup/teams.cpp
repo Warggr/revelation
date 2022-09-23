@@ -1,6 +1,6 @@
 #include "team.hpp"
 #include "effect.hpp"
-#include "state.hpp"
+#include "gameplay/state.hpp"
 #include "random.hpp"
 #include <cassert>
 

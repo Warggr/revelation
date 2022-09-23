@@ -1,9 +1,9 @@
 #ifndef REVELATION_LOGGER_HPP
 #define REVELATION_LOGGER_HPP
 
-#include "step.hpp"
-#include "team.hpp"
-#include "player.hpp"
+#include "gameplay/step.hpp"
+#include "gameplay/player.hpp"
+#include "setup/team.hpp"
 #include "nlohmann/json.hpp"
 #include <ostream>
 #include <vector>

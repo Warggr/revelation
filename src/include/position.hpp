@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <iosfwd>
 
 struct position {
     unsigned int row : 1;
@@ -11,6 +12,8 @@ public:
     position() = default;
     constexpr position(unsigned int row, unsigned int column): row(row), column(column) {}
     constexpr bool operator==(const position& other) const { return other.row == row and other.column == column; }
+
+    friend std::ostream& operator<<(std::ostream& o, const position& pos);
 };
 
 inline uint8_t manhattanDistance( position p1, position p2 ){

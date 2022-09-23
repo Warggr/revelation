@@ -1,19 +1,14 @@
-add_executable(revelation
-	main.cpp
-	agent.cpp
-	character.cpp
-	deck.cpp
-	game.cpp
-	json.cpp
-	logger.cpp
-	player.cpp
-	search.cpp
-	state.cpp
-	teams.cpp
-	search/heuristic.cpp
-	search/depthfirstsearch.cpp
-	search/loggers.cpp
-)
+add_executable(revelation main.cpp)
+add_executable(revelation-server main.server.cpp)
 
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+add_subdirectory(control)
+add_subdirectory(gameplay)
+add_subdirectory(logging)
 add_subdirectory(network)
-target_link_libraries(revelation PRIVATE network)
+add_subdirectory(search)
+add_subdirectory(setup)
+target_link_libraries(revelation PRIVATE control network)
+target_link_libraries(revelation-server PRIVATE network)

@@ -1,11 +1,11 @@
 #ifndef REVELATION_AGENT_HPP
 #define REVELATION_AGENT_HPP
 
+#include "gameplay/player.hpp"
+#include "gameplay/character.hpp"
+#include "gameplay/deck.hpp"
+#include "gameplay/decision.hpp"
 #include "position.hpp"
-#include "player.hpp"
-#include "character.hpp"
-#include "deck.hpp"
-#include "decision.hpp"
 #include <iostream>
 #include <random>
 

@@ -1,13 +1,13 @@
 #ifndef REVELATION_EFFECT_HPP
 #define REVELATION_EFFECT_HPP
 
-#include "step.hpp"
-#include "decision.hpp"
 #include <memory>
 #include <vector>
 #include <string>
 
-class State; struct Character;
+class State;
+struct Character;
+class Step;
 
 // abstract / interface
 class Effect {

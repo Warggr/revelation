@@ -1,20 +1,23 @@
 #ifndef REVELATION_STATE_HPP
 #define REVELATION_STATE_HPP
 
-#include "constants.hpp"
 #include "deck.hpp"
-#include "team.hpp"
 #include "step_impl.hpp"
-#include "agent.hpp"
 #include "character.hpp"
+#include "player.hpp"
+#include "decision.hpp"
+#include "setup/team.hpp"
+#include "setup/effect.hpp"
 #include "BoardTile.hpp"
-#include "effect.hpp"
 #include "random.hpp"
 #include "memory.hpp"
+#include "constants.hpp"
 #include "nlohmann/json_fwd.hpp"
 #include <vector>
 #include <tuple>
 #include <forward_list>
+
+class Agent;
 
 using json = nlohmann::json;
 
