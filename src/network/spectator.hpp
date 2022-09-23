@@ -21,25 +21,7 @@ namespace websocket = boost::beast::websocket;
 using AgentId = unsigned short int;
 
 /** Represents an active WebSocket connection to the server. */
-class Spectator: public std::streambuf {
-    /* The following two methods allow Spectator to be a kind of streambuf, so it can be used in std::ostreams */
-    // This function will be called when trying "to sync the input and output streams". So it should dump the content.
-    // Returns 0 on success, -1 on failure.
-    int sync() override {
-        if(pbase() == pptr()) return 0; //nothing to send
-        send(std::make_shared<const std::string>(pbase(), pptr()));
-        return std::streambuf::sync();
-    };
-    // Copied from https://bytes.com/topic/c/answers/62641-inheriting-streambuf.
-    // This is called when new characters are added, but only 1 space is left in the buffer (so almost an overflow).
-    std::streambuf::int_type overflow(std::streambuf::int_type c) override {
-        if (!traits_type::eq_int_type(traits_type::eof(), c)) { //ignore this for the "end-of-file" character
-            traits_type::assign(*pptr(), traits_type::to_char_type(c)); //write the character and advance by 1
-            pbump(1);
-        }
-        return sync() == 0 ? traits_type::not_eof(c): traits_type::eof();
-    }
-
+class Spectator {
     beast::flat_buffer buffer; //Only used for reading
     websocket::stream<tcp::socket> ws;
     std::queue<std::shared_ptr<const std::string>> writing_queue; //All messages that haven't been sent yet
@@ -65,10 +47,6 @@ public:
     void send(const std::shared_ptr<const std::string>& message);
 
     std::string get();
-
-    std::ostream asOStream(){
-        return std::ostream(this);
-    }
 };
 
 #endif

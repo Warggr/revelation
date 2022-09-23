@@ -51,9 +51,11 @@ void ServerRoom::send(const std::string& message){
 }
 
 Spectator* ServerRoom::addSpectator(tcp::socket&& socket, AgentId id){
-    auto iter_agent = waitingAgents.find(id);
-    if(iter_agent == waitingAgents.end()) return nullptr; //no such seat
-    if(iter_agent->second.claimed) return nullptr; //seat already claimed
+    if(id != 0){
+        auto iter_agent = waitingAgents.find(id);
+        if(iter_agent == waitingAgents.end()) return nullptr; //no such seat
+        if(iter_agent->second.claimed) return nullptr; //seat already claimed
+    }
 
     auto ptr = new Spectator(std::move(socket), *this, id);
     return ptr;
