@@ -8,14 +8,22 @@
 #include "position.hpp"
 #include <iostream>
 #include <random>
+#include <exception>
 
 class State;
+
+struct AgentSurrenderedException: public std::exception{
+    uint id;
+    AgentSurrenderedException(uint id): id(id){};
+};
 
 class Agent {
 protected:
     uint myId : 1;
 
     const Player& getMyPlayer(const State& state) const;
+
+    void surrender(){ throw AgentSurrenderedException(myId); }
 public:
     Agent(unsigned int myId) : myId(myId) {};
     virtual ~Agent() = default;

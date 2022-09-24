@@ -6,9 +6,13 @@
 #define CPPCON2018_ASIO_HPP
 
 #include <boost/asio.hpp>
+#include <exception>
 
 namespace net = boost::asio;
 using tcp = net::ip::tcp;
 using error_code = boost::system::error_code;
+
+struct DisconnectedException: public std::exception{
+};
 
 #endif

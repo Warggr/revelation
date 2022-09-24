@@ -21,6 +21,7 @@ class HttpSession {
     Server& server;
 
     void fail(error_code ec, char const* what);
+    void sendResponse(http::response<http::string_body>&& res);
     void on_read(error_code ec, std::size_t);
     void on_write(error_code ec, std::size_t, bool close);
     explicit HttpSession(tcp::socket&& socket, Server& server);

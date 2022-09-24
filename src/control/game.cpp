@@ -9,8 +9,8 @@ Generator getRandom(){
     return Generator(rd());
 }
 
-Game::Game(std::array<Team, 2>&& teams, const std::array<Agent*, 2>& agents, Generator generator):
-    state(State::createStart(teams, generator)), teams(std::move(teams)), agents(agents)
+Game::Game(std::array<Team, 2>&& teams, std::array<std::unique_ptr<Agent>, 2>&& agents, Generator generator):
+    state(State::createStart(teams, generator)), teams(std::move(teams)), agents(std::move(agents))
 {
 }
 
@@ -20,17 +20,20 @@ bool Game::play(ServerRoom* serverRoom, bool logToTerminal) {
         logger = logger->liveServer(*serverRoom);
     if(logToTerminal)
         logger = logger->logToFile(std::cout);
-
-    unsigned short int winner;
-    while((winner = state.getWinner()) == 0) {
-        if(state.timestep == Timestep::BEGIN)
-            agents[state.iActive]->onBegin(state);
-        auto [ newState, step ] = state.advance(*agents[state.iActive], *agents[1 - state.iActive]);
-        state = newState;
-        logger->addStep(std::move(step));
+    try { //A disconnected agent should be able to throw an exception and kill the game.
+        unsigned short int winner;
+        while ((winner = state.getWinner()) == 0) {
+            if (state.timestep == Timestep::BEGIN)
+                agents[state.iActive]->onBegin(state);
+            auto[newState, step] = state.advance(*agents[state.iActive], *agents[1 - state.iActive]);
+            state = newState;
+            logger->addStep(std::move(step));
+        }
+        delete logger;
+        return winner;
+    } catch(AgentSurrenderedException& ex) {
+        return 1 - ex.id;
     }
-    delete logger;
-    return winner;
 }
 
 std::tuple<State, uptr<Step>> State::advance(Agent& active, Agent& opponent) const {

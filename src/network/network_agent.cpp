@@ -9,25 +9,32 @@ NetworkAgent::NetworkAgent(uint myId, Spectator* sender)
 {
 }
 
-std::vector<NetworkAgent> NetworkAgent::makeAgents(unsigned short int nb, ServerRoom& room, unsigned int startingId){
+std::vector<std::unique_ptr<NetworkAgent>> NetworkAgent::makeAgents(unsigned short nb, ServerRoom &room, unsigned int startingId){
     std::cout << "(main) make agents\n";
     std::vector<Spectator*> notConnectedAgents(nb);
     Semaphore semaphore(0);
     for(int i = 0; i<nb; i++){
-        room.expectNewAgent(i+1, notConnectedAgents[i], semaphore);
+        room.expectNewAgent(i+1, notConnectedAgents[i], &semaphore);
     }
     std::cout << "(main) wait for agents...\n";
     semaphore.acquire(nb); //waits until all nb threads have released the semaphore once
     std::cout << "(main) found agents!\n";
-    std::vector<NetworkAgent> retVal;
-    for(int i = 0; i<nb; i++)
-        retVal.emplace_back(startingId + i, notConnectedAgents[i]);
+    std::vector<std::unique_ptr<NetworkAgent>> retVal;
+    for(int i = 0; i<nb; i++) {
+        auto agent = std::make_unique<NetworkAgent>(startingId + i, notConnectedAgents[i]);
+        retVal.push_back(std::move(agent));
+    }
     return retVal;
 }
 
 uint NetworkAgent::input(uint min, uint max) {
     while(true){
-        std::string str = sender->get();
+        std::string str;
+        try {
+            str = sender->get();
+        } catch(DisconnectedException&){
+            throw AgentSurrenderedException(myId);
+        }
         try {
             long int_val = std::stol(str);
             if (int_val >= 0) {

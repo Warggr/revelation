@@ -25,7 +25,7 @@ int main(){
     std::thread network_thread(&Server::start, &server);
 
     auto networkAgents = NetworkAgent::makeAgents(2, room);
-    std::array<Agent*, 2> agents = { &networkAgents[0], &networkAgents[1] };
+    std::array<std::unique_ptr<Agent>, 2> agents = { std::move(networkAgents[0]), std::move(networkAgents[1]) };
 
     //Generator seedForTeams = getRandom();
     std::array<Team, 2> teams = { mkEurope(), mkNearEast() };
@@ -34,7 +34,7 @@ int main(){
 
     std::cout << "Using seed " << seed << '\n';
 
-	Game game(std::move(teams), agents, seed);
+	Game game(std::move(teams), std::move(agents), seed);
 	unsigned short int winner = game.play(&room, true);
     std::cout << winner << " won!\n";
 }

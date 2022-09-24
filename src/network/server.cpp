@@ -11,8 +11,19 @@ Server::Server(const char* ipAddress, unsigned short port)
 
 std::pair<RoomId, ServerRoom&> Server::addRoom() {
     std::cout << "(main) Add room to server\n";
-    auto newRoomId = lastUsedIdentifier++;
-    auto [iter, success] = rooms.insert({newRoomId, ServerRoom()});
-    //assert(success);
+    RoomId newRoomId = lastUsedIdentifier++;
+    auto [iter, success] = rooms.insert({newRoomId, ServerRoom(newRoomId, this)});
+    //assert(success and iter->first == newRoomId);
     return { newRoomId, iter->second };
+}
+
+void Server::askForRoomDeletion(RoomId id) {
+    std::cout << "(main server) room deletion requested\n";
+    net::post(ioc, [&room=rooms.find(id)->second]{ room.interrupt(); });
+    net::post(ioc, [&,id=id]{
+        std::cout << "(async server) room deletion in progress...\n";
+        rooms.erase(id);
+        std::cout << "(async server) ...room deleted!\n";
+        nbAvailableRooms.release();
+    });
 }

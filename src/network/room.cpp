@@ -5,10 +5,27 @@
 #include "room.hpp"
 #include "spectator.hpp"
 #include "network_agent.hpp"
+#include "server.hpp"
 #include <algorithm>
 #include <iostream>
 
-ServerRoom::ServerRoom() = default;
+#ifdef HTTP_CONTROLLED_SERVER
+void ServerRoom::launchGame(std::array<Team, 2>&& teams, RoomId id){
+    auto array_shared = new std::array<Team, 2>(std::move(teams));
+    std::cout << "(network thread) Launching game\n";
+    myThread = std::thread([&,array_shared=array_shared,id=id]{
+        std::cout << "(game thread) Launching game thread, waiting for agents...\n";
+        Game game(std::move(*array_shared), NetworkAgent::makeTwoAgents(*this));
+        std::cout << "(game thread) ...agents found, game in progress...\n";
+        game.play(this, false);
+        std::cout << "(game thread) ...game finished, ask server for deletion\n";
+        server->askForRoomDeletion(id);
+        delete array_shared;
+    });
+}
+#endif
+
+ServerRoom::ServerRoom(RoomId, Server* server): server(server){};
 
 void ServerRoom::setGreeterMessage(const std::string& greeterMessage) {
     this->greeterMessage = "{\"state\":";
@@ -19,10 +36,6 @@ void ServerRoom::setGreeterMessage(const std::string& greeterMessage) {
         auto message = std::make_shared<const std::string>(this->greeterMessage + "]}");
         client->send(message);
     }
-}
-
-void ServerRoom::leave(Spectator& session){
-    sessions.erase(&session);
 }
 
 void ServerRoom::join(Spectator& session){
@@ -55,15 +68,23 @@ Spectator* ServerRoom::addSpectator(tcp::socket&& socket, AgentId id){
         auto iter_agent = waitingAgents.find(id);
         if(iter_agent == waitingAgents.end()) return nullptr; //no such seat
         if(iter_agent->second.claimed) return nullptr; //seat already claimed
+        iter_agent->second.claimed = true;
     }
 
     auto ptr = new Spectator(std::move(socket), *this, id);
     return ptr;
 }
 
-void ServerRoom::onConnectAgent(AgentId id, Spectator* agent) {
+void ServerRoom::onConnectAgent(AgentId agentId, Spectator* agent) {
     std::cout << "(async) agent connected\n";
-    WaitingAgent waiting = waitingAgents.extract(id).mapped();
+    WaitingAgent waiting = waitingAgents.extract(agentId).mapped();
     waiting.agent = agent;
-    waiting.release_on_connect.release();
+    if(waiting.release_on_connect) waiting.release_on_connect->release();
+}
+
+void ServerRoom::reportAfk(Spectator* spec){
+    if(spec->id == 0){ //delete only if it is a spectator. Agents can't be deleted as long as they are used by the game
+        sessions.erase(spec);
+        delete spec;
+    }
 }

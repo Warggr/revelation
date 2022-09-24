@@ -49,6 +49,21 @@ bool read_request_path(const boost::string_view& str, RoomId& roomId, AgentId& a
     return true;
 }
 
+void HttpSession::sendResponse(http::response<http::string_body>&& res){
+    res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+
+    res.prepare_payload();
+    // The lifetime of the message has to extend
+    // for the duration of the async operation so
+    // we use a shared_ptr to manage it.
+    using response_type = typename std::decay<decltype(res)>::type;
+    auto sp = std::make_shared<response_type>(std::forward<decltype(res)>(res));
+
+    // Write the response
+    http::async_write(this->socket_, *sp,
+                      [&, sp](error_code ec, std::size_t bytes){ on_write(ec, bytes, sp->need_eof()); });
+}
+
 void HttpSession::on_read(error_code ec, std::size_t){
     std::cout << "(async http) read message\n";
     // This means they closed the connection
@@ -64,12 +79,10 @@ void HttpSession::on_read(error_code ec, std::size_t){
         return fail(ec, "read");
     }
 
-    const char* error_message;
+    const char* error_message = "Unknown error";
 
     // See if it is a WebSocket Upgrade
-    if(not websocket::is_upgrade(req_)){
-        error_message = "This server supports only WebSockets.";
-    } else {
+    if(websocket::is_upgrade(req_)){
         std::cout << "(async http) websocket upgrade heard!\n";
         // The websocket connection is established! Transfer the socket and the request to the Server
         RoomId roomId; AgentId agentId;
@@ -79,7 +92,8 @@ void HttpSession::on_read(error_code ec, std::size_t){
             if (server.rooms.find(roomId) == server.rooms.end()) {
                 error_message = "Room not found";
             } else {
-                ServerRoom &room = server.rooms[roomId];
+                ServerRoom& room = server.rooms.find(roomId)->second;
+                //ServerRoom& room = server.rooms[roomId];
                 Spectator *spec = room.addSpectator(std::move(socket_), agentId);
                 if (!spec) {
                     error_message = "Room did not accept you";
@@ -90,6 +104,22 @@ void HttpSession::on_read(error_code ec, std::size_t){
                 }
             }
         }
+    } else {
+#ifdef HTTP_CONTROLLED_SERVER
+        if(req_.target() == "/room" and req_.method() == boost::beast::http::verb::post){
+            std::array<Team, 2> teams = { mkEurope(), mkNearEast() };
+            auto [roomId, room] = server.addRoom();
+            room.launchGame(std::move(teams), roomId);
+
+            http::response<http::string_body> res{ http::status::created, req_.version() };
+            res.set(http::field::content_type, "text/plain");
+            res.keep_alive(req_.keep_alive());
+            res.body() = std::to_string(roomId);
+            sendResponse(std::move(res));
+            return;
+        }
+#endif
+        error_message = "This server only supports WebSockets";
     }
 
     std::cout << "(async http) prepare response\n";
@@ -97,21 +127,10 @@ void HttpSession::on_read(error_code ec, std::size_t){
 
     // Returns a bad request response
     http::response<http::string_body> res{http::status::bad_request, req_.version()};
-    res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
     res.set(http::field::content_type, "text/html");
     res.keep_alive(req_.keep_alive());
     res.body() = error_message;
-    res.prepare_payload();
-
-    // The lifetime of the message has to extend
-    // for the duration of the async operation so
-    // we use a shared_ptr to manage it.
-    using response_type = typename std::decay<decltype(res)>::type;
-    auto sp = std::make_shared<response_type>(std::forward<decltype(res)>(res));
-
-    // Write the response
-    http::async_write(this->socket_, *sp,
-        [&, sp](error_code ec, std::size_t bytes){ on_write(ec, bytes, sp->need_eof()); });
+    sendResponse(std::move(res));
 }
 
 void HttpSession::on_write(error_code ec, std::size_t, bool close){

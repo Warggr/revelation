@@ -13,6 +13,7 @@
 #include <streambuf>
 
 class ServerRoom;
+class NetworkAgent;
 
 namespace beast = boost::beast;
 namespace http = boost::beast::http;
@@ -28,15 +29,20 @@ class Spectator {
     std::queue<std::string> reading_queue; //All messages that haven't been read yet
     Semaphore nb_messages_unread;
     ServerRoom& room;
-    AgentId id; //Is 0 when we're not an agent, but only a spectator
-
+    bool connected = false;
     void on_accept(error_code ec);
     void on_write(error_code ec, std::size_t bytes_transferred);
     void on_read(error_code ec, std::size_t bytes_transferred);
     void fail(error_code ec, char const* what);
 public:
+    const AgentId id; //Is 0 when we're not an agent, but only a spectator
+    std::mutex shutdownMutex; //Most of Spectator's methods are run asynchronously on the network thread;
+    // only send() and get() are run synchronously on the main thread.
+    // This mutex makes sure that the Spectator doesn't close asynchronously while we're doing something synchronously.
+
     Spectator(tcp::socket socket, ServerRoom& room, AgentId id = 0);
     ~Spectator();
+    void disconnect();
 
     //Accepts the websocket handshake asynchronously
     template<class Body, class Allocator>
