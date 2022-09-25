@@ -42,7 +42,7 @@ uint NetworkAgent::input(uint min, uint max) {
                 if (min <= uint_val and uint_val <= max) return uint_val;
             }
         } catch(std::invalid_argument&){ }
-        sender->send(std::make_shared<std::string>("!Wrong value"));
+        sender->send(std::make_shared<std::string>(std::string("!Wrong value: `") + str + '`'));
     }
 }
 
