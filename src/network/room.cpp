@@ -25,7 +25,7 @@ void ServerRoom::launchGame(std::array<Team, 2>&& teams, RoomId id){
 }
 #endif
 
-ServerRoom::ServerRoom(RoomId, Server* server): server(server){};
+ServerRoom::ServerRoom(RoomId, Server* server): server(server){}
 
 void ServerRoom::setGreeterMessage(const std::string& greeterMessage) {
     this->greeterMessage = "{\"state\":";
