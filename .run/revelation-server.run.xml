@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="revelation-server" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="0.0.0.0 8000" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="revelation" TARGET_NAME="revelation-server" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="revelation" RUN_TARGET_NAME="revelation-server">
+    <method v="2">
+      <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+    </method>
+  </configuration>
+</component>
