@@ -17,6 +17,7 @@ class Server {
     Listener listener; // The Listener listens for new clients and adds them to the Rooms
     Semaphore nbAvailableRooms { TOTAL_AVAILABLE_ROOMS };
     std::unordered_set<HttpSession*> sessions; //all these pointers are owning
+    std::pair<RoomId, ServerRoom&> addRoom(RoomId newRoomId);
 public:
     std::unordered_map<RoomId, ServerRoom> rooms; //Each room contains a list of established WebSocket connections.
 
@@ -24,7 +25,7 @@ public:
 
     ~Server();
 
-    std::pair<RoomId, ServerRoom&> addRoom();
+    std::pair<RoomId, ServerRoom&> addRoom(){ return addRoom(++lastUsedIdentifier); }
 
     void askForRoomDeletion(RoomId id);
 

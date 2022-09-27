@@ -8,6 +8,7 @@ Server::Server(const char* ipAddress, unsigned short port)
     : listener( *this, ioc, tcp::endpoint{net::ip::make_address(ipAddress), port} )
 {
     std::cout << "(main) Starting server\n";
+    addRoom(0);
 }
 
 Server::~Server(){
@@ -40,13 +41,12 @@ void Server::stop(){
     for(auto& [id, room] : rooms){
         room.interrupt();
     }
-    nbAvailableRooms.acquire(TOTAL_AVAILABLE_ROOMS);
-    ioc.stop();
+    ioc.stop(); //Stop io_context. Now the only things that can block are in the game threads.
+    rooms.clear(); //Closing all rooms (some might wait for their game to end)
 }
 
-std::pair<RoomId, ServerRoom&> Server::addRoom() {
+std::pair<RoomId, ServerRoom&> Server::addRoom(RoomId newRoomId) {
     std::cout << "(main) Add room to server\n";
-    RoomId newRoomId = lastUsedIdentifier++;
     auto [iter, success] = rooms.insert({newRoomId, ServerRoom(newRoomId, this)});
     //assert(success and iter->first == newRoomId);
     return { newRoomId, iter->second };
@@ -59,7 +59,8 @@ void Server::askForRoomDeletion(RoomId id) {
         std::cout << "(async server) room deletion in progress...\n";
         rooms.erase(id);
         std::cout << "(async server) ...room deleted!\n";
-        nbAvailableRooms.release();
+        if(id == 0)
+            addRoom(0);
     });
 }
 
