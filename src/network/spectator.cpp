@@ -37,8 +37,8 @@ void Spectator::on_accept(error_code ec){
     //Starting the message reading loop
     ws.async_read(
         buffer,
-        [&](error_code ec, std::size_t bytes) {
-            on_read(ec, bytes);
+        [sp=shared_from_this()](error_code ec, std::size_t bytes) {
+            sp->on_read(ec, bytes);
         }
     );
 }
@@ -72,8 +72,8 @@ void Spectator::send(const std::shared_ptr<const std::string>& message){
         // We are not currently writing, so send this immediately
         ws.async_write(
                 net::buffer(*writing_queue.front()),
-                [&](error_code ec, std::size_t bytes) {
-                    on_write(ec, bytes);
+                [sp=shared_from_this()](error_code ec, std::size_t bytes) {
+                    sp->on_write(ec, bytes);
                 }
         );
     }
@@ -91,8 +91,8 @@ void Spectator::on_write(error_code ec, std::size_t){
     if(! writing_queue.empty())
         ws.async_write(
             net::buffer(*writing_queue.front()),
-            [&](error_code ec, std::size_t bytes){
-                on_write(ec, bytes);
+            [sp=shared_from_this()](error_code ec, std::size_t bytes){
+                sp->on_write(ec, bytes);
             });
 }
 
@@ -129,8 +129,8 @@ void Spectator::on_read(error_code ec, std::size_t size) {
     // Read another message
     ws.async_read(
         buffer,
-        [&](error_code ec, std::size_t bytes) {
-            on_read(ec, bytes);
+        [sp=shared_from_this()](error_code ec, std::size_t bytes) {
+            sp->on_read(ec, bytes);
         }
     );
 }

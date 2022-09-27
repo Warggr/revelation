@@ -22,7 +22,7 @@ namespace websocket = boost::beast::websocket;
 using AgentId = unsigned short int;
 
 /** Represents an active WebSocket connection to the server. */
-class Spectator {
+class Spectator : public std::enable_shared_from_this<Spectator> {
     beast::flat_buffer buffer; //Only used for reading
     websocket::stream<tcp::socket> ws;
     std::queue<std::shared_ptr<const std::string>> writing_queue; //All messages that haven't been sent yet
@@ -36,9 +36,6 @@ class Spectator {
     void fail(error_code ec, char const* what);
 public:
     const AgentId id; //Is 0 when we're not an agent, but only a spectator
-    std::mutex shutdownMutex; //Most of Spectator's methods are run asynchronously on the network thread;
-    // only send() and get() are run synchronously on the main thread.
-    // This mutex makes sure that the Spectator doesn't close asynchronously while we're doing something synchronously.
 
     Spectator(tcp::socket socket, ServerRoom& room, AgentId id = 0);
     ~Spectator();
@@ -47,8 +44,11 @@ public:
     //Accepts the websocket handshake asynchronously
     template<class Body, class Allocator>
     void run(http::request<Body, http::basic_fields<Allocator>> req){
-        ws.async_accept( req, [&](error_code ec){ on_accept(ec); } );
+        ws.async_accept( req, [sp=shared_from_this()](error_code ec){ sp->on_accept(ec); } );
     }
+
+    //Most of Spectator's methods are run asynchronously on the network thread;
+    // only send() and get() are run synchronously on the main thread.
 
     void send(const std::shared_ptr<const std::string>& message);
 

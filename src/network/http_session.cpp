@@ -69,13 +69,13 @@ void HttpSession::on_read(error_code ec, std::size_t){
     // This means they closed the connection
     if(ec == http::error::end_of_stream){
         socket_.shutdown(tcp::socket::shutdown_send, ec);
-        delete this;
+        server.askForHttpSessionDeletion(this);
         return;
     }
 
     // Handle the error, if any
     if(ec){
-        delete this;
+        server.askForHttpSessionDeletion(this);
         return fail(ec, "read");
     }
 
@@ -94,12 +94,12 @@ void HttpSession::on_read(error_code ec, std::size_t){
             } else {
                 ServerRoom& room = server.rooms.find(roomId)->second;
                 //ServerRoom& room = server.rooms[roomId];
-                Spectator *spec = room.addSpectator(std::move(socket_), agentId);
+                auto spec = room.addSpectator(std::move(socket_), agentId);
                 if (!spec) {
                     error_message = "Room did not accept you";
                 } else {
                     spec->run(std::move(req_));
-                    delete this; //don't schedule any further network operations, delete this, and die.
+                    server.askForHttpSessionDeletion(this); //don't schedule any further network operations, delete this, and die.
                     return;
                 }
             }
@@ -142,7 +142,7 @@ void HttpSession::on_write(error_code ec, std::size_t, bool close){
         // This means we should close the connection, usually because
         // the response indicated the "Connection: close" semantic.
         socket_.shutdown(tcp::socket::shutdown_send, ec);
-        delete this;
+        server.askForHttpSessionDeletion(this);
         return;
     }
 

@@ -12,6 +12,7 @@
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <memory>
 #ifdef HTTP_CONTROLLED_SERVER
 #include "control/game.hpp"
 #include <thread>
@@ -30,7 +31,7 @@ struct WaitingAgent {
 /* Represents a room on the server on which a game takes place (or will take place shortly) */
 class ServerRoom {
     std::string greeterMessage; //The message that will be sent to every new spectator
-    std::unordered_set<Spectator*> sessions; //All these pointers are owning (they could've been unique_ptr's)
+    std::unordered_set<std::shared_ptr<Spectator>> sessions;
     bool firstStep;
     std::unordered_map<AgentId, WaitingAgent> waitingAgents; //The agents that are supposed to join the room and haven't done so yet
     Server* const server;
@@ -43,7 +44,6 @@ public:
 #ifdef HTTP_CONTROLLED_SERVER
         if(myThread.joinable()) myThread.join();
 #endif
-        for(const auto& session: sessions) delete session;
     }
     ServerRoom(ServerRoom&& move) = default;
 #ifdef HTTP_CONTROLLED_SERVER
@@ -52,17 +52,17 @@ public:
     void setGreeterMessage(const std::string& greeterMessage);
 
     //Create a Spectator and allows it to join once it has done the websocket handshake
-    Spectator* addSpectator(tcp::socket&& socket, AgentId id = 0);
+    std::shared_ptr<Spectator> addSpectator(tcp::socket&& socket, AgentId id = 0);
 
     void join (Spectator& session);
-    void send  (const std::string& message);
+    void send (const std::string& message);
 
     void expectNewAgent(AgentId agentId, Spectator*& agent, Semaphore* release_once_found){
         waitingAgents.insert({ agentId, {agent, release_once_found, false} });
     }
 
     void interrupt(){ //signals the game that it should end as soon as possible.
-        for(const auto session: sessions) session->disconnect();
+        for(const auto& session: sessions) session->disconnect();
     }
 
     void reportAfk(Spectator* spec);

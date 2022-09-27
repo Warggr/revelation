@@ -40,7 +40,7 @@ void ServerRoom::setGreeterMessage(const std::string& greeterMessage) {
 
 void ServerRoom::join(Spectator& session){
     std::cout << "(async) spectator joined\n";
-    sessions.insert(&session);
+    sessions.insert(session.shared_from_this());
     if(this->greeterMessage.size() != 0){
         auto message = std::make_shared<const std::string>(this->greeterMessage + "]}");
         session.send(message);
@@ -63,7 +63,7 @@ void ServerRoom::send(const std::string& message){
         session->send(ss);
 }
 
-Spectator* ServerRoom::addSpectator(tcp::socket&& socket, AgentId id){
+std::shared_ptr<Spectator> ServerRoom::addSpectator(tcp::socket&& socket, AgentId id){
     if(id != 0){
         auto iter_agent = waitingAgents.find(id);
         if(iter_agent == waitingAgents.end()) return nullptr; //no such seat
@@ -71,7 +71,7 @@ Spectator* ServerRoom::addSpectator(tcp::socket&& socket, AgentId id){
         iter_agent->second.claimed = true;
     }
 
-    auto ptr = new Spectator(std::move(socket), *this, id);
+    auto ptr = std::make_shared<Spectator>(std::move(socket), *this, id);
     return ptr;
 }
 
@@ -84,7 +84,6 @@ void ServerRoom::onConnectAgent(AgentId agentId, Spectator* agent) {
 
 void ServerRoom::reportAfk(Spectator* spec){
     if(spec->id == 0){ //delete only if it is a spectator. Agents can't be deleted as long as they are used by the game
-        sessions.erase(spec);
-        delete spec;
+        sessions.erase(spec->shared_from_this());
     }
 }

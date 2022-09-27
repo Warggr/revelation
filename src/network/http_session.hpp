@@ -24,14 +24,9 @@ class HttpSession {
     void sendResponse(http::response<http::string_body>&& res);
     void on_read(error_code ec, std::size_t);
     void on_write(error_code ec, std::size_t, bool close);
+public:
     explicit HttpSession(tcp::socket&& socket, Server& server);
     void run();
-public:
-    static void start(tcp::socket&& socket, Server& server){
-        //Sessions delete themselves when they don't have any tasks anymore.
-        auto* session = new HttpSession(std::move(socket), server);
-        session->run();
-    }
 };
 
 #endif

@@ -32,6 +32,7 @@ bool Game::play(ServerRoom* serverRoom, bool logToTerminal) {
         delete logger;
         return winner;
     } catch(AgentSurrenderedException& ex) {
+        delete logger;
         return 1 - ex.id;
     }
 }

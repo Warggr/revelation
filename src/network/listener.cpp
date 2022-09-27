@@ -54,7 +54,7 @@ void Listener::on_accept(error_code ec){
     if(ec) return fail(ec, "accept");
 
     // Launch a new session for this connection
-    HttpSession::start(std::move(socket), server);
+    server.addSession(std::move(socket));
 
     // Accept another connection
     acceptor.async_accept(
