@@ -113,6 +113,7 @@ void HttpSession::on_read(error_code ec, std::size_t){
 
             http::response<http::string_body> res{ http::status::created, req_.version() };
             res.set(http::field::content_type, "text/plain");
+            res.set(http::field::access_control_allow_origin, "*");
             res.keep_alive(req_.keep_alive());
             res.body() = std::to_string(roomId);
             sendResponse(std::move(res));
