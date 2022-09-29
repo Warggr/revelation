@@ -15,4 +15,7 @@ using error_code = boost::system::error_code;
 struct DisconnectedException: public std::exception{
 };
 
+struct TimeoutException: public std::exception{
+};
+
 #endif

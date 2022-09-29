@@ -41,6 +41,10 @@ class ServerRoom {
 public:
     ServerRoom(RoomId id, Server* server);
     ~ServerRoom(){
+        for(auto& [i, waiting] : waitingAgents){
+            waiting.agent = nullptr;
+            if(waiting.release_on_connect) waiting.release_on_connect->release();
+        }
 #ifdef HTTP_CONTROLLED_SERVER
         if(myThread.joinable()) myThread.join();
 #endif

@@ -15,10 +15,14 @@ void ServerRoom::launchGame(std::array<Team, 2>&& teams, RoomId id){
     std::cout << "(network thread) Launching game\n";
     myThread = std::thread([&,array_shared=array_shared,id=id]{
         std::cout << "(game thread) Launching game thread, waiting for agents...\n";
-        Game game(std::move(*array_shared), NetworkAgent::makeTwoAgents(*this));
-        std::cout << "(game thread) ...agents found, game in progress...\n";
-        game.play(this, false);
-        std::cout << "(game thread) ...game finished, ask server for deletion\n";
+        try {
+            Game game(std::move(*array_shared), NetworkAgent::makeTwoAgents(*this));
+            std::cout << "(game thread) ...agents found, game in progress...\n";
+            game.play(this, false);
+            std::cout << "(game thread) ...game finished, ask server for deletion\n";
+        }
+        catch(TimeoutException&) {}
+        catch(DisconnectedException&) {}
         server->askForRoomDeletion(id);
         delete array_shared;
     });
@@ -41,7 +45,7 @@ void ServerRoom::setGreeterMessage(const std::string& greeterMessage) {
 void ServerRoom::join(Spectator& session){
     std::cout << "(async) spectator joined\n";
     sessions.insert(session.shared_from_this());
-    if(this->greeterMessage.size() != 0){
+    if(not this->greeterMessage.empty()){
         auto message = std::make_shared<const std::string>(this->greeterMessage + "]}");
         session.send(message);
     } else {

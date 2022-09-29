@@ -27,6 +27,26 @@ public:
         }
         //else just release the lock and continue
     }
+    bool try_acquire(){
+        if(count <= 0) return false;
+        acquire();
+        return true;
+    }
+    template<class Rep, class Period>
+    bool try_acquire_for(const std::chrono::duration<Rep, Period>& rel_time){
+        std::unique_lock<std::mutex> lock(m);
+        count--;
+        if(count < 0) {
+            std::cout << "(mutex) waiting...\n";
+            bool success = cv.wait_for(lock, rel_time, [&]{ return count >= 0; });
+            std::cout << "(mutex) wait finished! count is " << count << '\n';
+            if(not success) count++; //revert
+            return success;
+        } else {
+            //just release the lock and continue
+            return true;
+        }
+    }
     void release(unsigned short int i = 1){
         std::cout << "(mutex) release " << i << "\n";
         {

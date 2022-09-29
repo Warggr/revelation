@@ -15,7 +15,6 @@ class Server {
     RoomId lastUsedIdentifier = 0;
     net::io_context ioc; // The io_context is required for all I/O
     Listener listener; // The Listener listens for new clients and adds them to the Rooms
-    Semaphore nbAvailableRooms { TOTAL_AVAILABLE_ROOMS };
     std::unordered_set<HttpSession*> sessions; //all these pointers are owning
     std::pair<RoomId, ServerRoom&> addRoom(RoomId newRoomId);
 public:

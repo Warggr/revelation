@@ -60,7 +60,11 @@ std::pair<RoomId, ServerRoom&> Server::addRoom(RoomId newRoomId) {
 
 void Server::askForRoomDeletion(RoomId id) {
     std::cout << "(main server) room deletion requested\n";
-    net::post(ioc, [&room=rooms.find(id)->second]{ room.interrupt(); });
+
+    net::post(ioc, [&,id=id] {
+        ServerRoom& room = rooms.find(id)->second;
+        room.interrupt();
+    });
     net::post(ioc, [&,id=id]{
         std::cout << "(async server) room deletion in progress...\n";
         rooms.erase(id);

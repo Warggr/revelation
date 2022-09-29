@@ -10,6 +10,8 @@ NetworkAgent::NetworkAgent(uint myId, Spectator* sender)
 }
 
 std::vector<std::unique_ptr<NetworkAgent>> NetworkAgent::makeAgents(unsigned short nb, ServerRoom &room, unsigned int startingId){
+    using namespace std::chrono_literals;
+
     std::cout << "(main) make agents\n";
     std::vector<Spectator*> notConnectedAgents(nb);
     Semaphore semaphore(0);
@@ -17,10 +19,14 @@ std::vector<std::unique_ptr<NetworkAgent>> NetworkAgent::makeAgents(unsigned sho
         room.expectNewAgent(i+1, notConnectedAgents[i], &semaphore);
     }
     std::cout << "(main) wait for agents...\n";
-    semaphore.acquire(nb); //waits until all nb threads have released the semaphore once
+    for(int i = 0; i<nb; i++){ //waits until all nb threads have released the semaphore once
+        if(not semaphore.try_acquire_for(5min))
+            throw TimeoutException();
+    }
     std::cout << "(main) found agents!\n";
     std::vector<std::unique_ptr<NetworkAgent>> retVal;
     for(int i = 0; i<nb; i++) {
+        if(notConnectedAgents[i] == nullptr) throw DisconnectedException();
         auto agent = std::make_unique<NetworkAgent>(startingId + i, notConnectedAgents[i]);
         retVal.push_back(std::move(agent));
     }
