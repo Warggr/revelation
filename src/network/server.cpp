@@ -8,8 +8,13 @@
 #endif
 #include <thread>
 
+#ifdef HTTP_SERVE_FILES
+Server::Server(const char* ipAddress, unsigned short port, std::string_view doc_root)
+    : listener( *this, ioc, tcp::endpoint{net::ip::make_address(ipAddress), port} ), doc_root(doc_root)
+#else
 Server::Server(const char* ipAddress, unsigned short port)
     : listener( *this, ioc, tcp::endpoint{net::ip::make_address(ipAddress), port} )
+#endif
 {
     std::cout << "(main) Starting server\n";
 }

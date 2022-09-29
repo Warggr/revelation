@@ -21,7 +21,8 @@ class HttpSession {
     Server& server;
 
     void fail(error_code ec, char const* what);
-    void sendResponse(http::response<http::string_body>&& res);
+    template<typename HttpBodyType>
+    void sendResponse(http::response<HttpBodyType>&& res);
     void on_read(error_code ec, std::size_t);
     void on_write(error_code ec, std::size_t, bool close);
 public:
