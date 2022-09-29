@@ -3,12 +3,15 @@
 // Distributed under the Boost Software License, Version 1.0. (See copy at http://www.boost.org/LICENSE_1_0.txt)
 #include "server.hpp"
 #include "http_session.hpp"
+#ifdef HTTP_CONTROLLED_SERVER
+#include "setup/team.hpp"
+#endif
+#include <thread>
 
 Server::Server(const char* ipAddress, unsigned short port)
     : listener( *this, ioc, tcp::endpoint{net::ip::make_address(ipAddress), port} )
 {
     std::cout << "(main) Starting server\n";
-    addRoom(0);
 }
 
 Server::~Server(){
@@ -23,6 +26,9 @@ void Server::start(){
     //! To stop it, you need to call stop() (presumably from another thread)
     listener.listen();
 
+#ifdef HTTP_CONTROLLED_SERVER
+    addRoom(0).second.launchGame({ mkEurope(), mkNearEast() }, 0);
+#endif
     // Capture SIGINT and SIGTERM to perform a clean shutdown
     net::signal_set signals(ioc, SIGINT, SIGTERM);
     signals.async_wait([&](boost::system::error_code const&, int signal){
@@ -59,8 +65,10 @@ void Server::askForRoomDeletion(RoomId id) {
         std::cout << "(async server) room deletion in progress...\n";
         rooms.erase(id);
         std::cout << "(async server) ...room deleted!\n";
+#ifdef HTTP_CONTROLLED_SERVER
         if(id == 0)
-            addRoom(0);
+            addRoom(0).second.launchGame({ mkEurope(), mkNearEast() }, 0);
+#endif
     });
 }
 
