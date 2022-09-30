@@ -57,6 +57,7 @@ bool read_request_path(const boost::string_view& str, RoomId& roomId, AgentId& a
 template<typename HttpBodyType>
 void HttpSession::sendResponse(http::response<HttpBodyType>&& res){
     res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+    res.set(http::field::access_control_allow_origin, "*");
     res.keep_alive(req_.keep_alive());
 
     res.prepare_payload();
@@ -135,24 +136,28 @@ void HttpSession::on_read(error_code ec, std::size_t){
     }
 #ifdef HTTP_CONTROLLED_SERVER
     else if(req_.target() == "/room" and req_.method() == boost::beast::http::verb::post){
-            std::array<Team, 2> teams = { mkEurope(), mkNearEast() };
-            auto [roomId, room] = server.addRoom();
-            room.launchGame(std::move(teams), roomId);
+        std::array<Team, 2> teams = { mkEurope(), mkNearEast() };
+        auto [roomId, room] = server.addRoom();
+        room.launchGame(std::move(teams), roomId);
 
-            http::response<http::string_body> res{ http::status::created, req_.version() };
-            res.set(http::field::content_type, "text/plain");
-            res.set(http::field::access_control_allow_origin, "*");
-            res.body() = std::to_string(roomId);
-            return sendResponse(std::move(res));
+        http::response<http::string_body> res{ http::status::created, req_.version() };
+        res.set(http::field::content_type, "text/plain");
+        res.body() = std::to_string(roomId);
+        return sendResponse(std::move(res));
     }
 #endif
 #ifdef HTTP_SERVE_FILES
-    else if(req_.method() == http::verb::get or req_.method() == http::verb::head){
+    const char doc_api_path[] = "/files";
+    constexpr unsigned int doc_api_path_len = sizeof(doc_api_path) / sizeof(char) - 1;
+    if(boost::beast::iequals(doc_api_path, req_.target().substr(0, doc_api_path_len)) and
+            (req_.method() == http::verb::get or req_.method() == http::verb::head)){
+        const boost::string_view req_path = req_.target().substr(doc_api_path_len);
+
         // Request path must be absolute and not contain ".."
-        if(req_.target().empty() or req_.target()[0] != '/' or req_.target().find("..") != boost::beast::string_view::npos)
+        if(req_path.empty() or req_path[0] != '/' or req_path.find("..") != boost::beast::string_view::npos)
             return sendResponse(bad_request("Illegal request-target"));
-        std::string path = path_cat(server.doc_root, req_.target());
-        if(req_.target().back() == '/') path.append("index.html");
+        auto path = path_cat(server.doc_root, req_path);
+        if(req_path.back() == '/') path.append("index.html");
 
         // Attempt to open the file
         boost::beast::error_code error;
