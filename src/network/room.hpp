@@ -22,10 +22,12 @@ struct Team;
 
 using RoomId = unsigned short int;
 
+// Similar to a Promise<Agent> in Javascript.
+// TODO OPTIMIZE have one semaphore for multiple agents
 struct WaitingAgent {
-    Spectator*& agent;
-    Semaphore* release_on_connect;
-    bool claimed;
+    Spectator* agent = nullptr;
+    Semaphore promise;
+    bool claimed = false;
 };
 
 /* Represents a room on the server on which a game takes place (or will take place shortly) */
@@ -41,10 +43,6 @@ class ServerRoom {
 public:
     ServerRoom(RoomId id, Server* server);
     ~ServerRoom(){
-        for(auto& [i, waiting] : waitingAgents){
-            waiting.agent = nullptr;
-            if(waiting.release_on_connect) waiting.release_on_connect->release();
-        }
 #ifdef HTTP_CONTROLLED_SERVER
         if(myThread.joinable()) myThread.join();
 #endif
@@ -61,11 +59,16 @@ public:
     void join (Spectator& session);
     void send (const std::string& message);
 
-    void expectNewAgent(AgentId agentId, Spectator*& agent, Semaphore* release_once_found){
-        waitingAgents.insert({ agentId, {agent, release_once_found, false} });
+    WaitingAgent& expectNewAgent(AgentId agentId){
+        return waitingAgents[agentId]; //will create the element if it doesn't exist.
+        // TODO OPTIMIZATION this should also throw an error if the element exists
     }
 
     void interrupt(){ //signals the game that it should end as soon as possible.
+        for(auto& [i, waiting] : waitingAgents){
+            waiting.agent = nullptr;
+            waiting.promise.release();
+        }
         for(const auto& session: sessions) session->disconnect();
     }
 

@@ -9,27 +9,24 @@ NetworkAgent::NetworkAgent(uint myId, Spectator* sender)
 {
 }
 
-std::vector<std::unique_ptr<NetworkAgent>> NetworkAgent::makeAgents(unsigned short nb, ServerRoom &room, unsigned int startingId){
+std::vector<std::unique_ptr<NetworkAgent>> NetworkAgent::makeAgents(unsigned short nb, ServerRoom& room, unsigned int startingId){
     using namespace std::chrono_literals;
 
     std::cout << "(main) make agents\n";
-    std::vector<Spectator*> notConnectedAgents(nb);
-    Semaphore semaphore(0);
+    std::vector<WaitingAgent*> promisedAgents;
     for(int i = 0; i<nb; i++){
-        room.expectNewAgent(i+1, notConnectedAgents[i], &semaphore);
+        promisedAgents.push_back(&room.expectNewAgent(i+startingId));
     }
     std::cout << "(main) wait for agents...\n";
-    for(int i = 0; i<nb; i++){ //waits until all nb threads have released the semaphore once
-        if(not semaphore.try_acquire_for(5min))
-            throw TimeoutException();
-    }
-    std::cout << "(main) found agents!\n";
     std::vector<std::unique_ptr<NetworkAgent>> retVal;
     for(int i = 0; i<nb; i++) {
-        if(notConnectedAgents[i] == nullptr) throw DisconnectedException();
-        auto agent = std::make_unique<NetworkAgent>(startingId + i, notConnectedAgents[i]);
+        bool success = promisedAgents[i]->promise.try_acquire_for(5min); // "await the promise"
+        if(not success) throw TimeoutException();
+        if(promisedAgents[i]->agent == nullptr) throw DisconnectedException();
+        auto agent = std::make_unique<NetworkAgent>(i+startingId, promisedAgents[i]->agent);
         retVal.push_back(std::move(agent));
     }
+    std::cout << "(main) found agents!\n";
     return retVal;
 }
 

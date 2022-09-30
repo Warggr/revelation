@@ -81,9 +81,10 @@ std::shared_ptr<Spectator> ServerRoom::addSpectator(tcp::socket&& socket, AgentI
 
 void ServerRoom::onConnectAgent(AgentId agentId, Spectator* agent) {
     std::cout << "(async) agent connected\n";
-    WaitingAgent waiting = waitingAgents.extract(agentId).mapped();
-    waiting.agent = agent;
-    if(waiting.release_on_connect) waiting.release_on_connect->release();
+    auto iter = waitingAgents.find(agentId);
+    iter->second.agent = agent;
+    iter->second.promise.release();
+    waitingAgents.erase(iter);
 }
 
 void ServerRoom::reportAfk(Spectator* spec){
