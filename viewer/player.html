@@ -24,10 +24,29 @@
 		<button onclick="loadFile();" id="load-file-button">Datei laden</button>
 	</div>
 	<div>
+		<h2>Character auswählen</h2>
+		<label for="chosenChar">Character hier ausw&auml;hlen:</label>
+		<input type="text" id="chosenChar"/>
+		<button onclick="sockSendCharacter();">Auswählen</button>
+		<br/>
+	</div>
+	<div>
+		<h2>Position auswählen</h2>
+		<label for="chosenPos">Position hier ausw&auml;hlen:</label>
+		<input type="text" id="chosenPos"/>
+		<button onclick="sockSendCharacter();">Auswählen</button>
+		<br/>
+	</div>
+	<div>
 		<h2>Mit Live-Server verbinden</h2>
 		<label for="server-to-connect">Server-Adresse</label>
-		<input type="text" id="server-to-connect" value="localhost:8000"/>
-		<button onclick="connectToServer();">Mit Server verbinden</button>
+		<input type="text" id="server-to-connect" value="revelation-server-2.westeurope.cloudapp.azure.com:8000"/>
+		<label for="teamNr">Teamnummer eingeben</label>
+		<input type="text" id="teamNr"/>
+		<input type="text" value="submit" id="roomNr"/>
+		<button onclick="httpRequest();">Neuen Raum starten</button>
+		<input type="text" value="submit" id="existingRoomNr"/>
+		<button onclick="connectToServer();">Raum beitreten</button>
 		<span>Status:</span><span id="connection-status">Nicht verbunden</span>
 	</div>
 </body>
@@ -78,12 +97,16 @@
 		else pause(playBtn);
 	}
 	const reloadNbSteps = () => {
-		document.getElementById('nb-steps').textContent = '/' + (steps.length + currentStep); 
+		document.getElementById('nb-steps').textContent = '/' + (steps.length + currentStep);
 	}
 	const reloadCurrentStep = () => { document.getElementById('current-step').textContent = currentStep; }
 	const restart = (stepsNState) => {
 		state = stepsNState.state;
-		steps = stepsNState.steps;
+		if(typeof stepsNState.steps !== 'undefined') {
+			steps = stepsNState.steps;
+		} else {
+			steps = []
+		}
 		inverts = [];
 		currentStep = 0;
 		reloadNbSteps(); reloadCurrentStep();
@@ -100,35 +123,79 @@
 		reader.onerror = () => { console.warn('Could not load file because...\n' + reader.error); }
 		reader.readAsText(file);
 	}
+
+	function httpRequest()  {
+		const openRoom = new XMLHttpRequest();
+		openRoom.onreadystatechange = () => {
+			if(openRoom.readyState === XMLHttpRequest.DONE) {
+				if(openRoom.status < 300) {
+					console.log(openRoom.responseText);
+					document.getElementById("roomNr").value = openRoom.responseText;
+				} else {
+					console.warn("ERROR");
+				}
+			}
+		}
+		openRoom.open("POST", "https://cors-anywhere.herokuapp.com/http://revelation-server-2.westeurope.cloudapp.azure.com:8000/room", true);
+		openRoom.send();
+		return openRoom.responseText;
+	}
+
 	const connectToServer = () => {
 		const url = document.getElementById('server-to-connect').value;
+		const teamNr = document.getElementById('teamNr').value;
+		const roomNr = document.getElementById('existingRoomNr').value;
+
 		connectionStatusDom.textContent = 'Verbindung starten...';
 		if(window.WebSocket === undefined) {
 			connectionStatusDom.textContent = 'WebSockets nicht unterstützt!';
 			return;
 		}
 
-		socket = new WebSocket('ws://' + url);
+		socket = new WebSocket('ws://' + url + '/' + roomNr + '/' + teamNr);
 		socket.onopen = (event) => {
 			connectionStatusDom.textContent = 'Verbunden';
 			initialized = false;
 		};
+
 		socket.onclose = (event) => { connectionStatusDom.textContent = 'Nicht verbunden'; };
 		socket.onmessage = (event) => {
+			try {
+				JSON.parse(event.data)
+				initialized = true;
+			} catch (e) {
+				initialized = false;
+			}
 			console.log(event.data);
-			if(!initialized){
+
+			if(JSON.stringify(event.data).includes("state") && initialized) {
 				stepsNState = readGame(event.data);
 				restart(stepsNState);
 				connectionStatusDom.textContent = 'Bereit';
 				initialized = true;
-			} else {
-				let step = readStep(event.data);
+			}
+
+			else if(JSON.stringify(event.data).includes("action") && !JSON.stringify(event.data).includes("state") )
+			{
+				let step = readStep(event.data, socket);
 				steps.push(step);
 				reloadNbSteps();
 				if(steps.length == 1) nxt();
 			}
+			else if(JSON.stringify(event).includes("which character")) {
+				socket.send(chosenChar.value);
+			}
+			else if(JSON.stringify(event).includes("which position")) {
+				socket.send(chosenPos.value);
+			}
 		}
 		socket.onerror = (err) => { console.error(err); }
+	}
+
+	var chosenChar = document.getElementById('chosenChar');
+
+	function sockSendCharacter() {
+		socket.send(chosenChar.value);
 	}
 
 	const urlParams = new URLSearchParams(window.location.search);
@@ -137,5 +204,10 @@
 		document.getElementById('server-to-connect').value = liveurl;
 		connectToServer();
 	}
+
+	var calculateMoves = function(content) {
+		var moves = JSON.parse(content);
+	}
+
 </script>
 </html>

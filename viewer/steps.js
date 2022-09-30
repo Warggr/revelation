@@ -21,6 +21,7 @@ function teamClass(iTeam){
 function characterFactory(char, iTeam){
 	let charDom = document.createElement('div');
 	charDom.id = 'cid-' + char.cid;
+	charDom.onclick = "sockSendCharacter();";
 	charDom.classList.add( teamClass(iTeam) );
 	charDom.classList.add('character');
 	charDom.classList.add('team-' + (iTeam+1));
@@ -272,6 +273,7 @@ function createState(teams, names, board){
 		header.innerHTML = `<h3>${teamNames[i]}</h3>`;
 		let resourceList = document.createElement('ul');
 		resourceList.classList.add('resource-list');
+		console.log("WELCOME");
 		resourceLists.push(resourceList);
 		header.appendChild(resourceList);
 		header.style.cssText += 'margin:1;'
@@ -281,6 +283,7 @@ function createState(teams, names, board){
 		headers.push(header);
 
 		for(let j=0; j<2; j++) {
+			resourceLists.push([]);
 			let team = teams[i];
 			let pos = board[j];
 			if (i == 0) {
@@ -306,21 +309,27 @@ function createState(teams, names, board){
 			}
 		}
 	}
-
 	screen.prepend(headers[0]);
 	screen.append(headers[1]);
 
 	return null;
 }
 
-function readGame(content){
-	let ret = JSON.parse(content);
-	let teams = ret.state.aliveUnits;
-	let names = ret.state.teamNames;
-	let board = ret.state.board;
-	let state = createState(teams, names, board);
+var socket;
 
-	return { state : state, steps : ret.steps }
+function readGame(content, socket){
+	try {
+		socket = socket;
+		const ret = JSON.parse(content);
+		let teams = ret.state.aliveUnits;
+		let names = ret.state.teamNames;
+		let board = ret.state.board;
+		let state = createState(teams, names, board);
+
+		return { state : state, steps : ret.steps }
+	} catch(e) {
+		return "No parsing";
+	}
 }
 
 function readStep(content) {

@@ -9,6 +9,7 @@ div.board-field {
 	background: white;
 	color: black;
 	margin: 4px;
+	cursor: pointer;
 }
 
 div#screen {
