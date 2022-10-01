@@ -8,10 +8,10 @@ function discard(name){
 	allSuitableResources[0].remove();
 }
 
-function draw(name){
+function draw(name, who){
 	let resource = document.createElement('li');
 	resource.textContent = name;
-	resourceLists[iActive].appendChild(resource);
+	resourceLists[who].appendChild(resource);
 }
 
 function teamClass(iTeam){
@@ -166,7 +166,7 @@ function apply(step, backwards) {
 		}
 		case 'draw': {
 			let textContent = step.clss + ' - ' + step.value;
-			if(!backwards) draw(textContent);
+			if(!backwards) draw(textContent, iActive);
 			else discard(textContent);
 			return step;
 		}
@@ -206,7 +206,7 @@ function apply(step, backwards) {
 					charDom = boardDom.children[ step.object[1] + FULL_BOARD_WIDTH*step.object[0] ].firstChild;
 				}
 				charDom.children[1].children[0].textContent = step.setLife + step.lostLife;
-				draw('action - ' + step.cardLost);
+				draw('action - ' + step.cardLost, iActive);
 				return step;
 			}
 		}
@@ -219,7 +219,7 @@ function apply(step, backwards) {
 			} else {
 				iActive = 1 - iActive;
 				subject.children[0].children[1].children[0].textContent = step.permanent - 50;
-				draw('action - ' + step.cardLost);
+				draw('action - ' + step.cardLost, iActive);
 			}
 			return step;
 		}
@@ -234,7 +234,7 @@ var resourceLists = [];
 var screen = null;
 var iActive = 0;
 
-function createState(teams, names, board){
+function createState(teams, names, board, players){
 	for(let team of teams)
 		for(let row of team)
 				if(!row.HP) row.HP = row.maxHP;
@@ -283,7 +283,6 @@ function createState(teams, names, board){
 		headers.push(header);
 
 		for(let j=0; j<2; j++) {
-			resourceLists.push([]);
 			let team = teams[i];
 			let pos = board[j];
 			if (i == 0) {
@@ -312,6 +311,11 @@ function createState(teams, names, board){
 	screen.prepend(headers[0]);
 	screen.append(headers[1]);
 
+	for(let iPlayer=0; iPlayer<2; iPlayer++){
+		for(let card of players[iPlayer].actions) draw('action - ' + card, iPlayer);
+		for(let card of players[iPlayer].resources) draw('resource - ' + card, iPlayer);
+	}
+
 	return null;
 }
 
@@ -321,10 +325,11 @@ function readGame(content, socket){
 	try {
 		socket = socket;
 		const ret = JSON.parse(content);
+		let init = ret.state;
 		let teams = ret.state.aliveUnits;
 		let names = ret.state.teamNames;
 		let board = ret.state.board;
-		let state = createState(teams, names, board);
+		let state = createState(teams, names, board, init.players);
 
 		return { state : state, steps : ret.steps }
 	} catch(e) {

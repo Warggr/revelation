@@ -48,6 +48,8 @@ void to_json(json& j, const Character& chr){
 
 void to_json(json& j, const Player& player){
     j["actionDeckSize"] = player.deck.sizeconfig();
+    j["actions"] = player.getActions();
+    j["resources"] = player.getResourceCards();
 }
 
 void to_json(json& j, const State& state) {
