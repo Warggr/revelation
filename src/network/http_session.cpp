@@ -5,7 +5,10 @@
 #include "http_session.hpp"
 #include "spectator.hpp"
 #include "server.hpp"
+#include "nlohmann/json.hpp"
 #include <iostream>
+
+using json = nlohmann::json;
 
 #ifdef HTTP_SERVE_FILES
 std::string path_cat(boost::beast::string_view base, boost::beast::string_view path);
@@ -146,12 +149,38 @@ void HttpSession::on_read(error_code ec, std::size_t){
         return sendResponse(std::move(res));
     }
 #endif
+    else if(req_.target() == "/room/" and req_.method() == boost::beast::http::verb::get){
+        json j = json::array();
+        for(const auto& [ roomId, room ] : server.getRooms()){
+            json agents = json::array({ "Unavailable", "Unavailable" });
+            unsigned nbSpectators = 0;
+            for(const auto& [ agentId, agent ] : room.getWaitingAgents()){
+                agents[agentId-1] = (agent->claimed ? std::string("claimed") : std::string("free"));
+            }
+            for(const auto& spectator: room.getSpectators()){
+                if(spectator->id != 0)
+                    agents[spectator->id-1] = "connected";
+                else nbSpectators++;
+            }
+            j.push_back(json({
+                {"id", roomId},
+                {"agents", agents},
+                {"spectators", nbSpectators}
+            }));
+        }
+        http::response<http::string_body> res{ http::status::ok, req_.version() };
+        res.set(http::field::content_type, "application/json");
+        res.body() = j.dump();
+        return sendResponse(std::move(res));
+    }
 #ifdef HTTP_SERVE_FILES
     const char doc_api_path[] = "/files";
     constexpr unsigned int doc_api_path_len = sizeof(doc_api_path) / sizeof(char) - 1;
     if(boost::beast::iequals(doc_api_path, req_.target().substr(0, doc_api_path_len)) and
             (req_.method() == http::verb::get or req_.method() == http::verb::head)){
-        const boost::string_view req_path = req_.target().substr(doc_api_path_len);
+        boost::string_view req_path = req_.target().substr(doc_api_path_len);
+        auto const posParams = req_path.rfind("?");
+        if(posParams != beast::string_view::npos) req_path = req_path.substr(0, posParams);
 
         // Request path must be absolute and not contain ".."
         if(req_path.empty() or req_path[0] != '/' or req_path.find("..") != boost::beast::string_view::npos)

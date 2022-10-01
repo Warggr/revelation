@@ -76,6 +76,10 @@ public:
     void reportAfk(Spectator* spec);
 
     void onConnectAgent(AgentId id, Spectator* agent);
+
+    const std::unordered_set<std::shared_ptr<Spectator>>& getSpectators() const { return sessions; }
+
+    const std::unordered_map<AgentId, std::shared_ptr<WaitingAgent>>& getWaitingAgents() const { return waitingAgents; }
 };
 
 #endif

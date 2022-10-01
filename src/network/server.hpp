@@ -40,6 +40,8 @@ public:
     void start();
 
     void stop();
+
+    const std::unordered_map<RoomId, ServerRoom>& getRooms() const { return rooms; }
 };
 
 #endif //REVELATION_SERVER_HPP
