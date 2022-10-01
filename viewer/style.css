@@ -5,6 +5,13 @@ div#board {
 	grid-template-rows: repeat(2, 50%);
 }
 
+div.board-style {
+	flex: 3;
+	margin: 0 auto;
+	left: 0;
+	right: 0;
+}
+
 div.board-field {
 	background: white;
 	color: black;

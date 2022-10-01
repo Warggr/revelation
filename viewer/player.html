@@ -34,7 +34,14 @@
 		<h2>Position auswählen</h2>
 		<label for="chosenPos">Position hier ausw&auml;hlen:</label>
 		<input type="text" id="chosenPos"/>
-		<button onclick="sockSendCharacter();">Auswählen</button>
+		<button onclick="sockSendPos();">Auswählen</button>
+		<br/>
+	</div>
+	<div>
+		<h2>Karte auswählen</h2>
+		<label for="chosenCard">Karte hier ausw&auml;hlen:</label>
+		<input type="text" id="chosenCard"/>
+		<button onclick="sockSendCard();">Auswählen</button>
 		<br/>
 	</div>
 	<div>
@@ -51,6 +58,7 @@
 	</div>
 </body>
 <script>
+
 	var steps = [];
 	var inverts = [];
 	var playing = false;
@@ -58,9 +66,25 @@
 	var playLock = undefined;
 	var socket = undefined;
 	var currentStep = 0;
-
+	var draggableCharacters;
+	let selectedId;
+	let targetId;
 	var stepCountDom = document.getElementById('step-count');
 	var connectionStatusDom = document.getElementById('connection-status');
+	let charId;
+
+	function startClick() {
+		if(this.id) {
+			this.charId = this.id;
+			console.log(this.charId);
+		}
+	}
+
+	function addEventListeners() {
+		draggableCharacters.forEach( item => {
+			item.addEventListener('click', startClick);
+		})
+	}
 
 	const nxt = () => {
 		const step = steps.shift();
@@ -131,6 +155,7 @@
 				if(openRoom.status < 300) {
 					console.log(openRoom.responseText);
 					document.getElementById("roomNr").value = openRoom.responseText;
+					document.getElementById('existingRoomNr').value = openRoom.responseText;
 				} else {
 					console.warn("ERROR");
 				}
@@ -157,7 +182,6 @@
 			connectionStatusDom.textContent = 'Verbunden';
 			initialized = false;
 		};
-
 		socket.onclose = (event) => { connectionStatusDom.textContent = 'Nicht verbunden'; };
 		socket.onmessage = (event) => {
 			try {
@@ -182,20 +206,38 @@
 				reloadNbSteps();
 				if(steps.length == 1) nxt();
 			}
-			else if(JSON.stringify(event).includes("which character")) {
-				socket.send(chosenChar.value);
-			}
-			else if(JSON.stringify(event).includes("which position")) {
-				socket.send(chosenPos.value);
-			}
+			/*else if(JSON.stringify(event.data).includes("which character")) {
+				draggableCharacters = document.querySelectorAll('.board-style div');
+				addEventListeners();
+				sockSendCharacter(event.data);
+			}else if(JSON.stringify(event.data).includes("which position")) {
+				sockSendPos();
+			} else if(JSON.stringify(event.data).includes("which card")) {
+				sockSendCard();
+			}*/
 		}
 		socket.onerror = (err) => { console.error(err); }
 	}
 
 	var chosenChar = document.getElementById('chosenChar');
-
-	function sockSendCharacter() {
+	var chosenCard = document.getElementById('chosenCard');
+	function sockSendCharacter(content) {
+		/*ar target = console.log(this.charId);
+		var target = console.log(document.getElementById(charId));
+		for (var i=0 ; i < content.list.length ; i++)
+		{
+			if (content.list[i] == target) {
+				console.log("found!");
+			}
+		}*/
 		socket.send(chosenChar.value);
+	}
+
+	function sockSendPos() {
+		socket.send(chosenChar.value);
+	}
+	function sockSendCard() {
+		socket.send(chosenCard.value);
 	}
 
 	const urlParams = new URLSearchParams(window.location.search);

@@ -19,14 +19,15 @@ function teamClass(iTeam){
 }
 
 function characterFactory(char, iTeam){
-	let charDom = document.createElement('div');
+	var charDom = document.createElement('div');
 	charDom.id = 'cid-' + char.cid;
-	charDom.onclick = "sockSendCharacter();";
 	charDom.classList.add( teamClass(iTeam) );
 	charDom.classList.add('character');
 	charDom.classList.add('team-' + (iTeam+1));
 	charDom.innerHTML = 
-		`<h1>${char.name}</h1><div class="stats"><div class="HP">${char.HP}</div><div class="maxHP">${char.maxHP}</div>`+
+		`<h1>${char.name}</h1>
+		 <div class="stats">
+		 <div class="HP">${char.HP}</div><div class="maxHP">${char.maxHP}</div>`+
 		`<div class="atk softAtk">${char.softAtk}</div><div class="atk hardAtk">${char.hardAtk}</div><div class="mov">${char.mov}</div><div class="rng">${char.rng}</div>`+
 		`<div class="netWorth">${char.netWorth}</div><i>${char.flavor}</i>`;
 	return charDom;
@@ -249,16 +250,14 @@ function createState(teams, names, board, players){
 
 	boardDom = document.createElement('div');
 	boardDom.id = 'board';
-	boardDom.style.flex = 3;
-	boardDom.style.margin = "0 auto";
-	boardDom.style.left = 0;
-	boardDom.style.right = 0;
+	boardDom.classList.add('board-style');
 	screen.appendChild(boardDom);
 
 	for(let i = 0; i < 2; i++){
 		let row = [];
 		for(let j = 0; j < FULL_BOARD_WIDTH; j++){
 			let td = document.createElement('div');
+			td.setAttribute('array', '[' + j + ', ' + i +']')
 			td.classList.add('board-field');
 			boardDom.appendChild(td);
 			row.push(td);
@@ -318,8 +317,6 @@ function createState(teams, names, board, players){
 
 	return null;
 }
-
-var socket;
 
 function readGame(content, socket){
 	try {
