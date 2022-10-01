@@ -147,7 +147,6 @@
 		reader.onerror = () => { console.warn('Could not load file because...\n' + reader.error); }
 		reader.readAsText(file);
 	}
-
 	function httpRequest()  {
 		const openRoom = new XMLHttpRequest();
 		openRoom.onreadystatechange = () => {
@@ -165,7 +164,6 @@
 		openRoom.send();
 		return openRoom.responseText;
 	}
-
 	const connectToServer = () => {
 		const url = document.getElementById('server-to-connect').value;
 		const teamNr = document.getElementById('teamNr').value;
@@ -221,6 +219,7 @@
 
 	var chosenChar = document.getElementById('chosenChar');
 	var chosenCard = document.getElementById('chosenCard');
+	var chosenPos = document.getElementById('chosenPos');
 	function sockSendCharacter(content) {
 		/*ar target = console.log(this.charId);
 		var target = console.log(document.getElementById(charId));
@@ -234,7 +233,7 @@
 	}
 
 	function sockSendPos() {
-		socket.send(chosenChar.value);
+		socket.send(chosenPos.value);
 	}
 	function sockSendCard() {
 		socket.send(chosenCard.value);
