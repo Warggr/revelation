@@ -9,8 +9,6 @@
 
 class HttpSession;
 
-constexpr int TOTAL_AVAILABLE_ROOMS = 4;
-
 class Server {
     RoomId lastUsedIdentifier = 0;
     net::io_context ioc; // The io_context is required for all I/O

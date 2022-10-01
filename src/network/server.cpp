@@ -3,8 +3,9 @@
 // Distributed under the Boost Software License, Version 1.0. (See copy at http://www.boost.org/LICENSE_1_0.txt)
 #include "server.hpp"
 #include "http_session.hpp"
-#ifdef HTTP_CONTROLLED_SERVER
+#ifdef HAS_ROOM_ZERO_STAYS_OPEN
 #include "setup/team.hpp"
+constexpr bool roomZeroStaysOpen = true;
 #endif
 #include <thread>
 
@@ -31,8 +32,8 @@ void Server::start(){
     //! To stop it, you need to call stop() (presumably from another thread)
     listener.listen();
 
-#ifdef HTTP_CONTROLLED_SERVER
-    addRoom(0).second.launchGame({ mkEurope(), mkNearEast() }, 0);
+#ifdef HAS_ROOM_ZERO_STAYS_OPEN
+    if(roomZeroStaysOpen) addRoom(0).second.launchGame({ mkEurope(), mkNearEast() }, 0);
 #endif
     // Capture SIGINT and SIGTERM to perform a clean shutdown
     net::signal_set signals(ioc, SIGINT, SIGTERM);
@@ -74,8 +75,8 @@ void Server::askForRoomDeletion(RoomId id) {
         std::cout << "(async server) room deletion in progress...\n";
         rooms.erase(id);
         std::cout << "(async server) ...room deleted!\n";
-#ifdef HTTP_CONTROLLED_SERVER
-        if(id == 0)
+#ifdef HAS_ROOM_ZERO_STAYS_OPEN
+        if(roomZeroStaysOpen and id == 0)
             addRoom(0).second.launchGame({ mkEurope(), mkNearEast() }, 0);
 #endif
     });
