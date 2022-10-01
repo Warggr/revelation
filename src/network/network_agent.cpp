@@ -15,7 +15,7 @@ std::vector<std::unique_ptr<NetworkAgent>> NetworkAgent::makeAgents(unsigned sho
     std::cout << "(main) make agents\n";
     std::vector<WaitingAgent*> promisedAgents;
     for(int i = 0; i<nb; i++){
-        promisedAgents.push_back(&room.expectNewAgent(i+startingId));
+        promisedAgents.push_back(&room.expectNewAgent(i+startingId+1));
     }
     std::cout << "(main) wait for agents...\n";
     std::vector<std::unique_ptr<NetworkAgent>> retVal;
