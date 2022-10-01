@@ -35,7 +35,7 @@ class ServerRoom {
     std::string greeterMessage; //The message that will be sent to every new spectator
     std::unordered_set<std::shared_ptr<Spectator>> sessions;
     bool firstStep;
-    std::unordered_map<AgentId, WaitingAgent> waitingAgents; //The agents that are supposed to join the room and haven't done so yet
+    std::unordered_map<AgentId, std::shared_ptr<WaitingAgent>> waitingAgents; //The agents that are supposed to join the room and haven't done so yet
     Server* const server;
 #ifdef HTTP_CONTROLLED_SERVER
     std::thread myThread;
@@ -59,15 +59,16 @@ public:
     void join (Spectator& session);
     void send (const std::string& message);
 
-    WaitingAgent& expectNewAgent(AgentId agentId){
-        return waitingAgents[agentId]; //will create the element if it doesn't exist.
-        // TODO OPTIMIZATION this should also throw an error if the element exists
+    std::shared_ptr<WaitingAgent> expectNewAgent(AgentId agentId){
+        auto [iter, success] = waitingAgents.insert({ agentId, std::make_shared<WaitingAgent>() });
+        //assert(success);
+        return iter->second;
     }
 
     void interrupt(){ //signals the game that it should end as soon as possible.
         for(auto& [i, waiting] : waitingAgents){
-            waiting.agent = nullptr;
-            waiting.promise.release();
+            waiting->agent = nullptr;
+            waiting->promise.release();
         }
         for(const auto& session: sessions) session->disconnect();
     }

@@ -37,4 +37,6 @@ int main(){
 	Game game(std::move(teams), std::move(agents), seed);
 	unsigned short int winner = game.play(&room, true);
     std::cout << winner << " won!\n";
+    server.stop();
+    network_thread.join();
 }

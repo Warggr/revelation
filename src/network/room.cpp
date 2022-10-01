@@ -71,8 +71,8 @@ std::shared_ptr<Spectator> ServerRoom::addSpectator(tcp::socket&& socket, AgentI
     if(id != 0){
         auto iter_agent = waitingAgents.find(id);
         if(iter_agent == waitingAgents.end()) return nullptr; //no such seat
-        if(iter_agent->second.claimed) return nullptr; //seat already claimed
-        iter_agent->second.claimed = true;
+        if(iter_agent->second->claimed) return nullptr; //seat already claimed
+        iter_agent->second->claimed = true;
     }
 
     auto ptr = std::make_shared<Spectator>(std::move(socket), *this, id);
@@ -82,8 +82,8 @@ std::shared_ptr<Spectator> ServerRoom::addSpectator(tcp::socket&& socket, AgentI
 void ServerRoom::onConnectAgent(AgentId agentId, Spectator* agent) {
     std::cout << "(async) agent connected\n";
     auto iter = waitingAgents.find(agentId);
-    iter->second.agent = agent;
-    iter->second.promise.release();
+    iter->second->agent = agent;
+    iter->second->promise.release();
     waitingAgents.erase(iter);
 }
 
