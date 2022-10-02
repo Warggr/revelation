@@ -59,6 +59,8 @@ bool read_request_path(const boost::string_view& str, RoomId& roomId, AgentId& a
 
 template<typename HttpBodyType>
 void HttpSession::sendResponse(http::response<HttpBodyType>&& res){
+    std::cout << "(http) " << res.result_int() << ' ' << req_.method_string() << ' '
+        << req_.target() << ' ' << res.payload_size().get() << "B\n";
     res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
     res.set(http::field::access_control_allow_origin, "*");
     res.keep_alive(req_.keep_alive());
@@ -76,7 +78,6 @@ void HttpSession::sendResponse(http::response<HttpBodyType>&& res){
 }
 
 void HttpSession::on_read(error_code ec, std::size_t){
-    std::cout << "(async http) read message\n";
     // This means they closed the connection
     if(ec == http::error::end_of_stream){
         socket_.shutdown(tcp::socket::shutdown_send, ec);
@@ -176,55 +177,61 @@ void HttpSession::on_read(error_code ec, std::size_t){
 #ifdef HTTP_SERVE_FILES
     const char doc_api_path[] = "/files";
     constexpr unsigned int doc_api_path_len = sizeof(doc_api_path) / sizeof(char) - 1;
-    if(boost::beast::iequals(doc_api_path, req_.target().substr(0, doc_api_path_len)) and
-            (req_.method() == http::verb::get or req_.method() == http::verb::head)){
-        boost::string_view req_path = req_.target().substr(doc_api_path_len);
-        auto const posParams = req_path.rfind("?");
-        if(posParams != beast::string_view::npos) req_path = req_path.substr(0, posParams);
+    if(req_.method() == http::verb::get or req_.method() == http::verb::head){
+        boost::string_view req_path;
+        bool is_request_for_file = true;
 
-        // Request path must be absolute and not contain ".."
-        if(req_path.empty() or req_path[0] != '/' or req_path.find("..") != boost::beast::string_view::npos)
-            return sendResponse(bad_request("Illegal request-target"));
-        auto path = path_cat(server.doc_root, req_path);
-        if(req_path.back() == '/') path.append("index.html");
+        if(boost::beast::iequals(doc_api_path, req_.target().substr(0, doc_api_path_len))){
+            req_path = req_.target().substr(doc_api_path_len);
+            auto const posParams = req_path.rfind("?");
+            if(posParams != beast::string_view::npos) req_path = req_path.substr(0, posParams);
 
-        // Attempt to open the file
-        boost::beast::error_code error;
-        http::file_body::value_type body;
-        body.open(path.c_str(), boost::beast::file_mode::scan, error);
+            // Request path must be absolute and not contain ".."
+            if(req_path.empty() or req_path[0] != '/' or req_path.find("..") != boost::beast::string_view::npos)
+                return sendResponse(bad_request("Illegal request-target"));
+        }
+        else if(boost::beast::iequals(req_.target(), "/")) req_path = "/index.html";
+        else if(boost::beast::iequals(req_.target(), "/favicon.ico")) req_path = "/favicon.ico";
+        else is_request_for_file = false;
 
-        // File doesn't exist
-        if(error == boost::system::errc::no_such_file_or_directory) return sendResponse(not_found(req_.target()));
-        // Unknown error
-        if(error) return sendResponse(server_error(error.message()));
+        if(is_request_for_file){
+            auto path = path_cat(server.doc_root, req_path);
+            if(req_path.back() == '/') path.append("index.html");
+            // Attempt to open the file
+            boost::beast::error_code error;
+            http::file_body::value_type body;
+            body.open(path.c_str(), boost::beast::file_mode::scan, error);
 
-        // Cache the size since we need it after the move
-        auto const size = body.size();
+            // File doesn't exist
+            if(error == boost::system::errc::no_such_file_or_directory) return sendResponse(not_found(req_.target()));
+            // Unknown error
+            if(error) return sendResponse(server_error(error.message()));
 
-        // Respond to HEAD request
-        if(req_.method() == http::verb::head){
-            http::response<http::empty_body> res{http::status::ok, req_.version()};
-            res.set(http::field::content_type, mime_type(path));
-            res.content_length(size);
-            return sendResponse(std::move(res));
-        } else { // Respond to GET request
-            http::response<http::file_body> res{
-                    std::piecewise_construct,
-                    std::make_tuple(std::move(body)),
-                    std::make_tuple(http::status::ok, req_.version())};
-            res.set(http::field::content_type, mime_type(path));
-            res.content_length(size);
-            return sendResponse(std::move(res));
+            // Cache the size since we need it after the move
+            auto const size = body.size();
+
+            // Respond to HEAD request
+            if(req_.method() == http::verb::head){
+                http::response<http::empty_body> res{http::status::ok, req_.version()};
+                res.set(http::field::content_type, mime_type(path));
+                res.content_length(size);
+                return sendResponse(std::move(res));
+            } else { // Respond to GET request
+                http::response<http::file_body> res{
+                        std::piecewise_construct,
+                        std::make_tuple(std::move(body)),
+                        std::make_tuple(http::status::ok, req_.version())};
+                res.set(http::field::content_type, mime_type(path));
+                res.content_length(size);
+                return sendResponse(std::move(res));
+            }
         }
     }
 #endif
-    else {
-        return sendResponse(bad_request("Not found"));
-    }
+    return sendResponse(bad_request("Not found"));
 }
 
 void HttpSession::on_write(error_code ec, std::size_t, bool close){
-    std::cout << "(async http) write HTTP response\n";
     // Handle the error, if any
     if(ec) return fail(ec, "write");
 
