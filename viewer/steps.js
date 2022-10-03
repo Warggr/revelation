@@ -80,21 +80,23 @@ function move(step, backwards) {
 			newPosition = getNeighbor( newPosition, step.moves[iMove] );
 		}
 		// The last step before COF should be an empty field
-		if(getBoardField(newPosition).hasChildNodes()) console.error('Position ' + newPosition + ' not empty during COF');
+		if(step.firstCOF != 0 && getBoardField(newPosition).hasChildNodes()) console.error('Position ' + newPosition + ' not empty during COF');
 		let previousPosition = newPosition;
 		// The steps after the first COF should all contain units, which will be moved one field backwards
 		for( ; iMove < step.moves.length; iMove++){
 			newPosition = getNeighbor( newPosition, step.moves[iMove] );
 			getBoardField(previousPosition).appendChild(getBoardField(newPosition).firstChild); //move unit one field backwards
+			previousPosition = newPosition;
 		}
 	} else { // do everything in the opposite direction
 		let previousPosition = newPosition;
 		for(iMove = step.moves.length - 1; iMove >= step.firstCOF; i--){
 			newPosition = getNeighbor( newPosition, inverse(step.moves[i]) );
 			getBoardField(previousPosition).appendChild(getBoardField(newPosition).firstChild);
+			previousPosition = newPosition;
 		}
 
-		if(getBoardField(newPosition).hasChildNodes()) console.error('Position ' + newPosition + ' not empty during COF');
+		if(step.firstCOF != 0 && getBoardField(newPosition).hasChildNodes()) console.error('Position ' + newPosition + ' not empty during COF');
 
 		for(iMove = 0; iMove < step.firstCOF; i++) {
 			newPosition = getNeighbor( newPosition, inverse(step.moves[i]) );

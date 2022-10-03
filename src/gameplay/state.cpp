@@ -301,6 +301,7 @@ std::tuple<State, uptr<BeginStep>> State::beginTurn() const {
     assert(this->timestep == ACTED);
     State ret(*this);
     ret.iActive = 1 - ret.iActive;
+    ret.turnID++;
     ret.timestep = BEGIN;
     //bool dirty = false;
     for(int i = 0; i < ARMY_SIZE; i++) {

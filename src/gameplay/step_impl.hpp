@@ -53,8 +53,8 @@ struct AbilityStep : public Step {
 };
 
 struct ActionStep final : public Step {
-    struct atkHPValueHolder { unsigned int newHP; unsigned int lostHP; };
-    struct defHPValueHolder { unsigned int tempHP; unsigned int permanentHP; };
+    struct atkHPValueHolder { short int newHP; short int lostHP; };
+    struct defHPValueHolder { short int tempHP; short int permanentHP; };
 public:
     ActionCard cardLost;
     position subject, object;
@@ -64,9 +64,9 @@ public:
     };
     bool del = false;
 
-    constexpr ActionStep(ActionCard card, position subject, position object, unsigned int newHP, unsigned int lostHP):
+    constexpr ActionStep(ActionCard card, position subject, position object, short int newHP, short int lostHP):
             cardLost(card), subject(subject), object(object), atk( {newHP, lostHP} ) {};
-    constexpr ActionStep(position subject, position object, unsigned int tempHP, unsigned int permanentHP):
+    constexpr ActionStep(position subject, position object, short int tempHP, short int permanentHP):
             cardLost(DEFENSE), subject(subject), object(object), def( {tempHP, permanentHP} ) {};
 
     ~ActionStep() final = default;

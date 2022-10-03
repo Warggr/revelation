@@ -123,5 +123,6 @@ void ActionStep::to_json(json& j) const {
         j["object"] = object;
         j["setLife"] = atk.newHP;
         j["lostLife"] = atk.lostHP;
+        j["delete"] = del;
     }
 }
