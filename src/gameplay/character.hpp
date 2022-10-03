@@ -6,8 +6,7 @@
 #include "constants.hpp"
 
 struct Character {
-    static char s_uid;
-    char uid;
+    const char uid;
     const ImmutableCharacter& im;
     unsigned int team = 3;
     uint8_t teampos = -1;
@@ -18,7 +17,7 @@ struct Character {
     short defShieldHP;
     bool hasUsedSpecialAction = false;
 
-    Character(const ImmutableCharacter& chr);
+    Character(const ImmutableCharacter& chr, char uid);
 
     void buff();
 

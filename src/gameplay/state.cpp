@@ -51,12 +51,14 @@ State State::createStart(const std::array<Team, 2>& teams, Generator generator) 
     retVal.timestep = Timestep::BEGIN;
     retVal.iActive = 0;
 
+    char character_uid = 'a';
+
     std::vector<NullableShared<Character>> units[2];
     for(int i = 0; i < 2; i++ ) {
         for(int j = 0; j < 2; j++) {
             for(int k = 0; k < ARMY_WIDTH; k++) {
                 if(teams[i].characters[j][k] != 0){ //0 indicates an empty field
-                    NullableShared<Character> character_ptr = { teams[i].characters_unique[ teams[i].characters[j][k] - 1 ]};
+                    NullableShared<Character> character_ptr = { teams[i].characters_unique[ teams[i].characters[j][k] - 1 ], character_uid++};
                     character_ptr->pos = position( j, k + 1 + i*HALF_BOARD_WIDTH);
                     character_ptr->team = i;
                     units[i].push_back(std::move(character_ptr));

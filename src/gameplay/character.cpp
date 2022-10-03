@@ -2,10 +2,9 @@
 #include "nlohmann/json.hpp"
 
 using json = nlohmann::json;
-char Character::s_uid = 'a';
 
-Character::Character(const ImmutableCharacter& im):
-    uid(s_uid++),
+Character::Character(const ImmutableCharacter& im, char uid):
+    uid(uid),
     im(im), HP(im.maxHP), pos(0, 0),
     turnMoved(-1), turnAttacked(-1),
     defShieldHP(0)
