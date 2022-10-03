@@ -47,108 +47,65 @@ function bluePrintCharacter(charDom){
 	};
 }
 
-function moveForward(step) {
-	let fieldFrom;
-	let fieldTo;
-	let unit;
-	let moves = step.moves;
-	for(let i = 0; i < moves.length; i++) {
-		switch (moves[i].toLowerCase()) {
-			case "right":
-				fieldFrom = boardDom.children[ step.frm[1] + FULL_BOARD_WIDTH*step.frm[0] ];
-				fieldTo = boardDom.children[ step.frm[1] + 1 + FULL_BOARD_WIDTH*step.frm[0] ];
-				unit = fieldFrom.firstChild;
-				if(unit.id != 'cid-' + step.target) console.warn('Target is named ' + unit.id + ' instead of cid-' + step.target);
-				if(!fieldTo.hasChildNodes()) {
-					fieldTo.appendChild(unit);
-				} else {
-					fieldTo.appendChild(unit);
-					fieldFrom.appendChild(fieldTo.firstChild);
-				}
-				step.frm[1]++;
-				break;
-			case "left":
-				fieldFrom = boardDom.children[ step.frm[1] + FULL_BOARD_WIDTH*step.frm[0] ];
-				fieldTo = boardDom.children[ step.frm[1] - 1 + FULL_BOARD_WIDTH*step.frm[0] ];
-				unit = fieldFrom.firstChild;
-				if(unit.id != 'cid-' + step.target) console.warn('Target is named ' + unit.id + ' instead of cid-' + step.target);
-				if(!fieldTo.hasChildNodes()) {
-					fieldTo.appendChild(unit);
-				} else {
-					fieldTo.appendChild(unit);
-					fieldFrom.appendChild(fieldTo.firstChild);
-				}
-				step.frm[1]--;
-				break;
-			case "down":
-				fieldFrom = boardDom.children[ step.frm[1] + FULL_BOARD_WIDTH*step.frm[0] ];
-				fieldTo = boardDom.children[ step.frm[1] + FULL_BOARD_WIDTH ];
-				unit = fieldFrom.firstChild;
-				if(unit.id != 'cid-' + step.target) console.warn('Target is named ' + unit.id + ' instead of cid-' + step.target);
-				fieldTo.appendChild(unit);
-				fieldFrom.appendChild(fieldTo.firstChild);
-				step.frm[0] = 1;
-				break;
-			case "up":
-				fieldFrom = boardDom.children[ step.frm[1] + FULL_BOARD_WIDTH*step.frm[0] ];
-				fieldTo = boardDom.children[ step.frm[1] ];
-				unit = fieldFrom.firstChild;
-				if(unit.id != 'cid-' + step.target) console.warn('Target is named ' + unit.id + ' instead of cid-' + step.target);
-				fieldTo.appendChild(unit);
-				fieldFrom.appendChild(fieldTo.firstChild);
-				step.frm[0] = 0;
-				break;
-		}
-	}
-	return { 'action' : 'move', 'frm' : step.to, 'to' : step.frm, 'target' : step.target, moves: step.moves, 'firstCOF' : step.firstCOF };
+function getBoardField(position){
+	return boardDom.children[ position[1] + FULL_BOARD_WIDTH * position[0] ];
 }
 
-function moveBack(step) {
-	let fieldFrom;
-	let fieldTo;
-	let unit;
-	let moves = step.moves;
-	for(let i = moves.length - 1; i >= 0; i--) {
-		switch (moves[i].toLowerCase()) {
-			case "right":
-				step.frm[1]--;
-				fieldTo = boardDom.children[ step.frm[1] + FULL_BOARD_WIDTH*step.frm[0] ];
-				fieldFrom = boardDom.children[ step.frm[1] + 1 + FULL_BOARD_WIDTH*step.frm[0] ];
-				unit = fieldFrom.firstChild;
-				if(!fieldTo.hasChildNodes()) {
-					fieldTo.appendChild(unit);
-				} else {
-					fieldTo.appendChild(unit);
-					fieldFrom.appendChild(fieldTo.firstChild);
-				}
-				break;
-			case "left":
-				step.frm[1]++;
-				fieldFrom = boardDom.children[ step.frm[1] - 1 + FULL_BOARD_WIDTH*step.frm[0]];
-				fieldTo = boardDom.children[ step.frm[1] + FULL_BOARD_WIDTH*step.frm[0] ];
-				unit = fieldFrom.firstChild;
-				fieldTo.appendChild(unit);
-				fieldFrom.appendChild(fieldTo.firstChild);
-				break;
-			case "down":
-				fieldFrom = boardDom.children[ step.frm[1] + FULL_BOARD_WIDTH];
-				fieldTo = boardDom.children[ step.frm[1] ];
-				unit = fieldFrom.firstChild;
-				fieldTo.appendChild(unit);
-				fieldFrom.appendChild(fieldTo.firstChild);
-				step.frm[0] = 0;
-				break;
-			case "up":
-				fieldFrom = boardDom.children[ step.frm[1] ];
-				fieldTo = boardDom.children[ step.frm[1] + FULL_BOARD_WIDTH];
-				unit = fieldFrom.firstChild;
-				fieldTo.appendChild(unit);
-				fieldFrom.appendChild(fieldTo.firstChild);
-				step.frm[0] = 1;
-				break;
+function getNeighbor(pos, direction){
+	switch(direction.toLowerCase()){
+		case "right": return [ pos[0], pos[1] + 1 ];
+		case "left":  return [ pos[0], pos[1] - 1 ];
+		case "down":  return [ 1,      pos[1] ];
+		case "up": return [ 0,      pos[1] ];
+	}
+	console.error('Unrecognized direction: ' + direction);
+}
+
+function inverse(direction){
+	switch(direction.toLowerCase()){
+		case "right": return "left";
+		case "left": return "right";
+		case "down": return "up";
+		case "up": return "down";
+	}
+	console.error('Unrecognized direction: ' + direction);
+}
+
+function move(step, backwards) {
+	let newPosition = step.frm;
+	let iMove;
+	if(!backwards){
+		// the steps until the first COF just pass through the fields without changing anything
+		for(iMove = 0; iMove < step.firstCOF; iMove++) {
+			newPosition = getNeighbor( newPosition, step.moves[iMove] );
+		}
+		// The last step before COF should be an empty field
+		if(getBoardField(newPosition).hasChildNodes()) console.error('Position ' + newPosition + ' not empty during COF');
+		let previousPosition = newPosition;
+		// The steps after the first COF should all contain units, which will be moved one field backwards
+		for( ; iMove < step.moves.length; iMove++){
+			newPosition = getNeighbor( newPosition, step.moves[iMove] );
+			getBoardField(previousPosition).appendChild(getBoardField(newPosition).firstChild); //move unit one field backwards
+		}
+	} else { // do everything in the opposite direction
+		let previousPosition = newPosition;
+		for(iMove = step.moves.length - 1; iMove >= step.firstCOF; i--){
+			newPosition = getNeighbor( newPosition, inverse(step.moves[i]) );
+			getBoardField(previousPosition).appendChild(getBoardField(newPosition).firstChild);
+		}
+
+		if(getBoardField(newPosition).hasChildNodes()) console.error('Position ' + newPosition + ' not empty during COF');
+
+		for(iMove = 0; iMove < step.firstCOF; i++) {
+			newPosition = getNeighbor( newPosition, inverse(step.moves[i]) );
 		}
 	}
-	return step;
+	// we're there!
+	let unit = getBoardField(step.frm).firstChild;
+	if(unit.id != 'cid-' + step.target) console.warn('Target is named ' + unit.id + ' instead of cid-' + step.target);
+	if(newPosition[0] != step.to[0] || newPosition[1] != step.to[1]) console.error('Arrived at ' + newPosition + ' instead of ' + step.to);
+	getBoardField(newPosition).appendChild(unit); //move the unit
+	return { 'action' : 'move', 'frm' : step.to, 'to' : step.frm, 'target' : step.target, moves: step.moves, 'firstCOF' : step.firstCOF };
 }
 
 function apply(step, backwards) {
@@ -159,11 +116,7 @@ function apply(step, backwards) {
 			return { 'action' : 'beginTurn' };
 		case 'pass': return { 'action' : 'pass' };
 		case 'move': {
-			if(!backwards) {
-				return moveForward(step);
-			} else {
-				return moveBack(step);
-			}
+			return move(step, backwards);
 		}
 		case 'draw': {
 			let textContent = step.clss + ' - ' + step.value;
