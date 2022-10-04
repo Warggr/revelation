@@ -51,8 +51,11 @@ public:
     // only send() and get() are run synchronously on the main thread.
 
     void send(const std::shared_ptr<const std::string>& message);
+    void send(std::string message){ send(std::make_shared<const std::string>(message)); }
 
     std::string get();
+
+    bool isConnected() const { return connected; }
 };
 
 #endif

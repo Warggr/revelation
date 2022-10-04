@@ -75,7 +75,10 @@ MoveDecision StepByStepAgent::getMovement(const State& state, unsigned int) {
     std::vector<std::string> options(possibleMovs.size() + 1);
     addOption("Skip", 0);
     for(uint i = 0; i<possibleMovs.size(); i++){
-        std::stringstream str; str << "to " << possibleMovs[i].to; //an ugly way to create a string by using the operator<<
+        std::stringstream str; //an ugly way to create a string by using the operator<<
+        for(const auto& direction : possibleMovs[i].moves)
+            str << to_symbol(direction);
+        str << " to " << possibleMovs[i].to;
         addOption(str.str(), i + 1);
     }
     closeOptionList("Enter which position to select or 0 to skip");

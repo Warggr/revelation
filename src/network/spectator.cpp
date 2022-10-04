@@ -55,7 +55,7 @@ std::string Spectator::get(){
         std::cout << "(main) Agent disconnected!\n";
         throw DisconnectedException();
     }
-    std::string retVal = reading_queue.front();
+    std::string retVal = std::move(reading_queue.front());
     reading_queue.pop();
     return retVal;
 }
@@ -104,6 +104,7 @@ void Spectator::disconnect(){
     nb_messages_unread.unlock();
     //Releasing an additional time in case bad timing causes the main thread to still try to acquire that mutex
     nb_messages_unread.release(NB_OUTSIDE_THREADS);
+    ws.close(beast::websocket::close_reason());
     room.reportAfk(this);
 }
 

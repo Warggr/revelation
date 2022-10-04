@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdint>
 #include <iosfwd>
+#include <cassert>
 
 struct position {
     unsigned int row : 1;
@@ -35,7 +36,7 @@ inline position getNeighbour(const position& pos, Direction dir) {
     case RIGHT:
         return {pos.row, static_cast<unsigned int>(pos.column + 1)};
     default:
-        return pos; //assert(false); this shouldn't happen
+        assert(false); return pos;
     }
 }
 

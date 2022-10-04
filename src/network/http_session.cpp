@@ -130,7 +130,7 @@ void HttpSession::on_read(error_code ec, std::size_t){
 
         ServerRoom& room = server.rooms.find(roomId)->second;
         //ServerRoom& room = server.rooms[roomId];
-        auto spec = room.addSpectator(std::move(socket_), agentId);
+        auto spec = room.addSpectator(socket_, agentId);
         if (!spec)
             return sendResponse(bad_request("Room did not accept you"));
 
@@ -160,7 +160,7 @@ void HttpSession::on_read(error_code ec, std::size_t){
             }
             for(const auto& spectator: room.getSpectators()){
                 if(spectator->id != 0)
-                    agents[spectator->id-1] = "connected";
+                    agents[spectator->id-1] = (spectator->isConnected() ? std::string("connected") : std::string("disconnected"));
                 else nbSpectators++;
             }
             j.push_back(json({

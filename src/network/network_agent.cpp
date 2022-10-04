@@ -42,10 +42,13 @@ uint NetworkAgent::input(uint min, uint max) {
             long int_val = std::stol(str);
             if (int_val >= 0) {
                 uint uint_val = static_cast<uint>(int_val);
-                if (min <= uint_val and uint_val <= max) return uint_val;
+                if (min <= uint_val and uint_val <= max){
+                    sender->send("Ok");
+                    return uint_val;
+                }
             }
         } catch(std::invalid_argument&){ }
-        sender->send(std::make_shared<std::string>(std::string("!Wrong value: `") + str + '`'));
+        sender->send(std::string("!Wrong value: `") + str + '`');
     }
 }
 
@@ -56,10 +59,10 @@ void NetworkAgent::addOption(const std::string_view& option, int) {
 }
 
 void NetworkAgent::closeOptionList(const std::string_view& message){
-    auto message_summary = std::make_shared<std::string>("[");
-    optionList.swap(*message_summary);
-    *message_summary += '"';
-    *message_summary += message;
-    *message_summary += "\"]";
+    std::string message_summary = "[";
+    optionList.swap(message_summary);
+    message_summary += '"';
+    message_summary += message;
+    message_summary += "\"]";
     sender->send(message_summary);
 }

@@ -3,6 +3,7 @@
 #define REVELATION_CONSTANTS_HPP
 
 #include "position.hpp"
+#include <cassert>
 #include <string>
 
 constexpr int MAX_CARDS_IN_HAND = 7;
@@ -31,7 +32,7 @@ inline std::string to_string(enum ActionCard card){
         case DEFENSE: return "Defense";
         case HARDATK: return "Hard Attack";
         case SOFTATK: return "Soft Attack";
-        default: return "<Internal Error>";
+        default: assert(false); return "<Internal Error>";
     }
 }
 
@@ -46,7 +47,7 @@ inline std::string to_string(enum Timestep step){
         to_string_line(MOVEDlast);
         to_string_line(ABILITYCHOSEN);
         to_string_line(ACTED);
-        default: return "<Internal Error>";
+        default: assert(false); return "<Internal Error>";
     }
 }
 
@@ -58,7 +59,7 @@ inline std::string to_string(enum Faction faction){
         to_string_line(HORROR);
         to_string_line(SPECTRUM);
         to_string_line(ETHER);
-        default: return "<Internal Error>";
+        default: assert(false); return "<Internal Error>";
     }
 }
 
@@ -68,10 +69,20 @@ inline std::string to_string(enum Direction dir){
         to_string_line(DOWN);
         to_string_line(LEFT);
         to_string_line(RIGHT);
-        default: return "<Internal Error>";
+        default: assert(false); return "<Internal Error>";
     }
 }
 
 #undef to_string_line
+
+inline char to_symbol(enum Direction dir){
+    switch(dir){
+        case UP: return '^';
+        case DOWN: return 'v';
+        case LEFT: return '<';
+        case RIGHT: return '>';
+        default: assert(false); return '?';
+    }
+}
 
 #endif //REVELATION_CONSTANTS_HPP

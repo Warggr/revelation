@@ -67,7 +67,7 @@ void ServerRoom::send(const std::string& message){
         session->send(ss);
 }
 
-std::shared_ptr<Spectator> ServerRoom::addSpectator(tcp::socket&& socket, AgentId id){
+std::shared_ptr<Spectator> ServerRoom::addSpectator(tcp::socket& socket, AgentId id){
     if(id != 0){
         auto iter_agent = waitingAgents.find(id);
         if(iter_agent == waitingAgents.end()) return nullptr; //no such seat

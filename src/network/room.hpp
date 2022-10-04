@@ -54,7 +54,7 @@ public:
     void setGreeterMessage(const std::string& greeterMessage);
 
     //Create a Spectator and allows it to join once it has done the websocket handshake
-    std::shared_ptr<Spectator> addSpectator(tcp::socket&& socket, AgentId id = 0);
+    std::shared_ptr<Spectator> addSpectator(tcp::socket& socket, AgentId id = 0);
 
     void join (Spectator& session);
     void send (const std::string& message);
