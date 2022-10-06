@@ -227,7 +227,6 @@ function createState(teams, names, board, players){
 		header.innerHTML = `<h3>${teamNames[i]}</h3>`;
 		let resourceList = document.createElement('ul');
 		resourceList.classList.add('resource-list');
-		console.log("WELCOME");
 		resourceLists.push(resourceList);
 		header.appendChild(resourceList);
 		header.style.cssText += 'margin:1;'
@@ -273,16 +272,14 @@ function createState(teams, names, board, players){
 	return null;
 }
 
-function readGame(content, socket){
+function readGame(content){
 	try {
-		socket = socket;
 		const ret = JSON.parse(content);
-		let init = ret.state;
+		let init = ret.state.players;
 		let teams = ret.state.aliveUnits;
 		let names = ret.state.teamNames;
 		let board = ret.state.board;
-		let state = createState(teams, names, board, init.players);
-
+		let state = createState(teams, names, board, init);
 		return { state : state, steps : ret.steps }
 	} catch(e) {
 		return "No parsing";

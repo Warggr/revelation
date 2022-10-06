@@ -67,23 +67,25 @@
 	var socket = undefined;
 	var currentStep = 0;
 	var draggableCharacters;
-	let selectedId;
+	var selectedId;
 	let targetId;
 	var stepCountDom = document.getElementById('step-count');
 	var connectionStatusDom = document.getElementById('connection-status');
-	let charId;
+	var charId;
+	var message;
 
-	function startClick() {
+	function startChar() {
 		if(this.id) {
-			this.charId = this.id;
-			console.log(this.charId);
+			this.charId = this.id;c
+			console.log(this.id);
+			sockSendCharacter(this.id);
 		}
 	}
 
-	function addEventListeners() {
-		draggableCharacters.forEach( item => {
-			item.addEventListener('click', startClick);
-		})
+	function startPos() {
+		selectedId = this.getAttribute('array');
+		console.log(selectedId);
+		sockSendPos(selectedId);
 	}
 
 	const nxt = () => {
@@ -141,7 +143,8 @@
 		console.log(file);
 		let reader = new FileReader();
 		reader.onload = () => {
-			stepsNState = readGame(reader.result);
+			var stepsNState = readGame(reader.result);
+			console.log(stepsNState);
 			restart(stepsNState);
 		}
 		reader.onerror = () => { console.warn('Could not load file because...\n' + reader.error); }
@@ -204,37 +207,66 @@
 				reloadNbSteps();
 				if(steps.length == 1) nxt();
 			}
-			/*else if(JSON.stringify(event.data).includes("which character")) {
-				draggableCharacters = document.querySelectorAll('.board-style div');
-				addEventListeners();
-				sockSendCharacter(event.data);
-			}else if(JSON.stringify(event.data).includes("which position")) {
-				sockSendPos();
-			} else if(JSON.stringify(event.data).includes("which card")) {
-				sockSendCard();
-			}*/
+			else if(JSON.stringify(event.data).includes("character") && !JSON.stringify(event.data).includes("state"))
+			{
+				message = event.data;
+				draggableCharacters = document.querySelectorAll('.board-field div');
+				draggableCharacters.forEach(item =>
+					item.addEventListener('click', startChar)
+				)
+				var boardfields = document.querySelectorAll('.board-field');
+				boardfields.forEach(item => function (e) {
+					e.stopPropagation();
+				})
+			}
+			else if(JSON.stringify(event.data).includes("position") && !JSON.stringify(event.data).includes("state"))
+			{
+				possibilities = JSON.stringify(event.data).replace(/\\/g, '').replace('>', '').replace('v', '').split('",');
+				console.log(possibilities);
+				boardfields = document.querySelectorAll('.board-field');
+				message = possibilities;
+				for(i = 0; i < possibilities.length; i++) {
+					for(j = 0; j < boardfields.length; j++) {
+						cmp = boardfields.item(j).getAttribute('array');
+						if(possibilities.at(i).includes(cmp)) {
+							boardfields.item(j).setAttribute("style", "background-color:grey")
+						}
+					}
+				}
+
+				boardfields.forEach(item =>
+					item.addEventListener('click', startPos)
+				)
+			}
+			else
+			{
+			}
 		}
 		socket.onerror = (err) => { console.error(err); }
 	}
 
-	var chosenChar = document.getElementById('chosenChar');
-	var chosenCard = document.getElementById('chosenCard');
-	var chosenPos = document.getElementById('chosenPos');
-	function sockSendCharacter(content) {
-		/*ar target = console.log(this.charId);
-		var target = console.log(document.getElementById(charId));
-		for (var i=0 ; i < content.list.length ; i++)
-		{
-			if (content.list[i] == target) {
-				console.log("found!");
+	function sockSendCharacter(id) {
+		var name = document.getElementById(id).firstChild.textContent;
+		var content = JSON.stringify(message).split(",");
+
+		for(var i = 0; i < content.length; i++) {
+			if(content.at(i).includes(name)) {
+				socket.send(i);
+				break;
 			}
-		}*/
-		socket.send(chosenChar.value);
+		}
+		socket.onerror = (err) => { console.error(err); }
 	}
 
-	function sockSendPos() {
-		socket.send(chosenPos.value);
+	function sockSendPos(id) {
+		for(i = 0; i < message.length; i++) {
+			if(message.at(i).includes(id)) {
+				socket.send(i);
+				break;
+			}
+		}
 	}
+
 	function sockSendCard() {
 		socket.send(chosenCard.value);
 	}
