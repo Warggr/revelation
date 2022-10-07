@@ -68,9 +68,9 @@ void ProgressLogger::message(const char* msg, float nb) const {
 }
 
 void ProgressLogger::enter(Timestep timestep, unsigned nbChildren){
-    message((std::string("ENTER ") + to_string(timestep)).c_str(), nbChildren);
+    message(std::string("ENTER ").append(to_string(timestep)).c_str(), nbChildren);
 }
 
 void ProgressLogger::exit(Timestep timestep){
-    message((std::string("EXIT ") + to_string(timestep)).c_str());
+    message(std::string("EXIT ").append(to_string(timestep)).c_str());
 }

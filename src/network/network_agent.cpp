@@ -30,39 +30,30 @@ std::vector<std::unique_ptr<NetworkAgent>> NetworkAgent::makeAgents(unsigned sho
     return retVal;
 }
 
-uint NetworkAgent::input(uint min, uint max) {
-    while(true){
+uint NetworkAgent::choose(const OptionList& options, const std::string_view& message) {
+    std::string optionList = std::string("[");
+    for(const auto& [ keys, optionText ] : options){
+        optionList += '"';
+        optionList += optionText;
+        optionList += "\",";
+    }
+    optionList += '"';
+    optionList += message;
+    optionList += "\"]";
+    sender->send(optionList);
+
+    input_loop:
         std::string str;
         try {
             str = sender->get();
         } catch(DisconnectedException&){
             throw AgentSurrenderedException(myId);
         }
-        try {
-            long int_val = std::stol(str);
-            if (int_val >= 0) {
-                uint uint_val = static_cast<uint>(int_val);
-                if (min <= uint_val and uint_val <= max){
-                    sender->send("Ok");
-                    return uint_val;
-                }
-            }
-        } catch(std::invalid_argument&){ }
-        sender->send(std::string("!Wrong value: `") + str + '`');
-    }
-}
-
-void NetworkAgent::addOption(const std::string_view& option, int) {
-    optionList += '"';
-    optionList += option;
-    optionList += "\",";
-}
-
-void NetworkAgent::closeOptionList(const std::string_view& message){
-    std::string message_summary = "[";
-    optionList.swap(message_summary);
-    message_summary += '"';
-    message_summary += message;
-    message_summary += "\"]";
-    sender->send(message_summary);
+        auto [ value, success ] = StepByStepAgent::inputValidation( options, str );
+        if(not success){
+            sender->send(std::string("!Wrong value: `") + str + '`');
+            goto input_loop;
+        }
+    sender->send("Ok");
+    return value;
 }

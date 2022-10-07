@@ -12,7 +12,7 @@ public:
     std::vector<std::string> getOptions(const State& state) const override {
         std::vector<std::string> retVal;
         for(const auto& card : state.players[who].getActions()){
-            retVal.push_back(to_string(card));
+            retVal.push_back(std::string(to_string(card)));
         }
         return retVal;
     }

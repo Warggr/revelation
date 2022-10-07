@@ -38,9 +38,32 @@ public:
 class StepByStepAgent: public Agent {
     const Character& chooseCharacter(const State& state);
 protected:
+    using OptionList = std::vector<std::pair<const char*, std::string_view>>;
+    // TODO OPTIMIZE: very often we know the size of the final vector beforehand, we could already reserve it from the beginning
+    class OptionListWrapper {
+        OptionList data;
+    public:
+        static const char* const NULL_STRING; // = ""
+        void add(std::string_view option, const char* keys = NULL_STRING){
+            data.emplace_back(keys, option);
+        }
+        OptionList get(){ return data; }
+    };
+    class OptionListWrapperWithStrings {
+        std::vector<std::pair<const char*, std::string>> data;
+    public:
+        void add(std::string&& string, const char* keys = OptionListWrapper::NULL_STRING){
+            data.emplace_back(keys, std::move(string));
+        }
+        OptionList get(){
+            OptionList retVal;
+            for(auto& pair : data) retVal.emplace_back(pair.first, pair.second);
+            return retVal;
+        }
+    };
+    static std::pair<uint, bool> inputValidation(const OptionList& list, const std::string_view& input);
+    virtual uint choose(const OptionList& list, const std::string_view& message) = 0;
     virtual uint input(uint min, uint max) = 0;
-    virtual void addOption(const std::string_view& option, int i) = 0;
-    virtual void closeOptionList(const std::string_view& message) = 0;
 public:
     StepByStepAgent(uint myId) : Agent(myId) {};
     DiscardDecision getDiscard(const State&) override;
@@ -52,12 +75,7 @@ public:
 class HumanAgent: public StepByStepAgent {
 protected:
     uint input(uint min, uint max) override;
-    void addOption(const std::string_view& option, int i) override {
-        std::cout << '[' << i << "]:" << option << '\n';
-    }
-    void closeOptionList(const std::string_view& message) override {
-        std::cout << message << ": ";
-    }
+    uint choose(const OptionList &list, const std::string_view &message) override;
 public:
     HumanAgent(uint myId);
 };
@@ -66,8 +84,7 @@ class RandomAgent: public StepByStepAgent {
     std::minstd_rand generator;
 protected:
     uint input(uint min, uint max) override;
-    void addOption(const std::string_view&, int) override {};
-    void closeOptionList(const std::string_view&) override {};
+    uint choose(const OptionList& list, const std::string_view&) override { return input(0, list.size()); }
 public:
     RandomAgent(uint myId);
 };

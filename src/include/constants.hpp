@@ -27,7 +27,7 @@ enum ActionCard {
     HARDATK , SOFTATK , DEFENSE, SPECIALACTION
 };
 
-inline std::string to_string(enum ActionCard card){
+inline std::string_view to_string(enum ActionCard card){
     switch(card){
         case DEFENSE: return "Defense";
         case HARDATK: return "Hard Attack";
@@ -38,7 +38,7 @@ inline std::string to_string(enum ActionCard card){
 
 #define to_string_line(x) case x: return #x
 
-inline std::string to_string(enum Timestep step){
+inline std::string_view to_string(enum Timestep step){
     switch(step){
         to_string_line(BEGIN);
         to_string_line(DREW);
@@ -51,7 +51,7 @@ inline std::string to_string(enum Timestep step){
     }
 }
 
-inline std::string to_string(enum Faction faction){
+inline std::string_view to_string(enum Faction faction){
     switch(faction){
         to_string_line(NONE);
         to_string_line(BLOOD);
@@ -63,7 +63,7 @@ inline std::string to_string(enum Faction faction){
     }
 }
 
-inline std::string to_string(enum Direction dir){
+inline std::string_view to_string(enum Direction dir){
     switch(dir){
         to_string_line(UP);
         to_string_line(DOWN);
