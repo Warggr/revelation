@@ -271,10 +271,9 @@
 		var name = document.getElementById(id).firstChild.textContent;
 		var content = JSON.stringify(message).split(",");
 
-		for(i = 0; i < content.length; i++) {
-			socket.send(name.split('-').at(1));
-			removeGrey();
-		}
+		socket.send(name.split('-').at(1));
+		removeGrey();
+
 
 		socket.onerror = (err) => { console.error(err); }
 	}
