@@ -74,7 +74,6 @@
 	function removeGrey_() {
 		boardfields.forEach(function (item) {
 			var color = item.getAttribute("style");
-			console.log(color);
 			if(item.hasAttribute("style") && !color.includes('red')) {
 				item.setAttribute("style", "background-color:white;");
 				if(item.hasChildNodes()) {
@@ -231,6 +230,7 @@
 			}
 
 			if (JSON.stringify(event.data).includes("action") && !JSON.stringify(event.data).includes("state")) {
+				removeGrey();
 				let step = readStep(event.data, socket);
 				steps.push(step);
 				reloadNbSteps();
@@ -278,17 +278,20 @@
 				break;
 			}
 		}
+		removeGrey();
+
 		socket.onerror = (err) => { console.error(err); }
 	}
 
 	function sockSendPos(id) {
 		for(i = 0; i < message.length; i++) {
 			if(message.at(i).includes(id)) {
-				removeGrey();
 				socket.send(i);
 				break;
 			}
 		}
+		removeGrey();
+
 	}
 
 	var chosenCard = document.getElementById("chosenCard");
