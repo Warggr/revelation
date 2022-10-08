@@ -19,13 +19,15 @@ int main(){
     SearchAgent ag1( 1, pol1 );
     RandomAgent ag1(0);
     RandomAgent ag2(1);*/
+    auto ag1 = std::make_unique<HumanAgent>(0);
     Server server("0.0.0.0", 8000);
-    ServerRoom& room = server.addRoom().second;
+    auto [ id, room ] = server.addRoom();
+    std::cout << "Room ID is " << id << '\n';
 
     std::thread network_thread(&Server::start, &server);
 
-    auto networkAgents = NetworkAgent::makeAgents(2, room);
-    std::array<std::unique_ptr<Agent>, 2> agents = { std::move(networkAgents[0]), std::move(networkAgents[1]) };
+    auto networkAgents = NetworkAgent::makeAgents(1, room, 1);
+    std::array<std::unique_ptr<Agent>, 2> agents = { std::move(ag1), std::move(networkAgents[0]) };
 
     //Generator seedForTeams = getRandom();
     std::array<Team, 2> teams = { mkEurope(), mkNearEast() };

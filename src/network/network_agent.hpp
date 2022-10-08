@@ -10,11 +10,9 @@ class ServerRoom;
 
 class NetworkAgent : public StepByStepAgent {
     Spectator* sender;
-    std::string optionList = std::string("[");
 protected:
-    uint input(uint min, uint max) override;
-    void addOption(const std::string_view& option, int i) override;
-    void closeOptionList(const std::string_view& message) override;
+    uint input(uint min, uint max) override { (void) max; return min; /* TODO FEATURE */ }
+    uint choose(const OptionList& list, const std::string_view& message) override;
 public:
     NetworkAgent(uint myId, Spectator* sender);
     static std::vector<std::unique_ptr<NetworkAgent>> makeAgents(unsigned short int nb, ServerRoom& room, unsigned int startingId = 0);

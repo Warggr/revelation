@@ -22,7 +22,7 @@
 				let agentsList = document.createElement('div');
 				for(let agentId in room.agents){
 					let agentDOM = document.createElement('span');
-					if(room.agents[agentId] == "free") agentDOM.innerHTML = `<a href="/files/player.html?g=${room.id}&a=${agentId}">Join</a>`;
+					if(room.agents[agentId] == "free") agentDOM.innerHTML = `<a href="/files/player.html?g=${room.id}&a=${agentId+1}">Join</a>`;
 					else agentDOM.innerHTML = '<p>' + room.agents[agentId] + '</p>';
 					agentsList.appendChild(agentDOM);
 				}

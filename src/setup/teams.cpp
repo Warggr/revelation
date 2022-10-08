@@ -12,7 +12,7 @@ public:
     std::vector<std::string> getOptions(const State& state) const override {
         std::vector<std::string> retVal;
         for(const auto& card : state.players[who].getActions()){
-            retVal.push_back(to_string(card));
+            retVal.push_back(std::string(to_string(card)));
         }
         return retVal;
     }
@@ -29,7 +29,6 @@ Team mkNearEast(){
     unique_c.emplace_back( "Saracens"       , 80, 50, 20, 2, 1, 454.90, false, "Defense 20(light)" );
     unique_c.emplace_back( "Canons"         , 60, 70, 0, 1, 4, 551.60, false );
     unique_c.emplace_back( "Arab officer"   , 100, 10, 10, 2, 1, 355.30 );
-    unique_c.emplace_back( "Crossbowman"    , 40, 40, 20, 2, 3, 489.10, false );
 
     unique_c[1].specialAction.push_front(new DiscardEffect(1));
 
@@ -39,7 +38,7 @@ Team mkNearEast(){
         {
             {
                 { 1, 2, 3 },
-                { 4, 5, 6 }
+                { 4, 5, 2 }
             }
         }
     };
