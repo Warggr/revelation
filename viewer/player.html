@@ -272,13 +272,9 @@
 		var content = JSON.stringify(message).split(",");
 
 		for(i = 0; i < content.length; i++) {
-			if(content.at(i).includes(name)) {
-				socket.send(i);
-				removeGrey();
-				break;
-			}
+			socket.send(name.split('-').at(1));
+			removeGrey();
 		}
-		removeGrey();
 
 		socket.onerror = (err) => { console.error(err); }
 	}
