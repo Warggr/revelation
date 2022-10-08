@@ -24,20 +24,6 @@
 		<button onclick="loadFile();" id="load-file-button">Datei laden</button>
 	</div>
 	<div>
-		<h2>Character auswählen</h2>
-		<label for="chosenChar">Character hier ausw&auml;hlen:</label>
-		<input type="text" id="chosenChar"/>
-		<button onclick="sockSendCharacter();">Auswählen</button>
-		<br/>
-	</div>
-	<div>
-		<h2>Position auswählen</h2>
-		<label for="chosenPos">Position hier ausw&auml;hlen:</label>
-		<input type="text" id="chosenPos"/>
-		<button onclick="sockSendPos();">Auswählen</button>
-		<br/>
-	</div>
-	<div>
 		<h2>Karte auswählen</h2>
 		<label for="chosenCard">Karte hier ausw&auml;hlen:</label>
 		<input type="text" id="chosenCard"/>
@@ -68,15 +54,41 @@
 	var currentStep = 0;
 	var draggableCharacters;
 	var selectedId;
-	let targetId;
+	var charId;
 	var stepCountDom = document.getElementById('step-count');
 	var connectionStatusDom = document.getElementById('connection-status');
-	var charId;
 	var message;
+	var boardfields = document.querySelectorAll('.board-field');
+
+	function removeGrey() {
+		boardfields.forEach(function (item) {
+			if(item.hasAttribute("style")) {
+				item.setAttribute("style", "background-color:white;");
+				if(item.hasChildNodes()) {
+					item.firstElementChild.removeAttribute('style');
+				}
+			}
+		});
+	}
+
+	function removeGrey_() {
+		boardfields.forEach(function (item) {
+			var color = item.getAttribute("style");
+			console.log(color);
+			if(item.hasAttribute("style") && !color.includes('red')) {
+				item.setAttribute("style", "background-color:white;");
+				if(item.hasChildNodes()) {
+					item.firstElementChild.removeAttribute('style');
+				}
+			}
+		});
+	}
 
 	function startChar() {
 		if(this.id) {
-			this.charId = this.id;c
+			charId = this.id;
+			this.style.backgroundColor = "red";
+			this.parentElement.style.backgroundColor = "red";
 			console.log(this.id);
 			sockSendCharacter(this.id);
 		}
@@ -85,7 +97,25 @@
 	function startPos() {
 		selectedId = this.getAttribute('array');
 		console.log(selectedId);
-		sockSendPos(selectedId);
+		if(selectedId === document.getElementById(charId).parentElement.getAttribute('array')) {
+			socket.send(0);
+		} else {
+			sockSendPos(selectedId);
+		}
+	}
+
+	function showPos(fields, possibilities) {
+		for(i = 0; i < possibilities.length; i++) {
+			for(j = 0; j < fields.length; j++) {
+				cmp = fields.item(j).getAttribute('array');
+				if(possibilities.at(i).includes(cmp)) {
+					fields.item(j).setAttribute("style", "background-color:grey")
+					if(fields.item(j).firstChild) {
+						fields.item(j).firstChild.setAttribute("style", "background-color:grey");
+					}
+				}
+			}
+		}
 	}
 
 	const nxt = () => {
@@ -200,46 +230,38 @@
 				initialized = true;
 			}
 
-			else if(JSON.stringify(event.data).includes("action") && !JSON.stringify(event.data).includes("state") )
-			{
+			if (JSON.stringify(event.data).includes("action") && !JSON.stringify(event.data).includes("state")) {
 				let step = readStep(event.data, socket);
 				steps.push(step);
 				reloadNbSteps();
-				if(steps.length == 1) nxt();
-			}
-			else if(JSON.stringify(event.data).includes("character") && !JSON.stringify(event.data).includes("state"))
-			{
+				if (steps.length == 1) nxt();
+			} else if (JSON.stringify(event.data).includes("character") && !JSON.stringify(event.data).includes("state")) {
 				message = event.data;
 				draggableCharacters = document.querySelectorAll('.board-field div');
 				draggableCharacters.forEach(item =>
-					item.addEventListener('click', startChar)
-				)
-				var boardfields = document.querySelectorAll('.board-field');
-				boardfields.forEach(item => function (e) {
-					e.stopPropagation();
-				})
-			}
-			else if(JSON.stringify(event.data).includes("position") && !JSON.stringify(event.data).includes("state"))
-			{
+						item.addEventListener('click', startChar)
+				);
+				boardfields.forEach(item => item.removeEventListener('mouseover', item.fn, false));
+				boardfields.forEach(item => item.removeEventListener('click', startPos, false));
+				boardfields.forEach(item => item.removeEventListener('mouseout', removeGrey_, false));
+
+			} else if (JSON.stringify(event.data).includes("position") && !JSON.stringify(event.data).includes("state")) {
 				possibilities = JSON.stringify(event.data).replace(/\\/g, '').replace('>', '').replace('v', '').split('",');
-				console.log(possibilities);
+				console.log(event.data);
 				boardfields = document.querySelectorAll('.board-field');
 				message = possibilities;
-				for(i = 0; i < possibilities.length; i++) {
-					for(j = 0; j < boardfields.length; j++) {
-						cmp = boardfields.item(j).getAttribute('array');
-						if(possibilities.at(i).includes(cmp)) {
-							boardfields.item(j).setAttribute("style", "background-color:grey")
-						}
-					}
-				}
-
-				boardfields.forEach(item =>
-					item.addEventListener('click', startPos)
-				)
-			}
-			else
-			{
+				draggableCharacters.forEach(item => item.removeEventListener('click', startChar, false));
+				boardfields.forEach(item => item.addEventListener('click', startPos));
+				boardfields.forEach(item => item.addEventListener( 'mouseover',
+								item.fn = function () {
+									showPos(boardfields, possibilities);
+									this.style.backgroundColor = '#5A5A5A';
+								}, false))
+				boardfields.forEach(item => item.addEventListener('mouseout', removeGrey_, false))
+			} else if (JSON.stringify(event.data).includes("card") && !JSON.stringify(event.data).includes("state")) {
+				boardfields.forEach(item => item.removeEventListener('mouseover', item.fn, false));
+				boardfields.forEach(item => item.removeEventListener('click', startPos, false));
+				boardfields.forEach(item => item.removeEventListener('mouseout', removeGrey_, false));
 			}
 		}
 		socket.onerror = (err) => { console.error(err); }
@@ -249,9 +271,10 @@
 		var name = document.getElementById(id).firstChild.textContent;
 		var content = JSON.stringify(message).split(",");
 
-		for(var i = 0; i < content.length; i++) {
+		for(i = 0; i < content.length; i++) {
 			if(content.at(i).includes(name)) {
 				socket.send(i);
+				removeGrey();
 				break;
 			}
 		}
@@ -261,13 +284,17 @@
 	function sockSendPos(id) {
 		for(i = 0; i < message.length; i++) {
 			if(message.at(i).includes(id)) {
+				removeGrey();
 				socket.send(i);
 				break;
 			}
 		}
 	}
 
+	var chosenCard = document.getElementById("chosenCard");
+
 	function sockSendCard() {
+		removeGrey()
 		socket.send(chosenCard.value);
 	}
 
