@@ -268,13 +268,9 @@
 	}
 
 	function sockSendCharacter(id) {
-		var name = document.getElementById(id).firstChild.textContent;
-		var content = JSON.stringify(message).split(",");
-
-		socket.send(name.split('-').at(1));
+		console.log(charId);
+		socket.send(charId.split('-').at(1));
 		removeGrey();
-
-
 		socket.onerror = (err) => { console.error(err); }
 	}
 
