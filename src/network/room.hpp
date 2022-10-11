@@ -13,12 +13,6 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <memory>
-#ifdef HTTP_CONTROLLED_SERVER
-#include "control/game.hpp"
-#include <thread>
-#include <array>
-struct Team;
-#endif
 
 using RoomId = unsigned short int;
 
@@ -36,21 +30,11 @@ class ServerRoom {
     std::unordered_set<std::shared_ptr<Spectator>> sessions;
     bool firstStep;
     std::unordered_map<AgentId, std::shared_ptr<WaitingAgent>> waitingAgents; //The agents that are supposed to join the room and haven't done so yet
-    Server* const server;
-#ifdef HTTP_CONTROLLED_SERVER
-    std::thread myThread;
-#endif
 public:
+    Server* const server;
     ServerRoom(RoomId id, Server* server);
-    ~ServerRoom(){
-#ifdef HTTP_CONTROLLED_SERVER
-        if(myThread.joinable()) myThread.join();
-#endif
-    }
     ServerRoom(ServerRoom&& move) = default;
-#ifdef HTTP_CONTROLLED_SERVER
-    void launchGame(std::array<Team, 2>&& teams, RoomId id);
-#endif
+
     void setGreeterMessage(const std::string& greeterMessage);
 
     //Create a Spectator and allows it to join once it has done the websocket handshake
@@ -81,5 +65,26 @@ public:
 
     const std::unordered_map<AgentId, std::shared_ptr<WaitingAgent>>& getWaitingAgents() const { return waitingAgents; }
 };
+
+#ifdef HTTP_CONTROLLED_SERVER
+#include <thread>
+#include <array>
+struct Team;
+
+class ServerRoom_HTTPControlled : public ServerRoom {
+    std::thread myThread;
+public:
+    template<class... Args>
+    ServerRoom_HTTPControlled(Args&&... args): ServerRoom(args...) {}
+    ServerRoom_HTTPControlled(ServerRoom_HTTPControlled&& move) = default;
+    ~ServerRoom_HTTPControlled(){
+        if(myThread.joinable()) myThread.join();
+    }
+    void launchGame(std::array<Team, 2>&& teams, RoomId id);
+};
+using ServerRoom_impl = ServerRoom_HTTPControlled;
+#else
+using ServerRoom_impl = ServerRoom;
+#endif
 
 #endif

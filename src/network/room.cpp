@@ -10,7 +10,9 @@
 #include <iostream>
 
 #ifdef HTTP_CONTROLLED_SERVER
-void ServerRoom::launchGame(std::array<Team, 2>&& teams, RoomId id){
+#include "control/game.hpp"
+
+void ServerRoom_HTTPControlled::launchGame(std::array<Team, 2>&& teams, RoomId id){
     auto array_shared = new std::array<Team, 2>(std::move(teams));
     std::cout << "(network thread) Launching game\n";
     myThread = std::thread([&,array_shared=array_shared,id=id]{

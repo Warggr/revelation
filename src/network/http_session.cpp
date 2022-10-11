@@ -8,6 +8,10 @@
 #include "nlohmann/json.hpp"
 #include <iostream>
 
+#ifdef HTTP_CONTROLLED_SERVER
+#include "setup/team.hpp"
+#endif
+
 using json = nlohmann::json;
 
 #ifdef HTTP_SERVE_FILES
@@ -15,7 +19,7 @@ std::string path_cat(boost::beast::string_view base, boost::beast::string_view p
 beast::string_view mime_type(beast::string_view path);
 #endif
 
-HttpSession::HttpSession(tcp::socket&& socket, Server& server)
+HttpSession::HttpSession(tcp::socket&& socket, Server_impl& server)
     : socket_(std::move(socket))
     , server(server)
 {

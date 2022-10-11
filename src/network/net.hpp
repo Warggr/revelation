@@ -18,4 +18,19 @@ struct DisconnectedException: public std::exception{
 struct TimeoutException: public std::exception{
 };
 
+class ServerRoom; class ServerRoom_HTTPControlled;
+class Server; class Server_HTTPFileServer;
+
+#ifdef HTTP_CONTROLLED_SERVER
+using Server_impl = Server_HTTPFileServer;
+#else
+using Server_impl = Server;
+#endif
+
+#ifdef HTTP_SERVE_FILES
+using ServerRoom_impl = ServerRoom_HTTPControlled;
+#else
+using ServerRoom_impl = ServerRoom;
+#endif
+
 #endif

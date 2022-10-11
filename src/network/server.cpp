@@ -9,13 +9,8 @@ constexpr bool roomZeroStaysOpen = true;
 #endif
 #include <thread>
 
-#ifdef HTTP_SERVE_FILES
-Server::Server(const char* ipAddress, unsigned short port, std::string_view doc_root)
-    : listener( *this, ioc, tcp::endpoint{net::ip::make_address(ipAddress), port} ), doc_root(doc_root)
-#else
 Server::Server(const char* ipAddress, unsigned short port)
     : listener( *this, ioc, tcp::endpoint{net::ip::make_address(ipAddress), port} )
-#endif
 {
     std::cout << "(main) Starting server\n";
 }
@@ -57,9 +52,9 @@ void Server::stop(){
     rooms.clear(); //Closing all rooms (some might wait for their game to end)
 }
 
-std::pair<RoomId, ServerRoom&> Server::addRoom(RoomId newRoomId) {
+std::pair<RoomId, ServerRoom_impl&> Server::addRoom(RoomId newRoomId) {
     std::cout << "(main) Add room to server\n";
-    auto [iter, success] = rooms.insert({newRoomId, ServerRoom(newRoomId, this)});
+    auto [iter, success] = rooms.insert({newRoomId, ServerRoom_impl(newRoomId, this)});
     //assert(success and iter->first == newRoomId);
     return { newRoomId, iter->second };
 }
@@ -68,7 +63,7 @@ void Server::askForRoomDeletion(RoomId id) {
     std::cout << "(main server) room deletion requested\n";
 
     net::post(ioc, [&,id=id] {
-        ServerRoom& room = rooms.find(id)->second;
+        ServerRoom_impl& room = rooms.find(id)->second;
         room.interrupt();
     });
     net::post(ioc, [&,id=id]{
@@ -83,7 +78,11 @@ void Server::askForRoomDeletion(RoomId id) {
 }
 
 void Server::addSession(tcp::socket&& socket){
+#ifdef HTTP_SERVE_FILES
+    auto session = new HttpSession(std::move(socket), static_cast<Server_impl&>(*this));
+#else
     auto session = new HttpSession(std::move(socket), *this);
+#endif
     sessions.insert(session);
     session->run();
 }
