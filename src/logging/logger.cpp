@@ -27,12 +27,12 @@ class LiveServerAndLogger : public SubLogger {
     ServerRoom& serverRoom;
 public:
     LiveServerAndLogger(ServerRoom& serverRoom, const std::string& start): serverRoom(serverRoom){
-        serverRoom.setGreeterMessage(start);
+        serverRoom.server->async_do( [&,start=start]{ serverRoom.setGreeterMessage(start); } );
     };
     ~LiveServerAndLogger() override {
     }
     void addStep(const json& j) override {
-        serverRoom.send(j.dump());
+        serverRoom.server->async_do( [&,jsdump=j.dump()]{ serverRoom.send(jsdump); } );
     }
 };
 
@@ -47,6 +47,7 @@ Logger* Logger::logToFile(std::ostream& stream){
 }
 
 void Logger::addStep(const uptr<Step>& step) {
+    json j(*step);
     for(const auto& sub : subLoggers)
-        sub->addStep(json(*step));
+        sub->addStep(j);
 }

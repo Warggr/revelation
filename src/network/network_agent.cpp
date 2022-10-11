@@ -40,12 +40,12 @@ uint NetworkAgent::choose(const OptionList& options, const std::string_view& mes
     optionList += '"';
     optionList += message;
     optionList += "\"]";
-    sender->send(optionList);
+    sender->send(std::move(optionList));
 
     input_loop:
         std::string str;
         try {
-            str = sender->get();
+            str = sender->get_sync();
         } catch(DisconnectedException&){
             throw AgentSurrenderedException(myId);
         }

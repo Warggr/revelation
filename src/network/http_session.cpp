@@ -124,15 +124,15 @@ void HttpSession::on_read(error_code ec, std::size_t){
     // See if it is a WebSocket Upgrade
     if(websocket::is_upgrade(req_)){
         std::cout << "(async http) websocket upgrade heard!\n";
-        // The websocket connection is established! Transfer the socket and the request to the Server
+        // The websocket connection is established! Transfer the socket and the request to the server
         RoomId roomId; AgentId agentId;
         if(!read_request_path(req_.target(), roomId, agentId))
             return sendResponse(bad_request("Wrong path"));
 
-        if(server.rooms.find(roomId) == server.rooms.end())
+        if(server.getRooms().find(roomId) == server.getRooms().end())
             return sendResponse(not_found("Room not found"));
 
-        ServerRoom& room = server.rooms.find(roomId)->second;
+        ServerRoom& room = server.getRooms().find(roomId)->second;
         //ServerRoom& room = server.rooms[roomId];
         auto spec = room.addSpectator(socket_, agentId);
         if (!spec)

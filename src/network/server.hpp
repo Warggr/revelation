@@ -10,14 +10,15 @@
 class HttpSession;
 
 class Server {
-    RoomId lastUsedIdentifier = 0;
     net::io_context ioc; // The io_context is required for all I/O
+    //ioc needs to be initialized before listener, that's why it comes first in the file
+    RoomId lastUsedIdentifier = 0;
     Listener listener; // The Listener listens for new clients and adds them to the Rooms
     std::unordered_set<HttpSession*> sessions; //all these pointers are owning
-    std::pair<RoomId, ServerRoom_impl&> addRoom(RoomId newRoomId);
-public:
     std::unordered_map<RoomId, ServerRoom_impl> rooms; //Each room contains a list of established WebSocket connections.
 
+    std::pair<RoomId, ServerRoom_impl&> addRoom(RoomId newRoomId);
+public:
     Server(const char* ipAddress, unsigned short port);
 
     ~Server();
@@ -34,6 +35,12 @@ public:
 
     void stop();
 
+    template<typename Function>
+    void async_do(Function&& fun){
+        net::post(ioc, fun);
+    }
+
+    std::unordered_map<RoomId, ServerRoom_impl>& getRooms() { return rooms; }
     const std::unordered_map<RoomId, ServerRoom_impl>& getRooms() const { return rooms; }
 };
 
