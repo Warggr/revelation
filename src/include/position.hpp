@@ -1,6 +1,7 @@
 #ifndef REVELATION_POSITION_HPP
 #define REVELATION_POSITION_HPP
 
+#include "nlohmann/json_fwd.hpp"
 #include <cmath>
 #include <cstdint>
 #include <iosfwd>
@@ -15,6 +16,7 @@ public:
     constexpr bool operator==(const position& other) const { return other.row == row and other.column == column; }
 
     friend std::ostream& operator<<(std::ostream& o, const position& pos);
+    friend void to_json(nlohmann::json& j, const position& pos);
 };
 
 inline uint8_t manhattanDistance( position p1, position p2 ){

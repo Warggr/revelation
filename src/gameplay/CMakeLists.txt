@@ -3,4 +3,5 @@ add_library(gameplay STATIC
 	deck.cpp
 	player.cpp
 	state.cpp
+	step.cpp
 )
