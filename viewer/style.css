@@ -117,3 +117,23 @@ div.HP.body {
 	color: red;
 	animation: text-pulsate 2s;
 }
+
+.grid {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	grid-gap: 5px;
+	cursor: pointer;
+	justify-items: center;
+	align-items: center;
+}
+
+.grid img {
+	height: 200px;
+	width: 200px;
+}
+
+.grid button {
+	height: 30px;
+	width: 60px;
+}
+

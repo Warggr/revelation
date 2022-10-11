@@ -24,11 +24,7 @@
 		<button onclick="loadFile();" id="load-file-button">Datei laden</button>
 	</div>
 	<div>
-		<h2>Karte auswählen</h2>
-		<label for="chosenCard">Karte hier ausw&auml;hlen:</label>
-		<input type="text" id="chosenCard"/>
-		<button onclick="sockSendCard();">Auswählen</button>
-		<br/>
+		<h2 id="card">Karte auswählen</h2>
 	</div>
 	<div>
 		<h2>Mit Live-Server verbinden</h2>
@@ -59,7 +55,12 @@
 	var connectionStatusDom = document.getElementById('connection-status');
 	var message;
 	var boardfields = document.querySelectorAll('.board-field');
-
+	var flag = false;
+	const removeEvents = () => {
+		boardfields.forEach(item => item.removeEventListener('mouseover', item.fn, false));
+		boardfields.forEach(item => item.removeEventListener('click', startPos, false));
+		boardfields.forEach(item => item.removeEventListener('mouseout', removeGrey_, false));
+	}
 	function removeGrey() {
 		boardfields.forEach(function (item) {
 			if(item.hasAttribute("style")) {
@@ -70,7 +71,6 @@
 			}
 		});
 	}
-
 	function removeGrey_() {
 		boardfields.forEach(function (item) {
 			var color = item.getAttribute("style");
@@ -82,7 +82,6 @@
 			}
 		});
 	}
-
 	function startChar() {
 		if(this.id) {
 			charId = this.id;
@@ -92,7 +91,6 @@
 			sockSendCharacter(this.id);
 		}
 	}
-
 	function startPos() {
 		selectedId = this.getAttribute('array');
 		console.log(selectedId);
@@ -102,8 +100,25 @@
 			sockSendPos(selectedId);
 		}
 	}
-
+	function readMoves() {
+		var moves = possibilities.forEach(item => item.split(' ').at(0));
+		console.log(moves);
+	}
 	function showPos(fields, possibilities) {
+		let i;
+		const moves = [];
+		for(i = 0; i < possibilities.length; i++) {
+			moves.push(possibilities.at(i).split(' ').at(0).replace('\\"', ''))
+		}
+		moves.forEach(item =>
+			item.split('').forEach(c => function () {
+				switch (c) {
+					case '>':
+						var value = document.getElementById(charId).getAttribute('array');
+				}
+			}))
+
+
 		for(i = 0; i < possibilities.length; i++) {
 			for(j = 0; j < fields.length; j++) {
 				cmp = fields.item(j).getAttribute('array');
@@ -116,7 +131,6 @@
 			}
 		}
 	}
-
 	const nxt = () => {
 		const step = steps.shift();
 		if(!step) return false;
@@ -179,6 +193,33 @@
 		reader.onerror = () => { console.warn('Could not load file because...\n' + reader.error); }
 		reader.readAsText(file);
 	}
+	const loadCard = (data) => {
+		const message = JSON.stringify(data).split('",');
+		const html = document.getElementById('card');
+		const node = document.createElement('div');
+		node.classList.add('grid');
+		html.appendChild(node);
+		for(var i = 0; i < message.length; i++){
+			var card = message.at(i);
+			switch (true) {
+				case card.includes("Hard") :
+					node.innerHTML += `<img src="./image/hardAtk.jpg" onclick="sockSendCard(i)"/>`;
+					break;
+				case card.includes("Soft"):
+					node.innerHTML += `<img src="./image/softAtk.jpg" onclick="sockSendCard(i)"/>`;
+					break;
+				case card.includes("Defense"):
+					node.innerHTML += `<img src="./image/defense.jpg" onclick="sockSendCard(i)"/>`;
+					break;
+				case card.includes("Skip"):
+					node.innerHTML += `<button onclick="sockSendCard(i)">Skip</button>`;
+				default:
+					break;
+			}
+		}
+
+		console.log(message);
+	}
 	function httpRequest()  {
 		const openRoom = new XMLHttpRequest();
 		openRoom.onreadystatechange = () => {
@@ -235,33 +276,32 @@
 				steps.push(step);
 				reloadNbSteps();
 				if (steps.length == 1) nxt();
+				removeEvents();
 			} else if (JSON.stringify(event.data).includes("character") && !JSON.stringify(event.data).includes("state")) {
 				message = event.data;
 				draggableCharacters = document.querySelectorAll('.board-field div');
 				draggableCharacters.forEach(item =>
 						item.addEventListener('click', startChar)
 				);
-				boardfields.forEach(item => item.removeEventListener('mouseover', item.fn, false));
-				boardfields.forEach(item => item.removeEventListener('click', startPos, false));
-				boardfields.forEach(item => item.removeEventListener('mouseout', removeGrey_, false));
+				removeEvents();
 
 			} else if (JSON.stringify(event.data).includes("position") && !JSON.stringify(event.data).includes("state")) {
-				possibilities = JSON.stringify(event.data).replace(/\\/g, '').replace('>', '').replace('v', '').split('",');
+				possibilities = JSON.stringify(event.data).split('",');
 				console.log(event.data);
 				boardfields = document.querySelectorAll('.board-field');
 				message = possibilities;
 				draggableCharacters.forEach(item => item.removeEventListener('click', startChar, false));
 				boardfields.forEach(item => item.addEventListener('click', startPos));
-				boardfields.forEach(item => item.addEventListener( 'mouseover',
-								item.fn = function () {
-									showPos(boardfields, possibilities);
-									this.style.backgroundColor = '#5A5A5A';
-								}, false))
+				boardfields.forEach(item => item.addEventListener('mouseover',
+						item.fn = function () {
+							showPos(boardfields, possibilities);
+							this.style.backgroundColor = '#5A5A5A';
+						}, false))
 				boardfields.forEach(item => item.addEventListener('mouseout', removeGrey_, false))
+
 			} else if (JSON.stringify(event.data).includes("card") && !JSON.stringify(event.data).includes("state")) {
-				boardfields.forEach(item => item.removeEventListener('mouseover', item.fn, false));
-				boardfields.forEach(item => item.removeEventListener('click', startPos, false));
-				boardfields.forEach(item => item.removeEventListener('mouseout', removeGrey_, false));
+				removeEvents();
+				loadCard(event.data);
 			}
 		}
 		socket.onerror = (err) => { console.error(err); }
@@ -270,7 +310,6 @@
 	function sockSendCharacter(id) {
 		console.log(charId);
 		socket.send(charId.split('-').at(1));
-		removeGrey();
 		socket.onerror = (err) => { console.error(err); }
 	}
 
@@ -281,15 +320,10 @@
 				break;
 			}
 		}
-		removeGrey();
-
 	}
 
-	var chosenCard = document.getElementById("chosenCard");
-
-	function sockSendCard() {
-		removeGrey()
-		socket.send(chosenCard.value);
+	function sockSendCard(id) {
+		socket.send(id);
 	}
 
 	const urlParams = new URLSearchParams(window.location.search);
