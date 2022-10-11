@@ -138,7 +138,7 @@ void HttpSession::on_read(error_code ec, std::size_t){
         if (!spec)
             return sendResponse(bad_request("Room did not accept you"));
 
-        spec->run(std::move(req_));
+        spec->connect(std::move(req_));
         server.askForHttpSessionDeletion(this); //don't schedule any further network operations, delete this, and die.
         return;
     }
@@ -159,7 +159,7 @@ void HttpSession::on_read(error_code ec, std::size_t){
         for(const auto& [ roomId, room ] : server.getRooms()){
             json agents = json::array({ "Unavailable", "Unavailable" });
             unsigned nbSpectators = 0;
-            for(const auto& [ agentId, agent ] : room.getWaitingAgents()){
+            for(const auto& [ agentId, agent ] : room.getSessions()){
                 agents[agentId-1] = (agent->claimed ? std::string("claimed") : std::string("free"));
             }
             for(const auto& spectator: room.getSpectators()){

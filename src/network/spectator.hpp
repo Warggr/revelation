@@ -43,8 +43,8 @@ public:
 
     //Accepts the websocket handshake asynchronously
     template<class Body, class Allocator>
-    void run(http::request<Body, http::basic_fields<Allocator>> req){
-        ws.async_accept( req, [sp=shared_from_this()](error_code ec){ sp->on_accept(ec); } );
+    void connect(http::request<Body, http::basic_fields<Allocator>> req){
+        ws->async_accept( req, [sp=shared_from_this()](error_code ec){ sp->on_connect(ec); } );
     }
 
     //Most of Spectator's methods are run asynchronously on the network thread;

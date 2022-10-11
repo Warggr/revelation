@@ -13,6 +13,7 @@ Spectator::Spectator(tcp::socket socket, ServerRoom& room, AgentId id)
 : ws(std::move(socket)), room(room), id(id){}
 
 Spectator::~Spectator(){
+    assert(not connected);
 }
 
 void Spectator::fail(error_code ec, char const* what){

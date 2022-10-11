@@ -18,6 +18,9 @@ struct DisconnectedException: public std::exception{
 struct TimeoutException: public std::exception{
 };
 
+using AgentId = unsigned short int;
+using RoomId = unsigned short int;
+
 class ServerRoom; class ServerRoom_HTTPControlled;
 class Server; class Server_HTTPFileServer;
 

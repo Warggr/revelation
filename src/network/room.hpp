@@ -13,8 +13,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <memory>
-
-using RoomId = unsigned short int;
+#include <cassert>
 
 // Similar to a Promise<Agent> in Javascript.
 // TODO OPTIMIZE have one semaphore for multiple agents
@@ -27,9 +26,9 @@ struct WaitingAgent {
 /* Represents a room on the server on which a game takes place (or will take place shortly) */
 class ServerRoom {
     std::string greeterMessage; //The message that will be sent to every new spectator
-    std::unordered_set<std::shared_ptr<Spectator>> sessions;
+    std::unordered_set<std::shared_ptr<Spectator>> spectators;
     bool firstStep;
-    std::unordered_map<AgentId, std::shared_ptr<WaitingAgent>> waitingAgents; //The agents that are supposed to join the room and haven't done so yet
+    std::unordered_map<AgentId, std::shared_ptr<WaitingAgent>> sessions; //The agents that are supposed to join the room and haven't done so yet
 public:
     Server* const server;
     ServerRoom(RoomId id, Server* server);
@@ -41,29 +40,23 @@ public:
     std::shared_ptr<Spectator> addSpectator(tcp::socket& socket, AgentId id = 0);
 
     void join (Spectator& session);
-    void send (const std::string& message);
+    void send(const std::string& message);
 
     std::shared_ptr<WaitingAgent> expectNewAgent(AgentId agentId){
         auto [iter, success] = waitingAgents.insert({ agentId, std::make_shared<WaitingAgent>() });
-        //assert(success);
+        assert(success);
         return iter->second;
     }
 
-    void interrupt(){ //signals the game that it should end as soon as possible.
-        for(auto& [i, waiting] : waitingAgents){
-            waiting->agent = nullptr;
-            waiting->promise.release();
-        }
-        for(const auto& session: sessions) session->disconnect();
-    }
+    void interrupt();
 
-    void reportAfk(Spectator* spec);
+    void reportAfk(Spectator& spec);
 
     void onConnectAgent(AgentId id, Spectator* agent);
 
-    const std::unordered_set<std::shared_ptr<Spectator>>& getSpectators() const { return sessions; }
+    const std::unordered_set<std::shared_ptr<Spectator>>& getSpectators() const { return spectators; }
 
-    const std::unordered_map<AgentId, std::shared_ptr<WaitingAgent>>& getWaitingAgents() const { return waitingAgents; }
+    const std::unordered_map<AgentId, std::shared_ptr<WaitingAgent>>& getSessions() const { return sessions; }
 };
 
 #ifdef HTTP_CONTROLLED_SERVER
