@@ -160,7 +160,10 @@ void HttpSession::on_read(error_code ec, std::size_t){
             json agents = json::array({ "Unavailable", "Unavailable" });
             unsigned nbSpectators = 0;
             for(const auto& [ agentId, agent ] : room.getSessions()){
-                agents[agentId-1] = (agent->claimed ? std::string("claimed") : std::string("free"));
+                agents[agentId-1] = (
+                        agent->isConnected() ? std::string("Connected") :
+                        agent->isClaimed() ? std::string("claimed") :
+                        std::string("free"));
             }
             for(const auto& spectator: room.getSpectators()){
                 if(spectator->id != 0)

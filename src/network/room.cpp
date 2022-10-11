@@ -38,54 +38,55 @@ void ServerRoom::setGreeterMessage(const std::string& newMessage) {
     greeterMessage += newMessage;
     greeterMessage += ",\"steps\":[";
     firstStep = true;
-    auto message = std::make_shared<const std::string>(greeterMessage + "]}");
+    auto message = std::make_shared<std::string>(greeterMessage + "]}");
     for(const auto& client : spectators)
         client->send(message);
-}
-
-void ServerRoom::join(Spectator& session){
-    std::cout << "(async) spectator joined\n";
-    sessions.insert(session.shared_from_this());
-    if(not this->greeterMessage.empty()){
-        auto message = std::make_shared<const std::string>(this->greeterMessage + "]}");
-        session.send(message);
-    } else {
-        auto message = std::make_shared<const std::string>("Welcome! The game has not started yet");
-        session.send(message);
-    }
+    for(const auto& client : sessions)
+        client.second->send(message);
 }
 
 void ServerRoom::send(const std::string& message){
-    if(firstStep) firstStep = false;
-    else greeterMessage += ',';
-    greeterMessage += message;
-
     // When the callbacks will be executed and the string will actually be sent, the string itself might have gone out of scope.
     // Wrap it in a shared pointer before that happens.
     auto const ss = std::make_shared<const std::string>(message);
 
+    if(firstStep) firstStep = false;
+    else greeterMessage += ',';
+    greeterMessage += message;
+
     for(const auto& session : spectators)
         session->send(ss);
+    for(const auto& session : sessions)
+        session.second->send(ss);
 }
 
 std::shared_ptr<Spectator> ServerRoom::addSpectator(tcp::socket& socket, AgentId id){
     if(id != 0){
         auto iter_agent = sessions.find(id);
         if(iter_agent == sessions.end()) return nullptr; //no such seat
-        if(iter_agent->second->claimed) return nullptr; //seat already claimed
-        iter_agent->second->claimed = true;
-    }
+        if(iter_agent->second->isClaimed()) return nullptr; //seat already claimed
 
-    auto ptr = std::make_shared<Spectator>(std::move(socket), *this, id);
-    return ptr;
+        iter_agent->second->claim(std::move(socket));
+        return iter_agent->second;
+    } else {
+        auto ptr = std::make_shared<Spectator>(*this);
+        ptr->claim(std::move(socket));
+        return ptr;
+    }
 }
 
-void ServerRoom::onConnectAgent(AgentId agentId, Spectator* agent) {
-    std::cout << "(async) agent connected\n";
-    auto iter = waitingAgents.find(agentId);
-    iter->second->agent = agent;
-    iter->second->promise.release();
-    waitingAgents.erase(iter);
+void ServerRoom::onConnect(Spectator& spectator) {
+    std::cout << "(async) spectator joined\n";
+    if(spectator.id == 0){
+        spectators.insert(spectator.shared_from_this());
+    }
+
+    std::shared_ptr<const std::string> message = std::make_shared<const std::string>(
+            this->greeterMessage.empty() ?
+            "Welcome! The game has not started yet" :
+            this->greeterMessage + "]}"
+    );
+    spectator.send(message);
 }
 
 void ServerRoom::reportAfk(Spectator& spec){
@@ -94,8 +95,8 @@ void ServerRoom::reportAfk(Spectator& spec){
 }
 
 void ServerRoom::interrupt() { //signals the game that it should end as soon as possible.
-    for(auto& [i, waiting] : waitingAgents){
-        waiting->agent = nullptr;
-        waiting->promise.release();
+    for(auto& [i, session] : sessions){
+        session->interrupt();
     }
+    for(const auto& spectator: spectators) spectator->interrupt();
 }
