@@ -193,31 +193,42 @@
 		reader.onerror = () => { console.warn('Could not load file because...\n' + reader.error); }
 		reader.readAsText(file);
 	}
-	const loadCard = (data) => {
-		const message = JSON.stringify(data).split('",');
-		const html = document.getElementById('card');
-		const node = document.createElement('div');
+	function loadCard(data){
+		var message = JSON.stringify(data).split('",');
+		var html = document.getElementById('card');
+		html.innerHTML = '';
+		var node = document.createElement('div');
 		node.classList.add('grid');
 		html.appendChild(node);
-		for(var i = 0; i < message.length; i++){
-			var card = message.at(i);
-			switch (true) {
-				case card.includes("Hard") :
-					node.innerHTML += `<img src="./image/hardAtk.jpg" onclick="sockSendCard(i)"/>`;
-					break;
-				case card.includes("Soft"):
-					node.innerHTML += `<img src="./image/softAtk.jpg" onclick="sockSendCard(i)"/>`;
-					break;
-				case card.includes("Defense"):
-					node.innerHTML += `<img src="./image/defense.jpg" onclick="sockSendCard(i)"/>`;
-					break;
-				case card.includes("Skip"):
-					node.innerHTML += `<button onclick="sockSendCard(i)">Skip</button>`;
-				default:
-					break;
+		node.innerHTML = '';
+		for(var i = 0; i < message.length - 1; i++) {
+			let card = message.at(i);
+			if(card.includes('Hard')) {
+				var link = document.createElement('img');
+				link.src = "./image/hardAtk.jpg"
+				link.onclick =  (function(t){return function(){sockSendCard(t);};})(i)
+				node.appendChild(link);
 			}
+			else if(card.includes('Soft')) {
+				var link = document.createElement('img');
+				link.src = "./image/softAtk.jpg"
+				link.onclick =  (function(t){return function(){sockSendCard(t);};})(i)
+				node.appendChild(link);
+			}
+			else if(card.includes('Defense')) {
+				var link = document.createElement('img');
+				link.src = "./image/defense.jpg"
+				link.onclick = (function(t){return function(){sockSendCard(t);};})(i)
+				node.appendChild(link);
+			}
+			else if(card.includes('Skip')) {
+				var link = document.createElement('button');
+				link.innerHTML = 'Skip';
+				link.onclick = (function(t){return function(){sockSendCard(t);};})(i)
+				node.appendChild(link);
+			}
+			console.log(i);
 		}
-
 		console.log(message);
 	}
 	function httpRequest()  {
@@ -322,8 +333,9 @@
 		}
 	}
 
-	function sockSendCard(id) {
-		socket.send(id);
+	function sockSendCard(i) {
+		console.log(i);
+		socket.send(i);
 	}
 
 	const urlParams = new URLSearchParams(window.location.search);
