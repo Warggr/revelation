@@ -8,6 +8,10 @@
 #include "nlohmann/json.hpp"
 #include <iostream>
 
+#ifdef HTTP_CONTROLLED_SERVER
+#include "setup/team.hpp"
+#endif
+
 using json = nlohmann::json;
 
 #ifdef HTTP_SERVE_FILES
@@ -15,7 +19,7 @@ std::string path_cat(boost::beast::string_view base, boost::beast::string_view p
 beast::string_view mime_type(beast::string_view path);
 #endif
 
-HttpSession::HttpSession(tcp::socket&& socket, Server& server)
+HttpSession::HttpSession(tcp::socket&& socket, Server_impl& server)
     : socket_(std::move(socket))
     , server(server)
 {
@@ -120,21 +124,21 @@ void HttpSession::on_read(error_code ec, std::size_t){
     // See if it is a WebSocket Upgrade
     if(websocket::is_upgrade(req_)){
         std::cout << "(async http) websocket upgrade heard!\n";
-        // The websocket connection is established! Transfer the socket and the request to the Server
+        // The websocket connection is established! Transfer the socket and the request to the server
         RoomId roomId; AgentId agentId;
         if(!read_request_path(req_.target(), roomId, agentId))
             return sendResponse(bad_request("Wrong path"));
 
-        if(server.rooms.find(roomId) == server.rooms.end())
+        if(server.getRooms().find(roomId) == server.getRooms().end())
             return sendResponse(not_found("Room not found"));
 
-        ServerRoom& room = server.rooms.find(roomId)->second;
+        ServerRoom& room = server.getRooms().find(roomId)->second;
         //ServerRoom& room = server.rooms[roomId];
         auto spec = room.addSpectator(socket_, agentId);
         if (!spec)
             return sendResponse(bad_request("Room did not accept you"));
 
-        spec->run(std::move(req_));
+        spec->connect(std::move(req_));
         server.askForHttpSessionDeletion(this); //don't schedule any further network operations, delete this, and die.
         return;
     }
@@ -155,8 +159,11 @@ void HttpSession::on_read(error_code ec, std::size_t){
         for(const auto& [ roomId, room ] : server.getRooms()){
             json agents = json::array({ "Unavailable", "Unavailable" });
             unsigned nbSpectators = 0;
-            for(const auto& [ agentId, agent ] : room.getWaitingAgents()){
-                agents[agentId-1] = (agent->claimed ? std::string("claimed") : std::string("free"));
+            for(const auto& [ agentId, agent ] : room.getSessions()){
+                agents[agentId-1] = (
+                        agent->isConnected() ? std::string("Connected") :
+                        agent->isClaimed() ? std::string("claimed") :
+                        std::string("free"));
             }
             for(const auto& spectator: room.getSpectators()){
                 if(spectator->id != 0)

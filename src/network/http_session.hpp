@@ -8,8 +8,6 @@
 #include <boost/beast.hpp>
 #include <memory>
 
-class Server;
-
 namespace beast = boost::beast;
 namespace http = boost::beast::http;
 
@@ -18,7 +16,7 @@ class HttpSession {
     tcp::socket socket_;
     beast::flat_buffer buffer_;
     http::request<http::string_body> req_;
-    Server& server;
+    Server_impl& server;
 
     void fail(error_code ec, char const* what);
     template<typename HttpBodyType>
@@ -26,7 +24,7 @@ class HttpSession {
     void on_read(error_code ec, std::size_t);
     void on_write(error_code ec, std::size_t, bool close);
 public:
-    explicit HttpSession(tcp::socket&& socket, Server& server);
+    explicit HttpSession(tcp::socket&& socket, Server_impl& server);
     void run();
 };
 

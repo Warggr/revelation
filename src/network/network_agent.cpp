@@ -4,8 +4,8 @@
 #include "semaphore.hpp"
 #include <algorithm>
 
-NetworkAgent::NetworkAgent(uint myId, Spectator* sender)
-: StepByStepAgent(myId), sender(sender)
+NetworkAgent::NetworkAgent(uint myId, std::shared_ptr<Session> session)
+: StepByStepAgent(myId), sender(std::move(session))
 {
 }
 
@@ -13,18 +13,20 @@ std::vector<std::unique_ptr<NetworkAgent>> NetworkAgent::makeAgents(unsigned sho
     using namespace std::chrono_literals;
 
     std::cout << "(main) make agents\n";
-    std::vector<std::shared_ptr<WaitingAgent>> promisedAgents;
+    std::vector<std::shared_ptr<Session>> sessions(nb);
     for(int i = 0; i<nb; i++){
-        promisedAgents.push_back(room.expectNewAgent(i+startingId+1));
+        auto session = room.addSession(i+startingId+1);
+        sessions[i] = session;
     }
     std::cout << "(main) wait for agents...\n";
     std::vector<std::unique_ptr<NetworkAgent>> retVal;
+    for(const auto& session : sessions) {
+        session->awaitReconnect();
+    }
     for(int i = 0; i<nb; i++) {
-        bool success = promisedAgents[i]->promise.try_acquire_for(5min); // "await the promise"
-        if(not success) throw TimeoutException();
-        if(promisedAgents[i]->agent == nullptr) throw DisconnectedException();
-        auto agent = std::make_unique<NetworkAgent>(i+startingId, promisedAgents[i]->agent);
-        retVal.push_back(std::move(agent));
+        retVal.emplace_back(
+            std::make_unique<NetworkAgent>(i+startingId, sessions[i])
+        );
     }
     std::cout << "(main) found agents!\n";
     return retVal;
@@ -40,12 +42,12 @@ uint NetworkAgent::choose(const OptionList& options, const std::string_view& mes
     optionList += '"';
     optionList += message;
     optionList += "\"]";
-    sender->send(optionList);
+    sender->send(std::move(optionList));
 
     input_loop:
         std::string str;
         try {
-            str = sender->get();
+            str = sender->get_sync();
         } catch(DisconnectedException&){
             throw AgentSurrenderedException(myId);
         }

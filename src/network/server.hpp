@@ -10,26 +10,20 @@
 class HttpSession;
 
 class Server {
-    RoomId lastUsedIdentifier = 0;
     net::io_context ioc; // The io_context is required for all I/O
+    //ioc needs to be initialized before listener, that's why it comes first in the file
+    RoomId lastUsedIdentifier = 0;
     Listener listener; // The Listener listens for new clients and adds them to the Rooms
     std::unordered_set<HttpSession*> sessions; //all these pointers are owning
-    std::pair<RoomId, ServerRoom&> addRoom(RoomId newRoomId);
-public:
-#ifdef HTTP_SERVE_FILES
-    const std::string doc_root;
-#endif
-    std::unordered_map<RoomId, ServerRoom> rooms; //Each room contains a list of established WebSocket connections.
+    std::unordered_map<RoomId, ServerRoom_impl> rooms; //Each room contains a list of established WebSocket connections.
 
-#ifdef HTTP_SERVE_FILES
-    Server(const char* ipAddress, unsigned short port, std::string_view doc_root);
-#else
+    std::pair<RoomId, ServerRoom_impl&> addRoom(RoomId newRoomId);
+public:
     Server(const char* ipAddress, unsigned short port);
-#endif
 
     ~Server();
 
-    std::pair<RoomId, ServerRoom&> addRoom(){ return addRoom(++lastUsedIdentifier); }
+    std::pair<RoomId, ServerRoom_impl&> addRoom(){ return addRoom(++lastUsedIdentifier); }
 
     void askForRoomDeletion(RoomId id);
 
@@ -41,7 +35,29 @@ public:
 
     void stop();
 
-    const std::unordered_map<RoomId, ServerRoom>& getRooms() const { return rooms; }
+    template<typename Function>
+    void async_do(Function&& fun){
+        net::post(ioc, fun);
+    }
+
+    std::unordered_map<RoomId, ServerRoom_impl>& getRooms() { return rooms; }
+    const std::unordered_map<RoomId, ServerRoom_impl>& getRooms() const { return rooms; }
 };
+
+#ifdef HTTP_SERVE_FILES
+class Server_HTTPFileServer: public Server {
+public:
+    const std::string doc_root;
+
+    Server_HTTPFileServer(const char* ipAddress, unsigned short port, std::string_view doc_root)
+    : Server(ipAddress, port), doc_root(doc_root)
+    {
+    }
+    ;
+};
+using Server_impl = Server_HTTPFileServer;
+#else
+using Server_impl = Server;
+#endif
 
 #endif //REVELATION_SERVER_HPP
