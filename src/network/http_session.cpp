@@ -5,14 +5,70 @@
 #include "http_session.hpp"
 #include "spectator.hpp"
 #include "server.hpp"
+#include "visitor.hpp"
 #include "nlohmann/json.hpp"
 #include <iostream>
+#include <variant>
+#include <list>
 
 #ifdef HTTP_CONTROLLED_SERVER
 #include "setup/team.hpp"
 #endif
 
 using json = nlohmann::json;
+
+class WwwDataVisitor : public WriterVisitor {
+    const std::string _data;
+    using KeyValueStore = std::list<std::pair<std::string_view, std::string_view>>;
+    KeyValueStore parsed_data;
+public:
+    WwwDataVisitor(const std::string_view& data): _data(data){
+        for(uint cursor = 0; cursor != _data.size() + 1; ){
+            auto posEqual = _data.find('=', cursor);
+            if(posEqual == std::string_view::npos)
+                throw std::invalid_argument("Missing a =");
+            std::string_view key( _data.data() + cursor, posEqual - cursor);
+            cursor = posEqual + 1;
+            auto posAnd = _data.find('&', posEqual+1);
+            if(posAnd == std::string_view::npos)
+                posAnd = _data.size();
+            std::string_view value( _data.data() + cursor, posAnd - cursor);
+            cursor = posAnd + 1;
+            parsed_data.emplace_back(std::make_pair( key, value ));
+        }
+    }
+    error_type visit(const std::string_view& key, std::string& value) override {
+        auto iter = std::find_if(parsed_data.begin(), parsed_data.end(),
+                  [&key](const std::pair<std::string_view, std::string_view> iter){ return iter.first == key; });
+        if(iter == parsed_data.end()) return not_found;
+        value = iter->second;
+        parsed_data.erase(iter);
+        return found;
+    }
+    error_type visit(const std::string_view& key, bool& value) override {
+        std::string rawValue;
+        auto result = visit(key, rawValue);
+        value = result; // HTML checkboxes: no value provided when false, value provided when true
+        return found;
+    }
+    error_type visit(const std::string_view& key, short& value) override {
+        std::string rawValue; auto result = visit(key, rawValue); if(result == not_found) return not_found;
+        value = std::stoi(rawValue); // I know, this is inefficient and overflow-unsafe
+        return found;
+    }
+    error_type visit(const std::string_view& key, unsigned char& value) override {
+        std::string rawValue; auto result = visit(key, rawValue); if(result == not_found) return not_found;
+        value = std::stoi(rawValue); // I know, this is inefficient and overflow-unsafe
+        return found;
+    }
+    error_type visit(const std::string_view& key, float& value) override {
+        std::string rawValue; auto result = visit(key, rawValue); if(result == not_found) return not_found;
+        value = std::stof(rawValue); // I know, this is inefficient and overflow-unsafe
+        return found;
+    }
+    [[nodiscard]] bool empty() const { return parsed_data.empty(); }
+    [[nodiscard]] std::string_view anyKey() const { return parsed_data.front().first; }
+};
 
 #ifdef HTTP_SERVE_FILES
 std::string path_cat(boost::beast::string_view base, boost::beast::string_view path);
@@ -42,22 +98,16 @@ void HttpSession::fail(error_code ec, char const* what){
 }
 
 //Writes the read values to @param roomId and @param agentId and returns a bool to indicate errors, C-style.
-bool read_request_path(const boost::string_view& str, RoomId& roomId, AgentId& agentId){
+bool read_request_path(boost::string_view& str, unsigned short& retVal){
     unsigned int iter = 0;
     if(str[iter++] != '/') return false;
-    roomId = 0;
-    agentId = 0;
+    retVal = 0;
     do{
         char digit = str[iter++] - '0';
         if(0 > digit or digit > 9) return false;
-        roomId = 10*roomId + digit;
+        retVal = 10*retVal + digit;
     } while(str[iter] != '/' and iter < str.size());
-    iter++; //consume the /
-    do{
-        char digit = str[iter++] - '0';
-        if(0 > digit or digit > 9) return false;
-        agentId = 10*agentId + digit;
-    } while(iter < str.size());
+    str = str.substr(iter);
     return true;
 }
 
@@ -111,6 +161,13 @@ void HttpSession::on_read(error_code ec, std::size_t){
         return res;
     };
 
+    auto const jsonResponse = [&](const json& j){
+        http::response<http::string_body> res{ http::status::ok, req_.version() };
+        res.set(http::field::content_type, "application/json");
+        res.body() = j.dump();
+        return res;
+    };
+
 #ifdef HTTP_SERVE_FILES
     // Returns a server error response
     auto const server_error = [&](boost::beast::string_view what){
@@ -125,8 +182,10 @@ void HttpSession::on_read(error_code ec, std::size_t){
     if(websocket::is_upgrade(req_)){
         std::cout << "(async http) websocket upgrade heard!\n";
         // The websocket connection is established! Transfer the socket and the request to the server
+        auto request_path = req_.target();
         RoomId roomId; AgentId agentId;
-        if(!read_request_path(req_.target(), roomId, agentId))
+        if(not read_request_path(request_path, roomId)
+        or not read_request_path(request_path, agentId))
             return sendResponse(bad_request("Wrong path"));
 
         if(server.getRooms().find(roomId) == server.getRooms().end())
@@ -142,19 +201,72 @@ void HttpSession::on_read(error_code ec, std::size_t){
         server.askForHttpSessionDeletion(this); //don't schedule any further network operations, delete this, and die.
         return;
     }
+#define ADD_ENDPOINT(endpoint, thismethod) else if(req_.target() == endpoint and req_.method() == boost::beast::http::verb::thismethod)
 #ifdef HTTP_CONTROLLED_SERVER
-    else if(req_.target() == "/room" and req_.method() == boost::beast::http::verb::post){
-        std::array<Team, 2> teams = { mkEurope(), mkNearEast() };
+    ADD_ENDPOINT("/room", post){
         auto [roomId, room] = server.addRoom();
-        room.launchGame(std::move(teams), roomId);
+        room.launchGame(roomId);
 
         http::response<http::string_body> res{ http::status::created, req_.version() };
         res.set(http::field::content_type, "text/plain");
         res.body() = std::to_string(roomId);
         return sendResponse(std::move(res));
     }
+    ADD_ENDPOINT("/unit", post){
+        auto encoding = req_[http::field::content_type];
+        if(encoding != "application/x-www-form-urlencoded")
+            return sendResponse(bad_request("Form should be urlencoded"));
+        try{
+            WwwDataVisitor visitor(req_.body());
+            ImmutableCharacter chr(visitor);
+            if(not visitor.empty())
+                throw std::invalid_argument(std::string("Extra value: ").append(visitor.anyKey()));
+            if(server.repo.addCharacter(std::move(chr)))
+                return sendResponse( http::response<http::string_body>( http::status::ok, req_.version() ) );
+            else
+                return sendResponse( http::response<http::string_body>( http::status::conflict, req_.version() ) );
+        } catch(const std::invalid_argument& err) {
+            return sendResponse(bad_request(err.what()));
+        }
+    }
+    ADD_ENDPOINT("/team", post){
+        auto encoding = req_[http::field::content_type];
+        if(encoding != "application/x-www-form-urlencoded")
+            return sendResponse(bad_request("Form should be urlencoded"));
+        try{
+            WwwDataVisitor visitor(req_.body());
+            std::array<CharacterId, 6> characters;
+            char buffer[] = "0";
+            std::string noCharacter = "";
+            for(unsigned char i = 0; i<characters.size(); i++){
+                buffer[0] = '0' + i;
+                characters[i] = visitor.get(buffer, &noCharacter);
+            }
+            std::string teamName = visitor.get("name", (std::string*)nullptr);
+            if(not visitor.empty())
+                throw std::invalid_argument(std::string("Extra value: ").append(visitor.anyKey()));
+            if(server.repo.createTeam(characters, teamName))
+                return sendResponse( http::response<http::string_body>( http::status::ok, req_.version() ) );
+            else
+                return sendResponse( http::response<http::string_body>( http::status::conflict, req_.version() ) );
+        } catch(const std::invalid_argument& err){
+            return sendResponse(bad_request(err.what()));
+        }
+    }
+    ADD_ENDPOINT("/team/", get){
+        json characters = json::array();
+        for(const auto& [ name, character ] : server.repo.getCharacters()){
+            characters.push_back(character);
+        }
+        json teams = json::array();
+        for(const auto& [ name, team ] : server.repo.getTeams() ){
+            teams.push_back(team);
+        }
+        json j = { {"teams", teams}, {"characters", characters} };
+        return sendResponse(jsonResponse(j));
+    }
 #endif
-    else if(req_.target() == "/room/" and req_.method() == boost::beast::http::verb::get){
+    ADD_ENDPOINT("/room/", get){
         json j = json::array();
         for(const auto& [ roomId, room ] : server.getRooms()){
             json agents = json::array({ "Unavailable", "Unavailable" });
@@ -176,17 +288,13 @@ void HttpSession::on_read(error_code ec, std::size_t){
                 {"spectators", nbSpectators}
             }));
         }
-        http::response<http::string_body> res{ http::status::ok, req_.version() };
-        res.set(http::field::content_type, "application/json");
-        res.body() = j.dump();
-        return sendResponse(std::move(res));
+        return sendResponse(jsonResponse(j));
     }
 #ifdef HTTP_SERVE_FILES
     const char doc_api_path[] = "/files";
     constexpr unsigned int doc_api_path_len = sizeof(doc_api_path) / sizeof(char) - 1;
     if(req_.method() == http::verb::get or req_.method() == http::verb::head){
         boost::string_view req_path;
-        bool is_request_for_file = true;
 
         if(boost::beast::iequals(doc_api_path, req_.target().substr(0, doc_api_path_len))){
             req_path = req_.target().substr(doc_api_path_len);
@@ -199,39 +307,37 @@ void HttpSession::on_read(error_code ec, std::size_t){
         }
         else if(boost::beast::iequals(req_.target(), "/")) req_path = "/index.html";
         else if(boost::beast::iequals(req_.target(), "/favicon.ico")) req_path = "/favicon.ico";
-        else is_request_for_file = false;
+        else return sendResponse(bad_request("File not found"));
 
-        if(is_request_for_file){
-            auto path = path_cat(server.doc_root, req_path);
-            if(req_path.back() == '/') path.append("index.html");
-            // Attempt to open the file
-            boost::beast::error_code error;
-            http::file_body::value_type body;
-            body.open(path.c_str(), boost::beast::file_mode::scan, error);
+        auto path = path_cat(server.doc_root, req_path);
+        if(req_path.back() == '/') path.append("index.html");
+        // Attempt to open the file
+        boost::beast::error_code error;
+        http::file_body::value_type body;
+        body.open(path.c_str(), boost::beast::file_mode::scan, error);
 
-            // File doesn't exist
-            if(error == boost::system::errc::no_such_file_or_directory) return sendResponse(not_found(req_.target()));
-            // Unknown error
-            if(error) return sendResponse(server_error(error.message()));
+        // File doesn't exist
+        if(error == boost::system::errc::no_such_file_or_directory) return sendResponse(not_found(req_.target()));
+        // Unknown error
+        if(error) return sendResponse(server_error(error.message()));
 
-            // Cache the size since we need it after the move
-            auto const size = body.size();
+        // Cache the size since we need it after the move
+        auto const size = body.size();
 
-            // Respond to HEAD request
-            if(req_.method() == http::verb::head){
-                http::response<http::empty_body> res{http::status::ok, req_.version()};
-                res.set(http::field::content_type, mime_type(path));
-                res.content_length(size);
-                return sendResponse(std::move(res));
-            } else { // Respond to GET request
-                http::response<http::file_body> res{
-                        std::piecewise_construct,
-                        std::make_tuple(std::move(body)),
-                        std::make_tuple(http::status::ok, req_.version())};
-                res.set(http::field::content_type, mime_type(path));
-                res.content_length(size);
-                return sendResponse(std::move(res));
-            }
+        // Respond to HEAD request
+        if(req_.method() == http::verb::head){
+            http::response<http::empty_body> res{http::status::ok, req_.version()};
+            res.set(http::field::content_type, mime_type(path));
+            res.content_length(size);
+            return sendResponse(std::move(res));
+        } else { // Respond to GET request
+            http::response<http::file_body> res{
+                    std::piecewise_construct,
+                    std::make_tuple(std::move(body)),
+                    std::make_tuple(http::status::ok, req_.version())};
+            res.set(http::field::content_type, mime_type(path));
+            res.content_length(size);
+            return sendResponse(std::move(res));
         }
     }
 #endif
