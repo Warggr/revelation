@@ -3,18 +3,20 @@
 <head>
 	<meta charset="utf-8">
 	<title>Revelation Server</title>
+	<link rel="stylesheet" type="text/css" href="style.css">
+	<script src="styling.js"></script>
 </head>
 <body>
 	<h1>Welcome</h1>
-	<div id="status"></div>
-	<button onclick="reload()">Refresh</button>
+	<div id="status-rooms"></div>
+	<button onclick="reloadRooms()">Refresh</button>
 	<button onclick="createNewRoom()">New Room</button>
+	<div id="status-teams"></div>
 	<script type="text/javascript">
-		function load(statusDiv,data){
+		function loadRooms(statusDiv,data){
 			if(data.length == 0) statusDiv.innerText = '(no rooms)';
 			else statusDiv.innerText = '';
 			for(let room of data){
-				console.log(room);
 				let roomDOM = document.createElement('div');
 				let myh3 = document.createElement('h3'); myh3.textContent = 'Room ' + room.id; roomDOM.appendChild(myh3);
 				let watch = document.createElement('a'); watch.href = `/files/player.html?g=${room.id}`; watch.textContent = 'Watch'; roomDOM.appendChild(watch);
@@ -22,7 +24,7 @@
 				let agentsList = document.createElement('div');
 				for(let agentId in room.agents){
 					let agentDOM = document.createElement('span');
-					if(room.agents[agentId] == "free") agentDOM.innerHTML = `<a href="/files/player.html?g=${room.id}&a=${agentId+1}">Join</a>`;
+					if(room.agents[agentId] == "free") agentDOM.innerHTML = `<a href="/files/player.html?g=${room.id}&a=${Number(agentId)+1}">Join</a>`;
 					else agentDOM.innerHTML = '<p>' + room.agents[agentId] + '</p>';
 					agentsList.appendChild(agentDOM);
 				}
@@ -30,19 +32,117 @@
 				statusDiv.appendChild(roomDOM);
 			}
 		}
-		function reload(){
-			const statusDiv = document.getElementById('status');
+		var teamNames = ['Mock Team'];
+		function loadUnits(unitsDiv, data){
+			if(data.length == 0) unitsDiv.innerText = '(no units)';
+			else unitsDiv.innerText = '';
+			unitsName = [];
+			for(let unit of data){
+				unit.cid = 'a'; unit.HP = unit.maxHP;
+				unitsDiv.appendChild(characterFactory(unit, 0));
+				unitsName.push(unit.name);
+			}
+			let teamCreatorForm = document.getElementById('team-creator-all6units');
+			for(let child of teamCreatorForm.children){
+				for(let unitName of unitsName){
+					let elem = document.createElement('option');
+					elem.value = unitName;
+					elem.innerText = unitName;
+					child.appendChild(elem);
+				}
+			}
+		}
+		function loadArmies(armiesDiv, data){
+			teamNames = data.map(army => army.name);
+			if(data.length == 0) unitsDiv.innerText = '(no teams)';
+			else armiesDiv.innerText = '';
+			for(let army of data){
+				let armyDOM = document.createElement('div');
+				let h4 = document.createElement('h4'); h4.innerText = army.name; armyDOM.appendChild(h4);
+				let unitsDOM = document.createElement('div');
+				for(let row of army.units) for(let unitName of row){
+					let myspan = document.createElement('span'); myspan.innerText = unitName;
+					unitsDOM.appendChild(myspan);
+				}
+				armyDOM.appendChild(unitsDOM);
+				armiesDiv.appendChild(armyDOM);
+			}
+		}
+		function loadTeams(teamsDiv, data){
+			teamsDiv.textContent = '';
+			let myh3_1 = document.createElement('h3'); myh3_1.textContent = 'Characters'; teamsDiv.appendChild(myh3_1);
+			let mydiv_1 = document.createElement('div');
+			loadUnits(mydiv_1, data.characters);
+			teamsDiv.appendChild(mydiv_1);
+			let myh3_2 = document.createElement('h3'); myh3_2.textContent = 'Teams'; teamsDiv.appendChild(myh3_2);
+			let mydiv_2 = document.createElement('div');
+			loadArmies(mydiv_2, data.teams);
+			teamsDiv.appendChild(mydiv_2);
+		}
+		function reload(what, load){
+			const statusDiv = document.getElementById(`status-${what}s`);
 			statusDiv.textContent = 'Loading...';
 			const req = new XMLHttpRequest();
-			req.onreadystatechange = () => { if(req.readyState===XMLHttpRequest.DONE){ if(req.status<300) load(statusDiv,JSON.parse(req.responseText)); else console.warn("ERROR");}};
-			req.open('GET', '/room/'); req.send();
+			req.onreadystatechange = () => { if(req.readyState===XMLHttpRequest.DONE){
+				if(req.status<300) load(statusDiv,JSON.parse(req.responseText));
+				else console.warn("ERROR");
+			}};
+			req.open('GET', `http://localhost:8000/${what}/`); req.send();
 		}
-		reload();
+		reload('room', loadRooms);
+		reload('team', loadTeams);
 		function createNewRoom(){
 			const req = new XMLHttpRequest();
-			req.onreadystatechange = () => { if(req.readyState===XMLHttpRequest.DONE){ if(req.status<300) reload(); else console.warn("ERROR");}};
+			req.onreadystatechange = () => { if(req.readyState===XMLHttpRequest.DONE){ if(req.status<300) reload('room', loadRooms); else console.warn("ERROR");}};
 			req.open('POST', '/room'); req.send();
 		}
+		function createNewUnit(form){
+			const formData = new URLSearchParams(new FormData(form));
+			const req = new XMLHttpRequest();
+			req.onreadystatechange = () => { if(req.readyState===XMLHttpRequest.DONE){ if(req.status<300) reload('team', loadTeams); else console.warn("ERROR");}};
+			req.open('POST', '/unit');
+			req.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+			req.send(formData);
+		}
+		function createNewTeam(form){
+			const formData = new URLSearchParams(new FormData(form));
+			const req = new XMLHttpRequest();
+			req.onreadystatechange = () => { if(req.readyState===XMLHttpRequest.DONE){ if(req.status<300) reload('team', loadTeams); else console.warn("ERROR");}};
+			req.open('POST', '/team');
+			req.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+			req.send(formData);
+		}
 	</script>
+	<h3>Create a unit</h3>
+	<form method="post" action="/unit" onsubmit="createNewUnit(this); return false;">
+		<label for="name">Name</label>
+		<input type="text" id="name" name="name">
+		<label for="maxHP">Max. HP</label>
+		<input type="number" id="maxHP" name="maxHP" min="10" max="500" step="10">
+		<label for="softAtk">Soft Attack</label>
+		<input type="number" id="softAtk" name="softAtk" min="0" max="500" step="10">
+		<label for="hardAtk">Hard Attack</label>
+		<input type="number" id="hardAtk" name="hardAtk" min="0" max="500" step="10">
+		<label for="rng">Range</label>
+		<input type="number" id="rng" name="rng" min="1" max="20" step="1">
+		<label for="mov">Movement</label>
+		<input type="number" id="mov" name="mov" min="0" max="20" step="1">
+		<label for="netWorth">Net worth</label>
+		<input type="number" id="netWorth" name="netWorth" step="0.001">
+		<button type="submit">Submit</button>
+	</form>
+	<h3>Create a team</h3>
+	<form id="team-creator" onsubmit="createNewTeam(this); return false;">
+		<div id="team-creator-all6units">
+			<select name="0"></select>
+			<select name="1"></select>
+			<select name="2"></select>
+			<select name="3"></select>
+			<select name="4"></select>
+			<select name="5"></select>
+		</div>
+		<input type="text" name="name">
+		<button type="submit">Submit</button>
+	</form>
 </body>
 </html>
