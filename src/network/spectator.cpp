@@ -89,13 +89,13 @@ void Spectator::on_write(error_code ec, std::size_t){
 
 // This is executed on the network thread, so the only possible race condition is with send() or get()
 void Spectator::interrupt(){
-    if(!connected) return;
     std::cout << "(async spectator" << id << ") connection interrupted\n";
     protectReadingQueue.lock();
     connected = false; claimed = true;
     protectReadingQueue.unlock();
     signalReadingQueue.notify_one(); //in case anyone was waiting for it
-    ws->close(beast::websocket::close_reason());
+    if(ws and ws->is_open())
+        ws->close(beast::websocket::close_reason());
 }
 
 void Spectator::on_read(error_code ec, std::size_t size) {
