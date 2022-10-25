@@ -9,7 +9,7 @@ int main(int nbargs, const char** args){
     const char* ipAddr = args[1];
     unsigned short int port = std::atoi(args[2]);
     const char* doc_root = args[3];
-    Server_HTTPFileServer server(ipAddr, port, doc_root);
+    Server_impl server(ipAddr, port, doc_root);
 
     server.start();
 }

@@ -8,6 +8,8 @@
 #include <boost/beast.hpp>
 #include <memory>
 
+class Server_impl;
+
 namespace beast = boost::beast;
 namespace http = boost::beast::http;
 

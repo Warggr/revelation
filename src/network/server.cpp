@@ -21,7 +21,7 @@ Server::~Server(){
     }
 }
 
-void Server::start(){
+void Server_impl::start(){
     std::cout << "(network) Starting server...\n";
     //! this function runs indefinitely.
     //! To stop it, you need to call stop() (presumably from another thread)
@@ -43,7 +43,7 @@ void Server::start(){
     ioc.run();
 }
 
-void Server::stop(){
+void Server_impl::stop(){
     std::cout << "(network) ...stopping server and interrupting rooms\n";
     for(auto& [id, room] : rooms){
         room.interrupt();
@@ -52,21 +52,21 @@ void Server::stop(){
     rooms.clear(); //Closing all rooms (some might wait for their game to end)
 }
 
-std::pair<RoomId, ServerRoom_impl&> Server::addRoom(RoomId newRoomId) {
+std::pair<RoomId, ServerRoom_impl&> Server_impl::addRoom(RoomId newRoomId) {
     std::cout << "(main) Add room to server\n";
     auto [iter, success] = rooms.insert({newRoomId, ServerRoom_impl(newRoomId, this)});
     //assert(success and iter->first == newRoomId);
     return { newRoomId, iter->second };
 }
 
-void Server::askForRoomDeletion(RoomId id) {
+void Server_impl::askForRoomDeletion(RoomId id) {
     std::cout << "(main server) room deletion requested\n";
 
-    net::post(ioc, [&,id=id] {
+    async_do([&,id=id] {
         ServerRoom_impl& room = rooms.find(id)->second;
         room.interrupt();
     });
-    net::post(ioc, [&,id=id]{
+    async_do([&,id=id]{
         std::cout << "(async server) room deletion in progress...\n";
         rooms.erase(id);
         std::cout << "(async server) ...room deleted!\n";

@@ -18,6 +18,7 @@
 
 class Session;
 class Spectator;
+class Server_impl;
 
 /* Represents a room on the server on which a game takes place (or will take place shortly) */
 class ServerRoom {
@@ -26,8 +27,8 @@ class ServerRoom {
     bool firstStep;
     std::unordered_map<AgentId, std::shared_ptr<Session>> sessions; //The agents that are supposed to join the room and haven't done so yet
 public:
-    Server* const server;
-    ServerRoom(RoomId id, Server* server);
+    Server_impl* const server;
+    ServerRoom(RoomId id, Server_impl* server);
     ServerRoom(ServerRoom&& move) = default;
 
     void setGreeterMessage(const std::string& greeterMessage);
@@ -58,21 +59,22 @@ public:
 #include <thread>
 #include <array>
 struct Team;
+#endif
 
-class ServerRoom_HTTPControlled : public ServerRoom {
+class ServerRoom_impl : public ServerRoom {
+#ifdef HTTP_CONTROLLED_SERVER
     std::thread myThread;
+#endif
 public:
     template<class... Args>
-    ServerRoom_HTTPControlled(Args&&... args): ServerRoom(args...) {}
-    ServerRoom_HTTPControlled(ServerRoom_HTTPControlled&& move) = default;
-    ~ServerRoom_HTTPControlled(){
+    ServerRoom_impl(Args&&... args): ServerRoom(args...) {}
+    ServerRoom_impl(ServerRoom_impl&& move) = default;
+#ifdef HTTP_CONTROLLED_SERVER
+    ~ServerRoom_impl(){
         if(myThread.joinable()) myThread.join();
     }
-    void launchGame(std::array<Team, 2>&& teams, RoomId id);
-};
-using ServerRoom_impl = ServerRoom_HTTPControlled;
-#else
-using ServerRoom_impl = ServerRoom;
+    void launchGame(RoomId id);
 #endif
+};
 
 #endif

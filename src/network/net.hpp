@@ -21,19 +21,4 @@ struct TimeoutException: public std::exception{
 using AgentId = unsigned short int;
 using RoomId = unsigned short int;
 
-class ServerRoom; class ServerRoom_HTTPControlled;
-class Server; class Server_HTTPFileServer;
-
-#ifdef HTTP_CONTROLLED_SERVER
-using Server_impl = Server_HTTPFileServer;
-#else
-using Server_impl = Server;
-#endif
-
-#ifdef HTTP_SERVE_FILES
-using ServerRoom_impl = ServerRoom_HTTPControlled;
-#else
-using ServerRoom_impl = ServerRoom;
-#endif
-
 #endif

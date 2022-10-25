@@ -31,7 +31,7 @@ void ServerRoom_HTTPControlled::launchGame(std::array<Team, 2>&& teams, RoomId i
 }
 #endif
 
-ServerRoom::ServerRoom(RoomId, Server* server): server(server){}
+ServerRoom::ServerRoom(RoomId, Server_impl* server): server(server){}
 
 void ServerRoom::setGreeterMessage(const std::string& newMessage) {
     greeterMessage = "{\"state\":";

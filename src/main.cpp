@@ -20,11 +20,11 @@ int main(){
     RandomAgent ag1(0);
     RandomAgent ag2(1);*/
     auto ag1 = std::make_unique<HumanAgent>(0);
-    Server server("0.0.0.0", 8000);
+    Server_impl server("0.0.0.0", 8000);
     auto [ id, room ] = server.addRoom();
     std::cout << "Room ID is " << id << '\n';
 
-    std::thread network_thread(&Server::start, &server);
+    std::thread network_thread(&Server_impl::start, &server);
 
     auto networkAgents = NetworkAgent::makeAgents(1, room, 1);
     std::array<std::unique_ptr<Agent>, 2> agents = { std::move(ag1), std::move(networkAgents[0]) };
