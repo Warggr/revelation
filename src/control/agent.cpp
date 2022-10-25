@@ -1,5 +1,7 @@
 #include "agent.hpp"
 #include "gameplay/state.hpp"
+#include "setup/units_repository.hpp"
+#include "setup/team.hpp"
 #include "constants.hpp"
 #include <cassert>
 #include <map>

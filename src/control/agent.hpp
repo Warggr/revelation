@@ -5,6 +5,8 @@
 #include "gameplay/character.hpp"
 #include "gameplay/deck.hpp"
 #include "gameplay/decision.hpp"
+#include "setup/team.hpp"
+#include "setup/units_repository.hpp"
 #include "position.hpp"
 #include <iostream>
 #include <random>

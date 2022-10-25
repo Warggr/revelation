@@ -42,7 +42,7 @@ public:
     bool operator==(const State& other) const {
         return board == other.board and nbAliveUnits == other.nbAliveUnits and turnID == other.turnID and unresolvedSpecialAbility == other.unresolvedSpecialAbility;
     }
-    static State createStart(const std::array<Team, 2>& teams, Generator generator);
+    static State createStart(const std::array<const Team*, 2>& teams, Generator generator);
 
     const Board& getBoard() const { return board; }
     const std::array<unsigned short int, 2>& getNbAliveUnits() const { return nbAliveUnits; }

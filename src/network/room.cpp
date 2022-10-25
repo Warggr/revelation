@@ -12,13 +12,12 @@
 #ifdef HTTP_CONTROLLED_SERVER
 #include "control/game.hpp"
 
-void ServerRoom_HTTPControlled::launchGame(std::array<Team, 2>&& teams, RoomId id){
-    auto array_shared = new std::array<Team, 2>(std::move(teams));
+void ServerRoom_impl::launchGame(RoomId id){
     std::cout << "(network thread) Launching game\n";
-    myThread = std::thread([&,array_shared=array_shared,id=id]{
+    myThread = std::thread([&,id=id]{
         std::cout << "(game thread) Launching game thread, waiting for agents...\n";
         try {
-            Game game(std::move(*array_shared), NetworkAgent::makeTwoAgents(*this));
+            Game game = Game::createFromAgents(NetworkAgent::makeTwoAgents(*this), server->repo);
             std::cout << "(game thread) ...agents found, game in progress...\n";
             game.play(this, false);
             std::cout << "(game thread) ...game finished, ask server for deletion\n";
@@ -26,7 +25,6 @@ void ServerRoom_HTTPControlled::launchGame(std::array<Team, 2>&& teams, RoomId i
         catch(TimeoutException&) {}
         catch(DisconnectedException&) {}
         server->askForRoomDeletion(id);
-        delete array_shared;
     });
 }
 #endif

@@ -12,15 +12,9 @@ using json = nlohmann::json;
 
 struct Team {
     std::string name;
-    std::vector<ImmutableCharacter> characters_unique;
-    std::array<std::array<unsigned short int, ARMY_WIDTH>, 2> characters;
+    std::array<std::array<const ImmutableCharacter*, ARMY_WIDTH>, 2> characters;
 
-    static Team random(Generator& generator, unsigned short int nbUnits);
+    friend void to_json(json& j, const Team& team);
 };
-
-Team mkEurope();
-Team mkNearEast();
-Team mkFarEast();
-Team mkNorthmen();
 
 #endif //REVELATION_TEAM_HPP

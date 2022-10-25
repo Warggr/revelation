@@ -9,8 +9,8 @@ Generator getRandom(){
     return Generator(rd());
 }
 
-Game::Game(std::array<Team, 2>&& teams, std::array<std::unique_ptr<Agent>, 2>&& agents, Generator generator):
-    state(State::createStart(teams, generator)), teams(std::move(teams)), agents(std::move(agents))
+Game::Game(std::array<const Team*, 2> teams, std::array<std::unique_ptr<Agent>, 2>&& agents, Generator generator):
+    state(State::createStart(teams, generator)), teams(teams), agents(std::move(agents))
 {
 }
 

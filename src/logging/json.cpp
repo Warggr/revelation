@@ -58,8 +58,8 @@ void to_json(json& j, const State& state) {
     j["aliveUnits"] = aliveUnits;
 }
 
-json makeStartStateJson(const State& state, const std::array<Team, 2>& teams){
+json makeStartStateJson(const State& state, const std::array<const Team*, 2>& teams){
     json j = state;
-    j["teamNames"] = {  teams[0].name, teams[1].name };
+    j["teamNames"] = {  teams[0]->name, teams[1]->name };
     return j;
 }

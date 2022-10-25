@@ -12,7 +12,7 @@
 using json = nlohmann::json;
 class ServerRoom;
 
-json makeStartStateJson(const State& startState, const std::array<Team, 2>& teams);
+json makeStartStateJson(const State& startState, const std::array<const Team*, 2>& teams);
 
 /**
  * SubLoggers provide one type of logging functionality, e.g. writing to the screen or to a file.
@@ -28,7 +28,7 @@ class Logger {
     std::vector<std::unique_ptr<SubLogger>> subLoggers;
     const std::string startState; //a JSON dump of the start state
 public:
-    Logger(const State& startState, const std::array<Team, 2>& teams)
+    Logger(const State& startState, const std::array<const Team*, 2>& teams)
         : startState(makeStartStateJson(startState, teams).dump()) {};
     Logger* liveServer(ServerRoom& server);
     Logger* logToFile(std::ostream& file);

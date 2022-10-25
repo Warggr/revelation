@@ -29,14 +29,14 @@ int main(){
     auto networkAgents = NetworkAgent::makeAgents(1, room, 1);
     std::array<std::unique_ptr<Agent>, 2> agents = { std::move(ag1), std::move(networkAgents[0]) };
 
-    //Generator seedForTeams = getRandom();
-    std::array<Team, 2> teams = { mkEurope(), mkNearEast() };
+    UnitsRepository repository;
+    std::array<const Team*, 2> teams = { &repository.mkEurope(), &repository.mkNearEast() };
 
     Generator seed = getRandom();
 
     std::cout << "Using seed " << seed << '\n';
 
-	Game game(std::move(teams), std::move(agents), seed);
+	Game game(teams, std::move(agents), seed);
 	unsigned short int winner = game.play(&room, true);
     std::cout << winner << " won!\n";
     server.stop();
