@@ -3,6 +3,7 @@
 
 #include "unique_character.hpp"
 #include "random.hpp"
+#include "visitor.hpp"
 #include "constants.hpp"
 #include "nlohmann/json_fwd.hpp"
 #include <string>

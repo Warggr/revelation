@@ -27,8 +27,20 @@ void to_json(json& j, const ImmutableCharacter& chr){
         {"mov", chr.mov},
         {"rng", chr.rng},
         {"netWorth", chr.netWorth},
-        {"flavor", std::string(chr.flavor)}
     };
+    if(not chr.flavor.empty()) j["flavor"] = chr.flavor;
+}
+
+void to_json(json& j, const Team& team){
+    for(unsigned row = 0; row<2; row++){
+        json jrow = json::array();
+        for(unsigned col = 0; col<ARMY_WIDTH; col++){
+            if(team.characters[row][col])
+                jrow.push_back(team.characters[row][col]->name);
+            else jrow.push_back(nullptr);
+        }
+        j.push_back(jrow);
+    }
 }
 
 void to_json(json& j, const Character& chr){

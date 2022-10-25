@@ -11,9 +11,9 @@ Character::Character(const ImmutableCharacter& im, char uid):
 {
 }
 
-ImmutableCharacter::ImmutableCharacter(const char* name, short maxHP, short softAtk, short hardAtk, uint8_t mov,
-                     uint8_t rng, float netWorth, bool usesArcAttack, const char* flavor) : usesArcAttack(usesArcAttack) {
-    this->name = name;
+ImmutableCharacter::ImmutableCharacter(const std::string_view& name, short maxHP, short softAtk, short hardAtk, uint8_t mov,
+                     uint8_t rng, float netWorth, bool usesArcAttack, const char* flavor)
+ : name(name), usesArcAttack(usesArcAttack) {
     this->maxHP = maxHP;
     this->softAtk = softAtk;
     this->hardAtk = hardAtk;
@@ -32,7 +32,7 @@ ImmutableCharacter::~ImmutableCharacter(){
 inline bool rndBool(Generator& gen){ return (gen() >> 6) % 2; } //apparently, the lowest bit is often not that random, so I take the 7th one
 
 ImmutableCharacter ImmutableCharacter::random(Generator& gen){
-    return ImmutableCharacter("Bob",
+    return ImmutableCharacter("Bob", // TODO either give a random name, or allow multiple units in the UnitsRepository with the same name
         std::uniform_int_distribution<short>(0, 150)(gen),
         std::uniform_int_distribution<short>(0, 80)(gen),
         std::uniform_int_distribution<short>(0, 80)(gen),
