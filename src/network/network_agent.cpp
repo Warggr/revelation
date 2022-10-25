@@ -42,7 +42,8 @@ uint NetworkAgent::choose(const OptionList& options, const std::string_view& mes
     optionList += '"';
     optionList += message;
     optionList += "\"]";
-    sender->send(std::move(optionList));
+show_options:
+    sender->send(optionList);
 
     input_loop:
         std::string str;
@@ -51,6 +52,7 @@ uint NetworkAgent::choose(const OptionList& options, const std::string_view& mes
         } catch(DisconnectedException&){
             throw AgentSurrenderedException(myId);
         }
+        if(str == "?") goto show_options;
         auto [ value, success ] = StepByStepAgent::inputValidation( options, str );
         if(not success){
             sender->send(std::string("!Wrong value: `") + str + '`');

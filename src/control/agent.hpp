@@ -29,6 +29,9 @@ protected:
 public:
     Agent(unsigned int myId) : myId(myId) {};
     virtual ~Agent() = default;
+
+    virtual const Team& getTeam(const UnitsRepository& repo) = 0;
+
     virtual void onBegin(const State&) {};
     virtual DiscardDecision getDiscard(const State& state) = 0;
     virtual MoveDecision getMovement(const State& state, unsigned nb) = 0;
@@ -38,7 +41,6 @@ public:
 };
 
 class StepByStepAgent: public Agent {
-    const Character& chooseCharacter(const State& state);
 protected:
     using OptionList = std::vector<std::pair<const char*, std::string_view>>;
     // TODO OPTIMIZE: very often we know the size of the final vector beforehand, we could already reserve it from the beginning
@@ -46,16 +48,21 @@ protected:
         OptionList data;
     public:
         static const char* const NULL_STRING; // = ""
-        void add(std::string_view option, const char* keys = NULL_STRING){
+        size_t add(std::string_view option, const char* keys = NULL_STRING){
             data.emplace_back(keys, option);
+            return data.size() - 1;
         }
         OptionList get(){ return data; }
     };
     class OptionListWrapperWithStrings {
         std::vector<std::pair<const char*, std::string>> data;
     public:
-        void add(std::string&& string, const char* keys = OptionListWrapper::NULL_STRING){
+        size_t add(std::string&& string, const char* keys = OptionListWrapper::NULL_STRING){
             data.emplace_back(keys, std::move(string));
+            return data.size() - 1;
+        }
+        size_t add(std::string_view string, const char* keys = OptionListWrapper::NULL_STRING){
+            return add(std::string(string), keys);
         }
         OptionList get(){
             OptionList retVal;
@@ -63,11 +70,17 @@ protected:
             return retVal;
         }
     };
+
+    std::pair<const Character*, unsigned int> chooseCharacter(const State& state, OptionListWrapper& otherOptions);
+    std::pair<const Character*, unsigned int> chooseCharacter(const State& state){
+        OptionListWrapper list; return chooseCharacter(state, list);
+    }
     static std::pair<uint, bool> inputValidation(const OptionList& list, const std::string_view& input);
     virtual uint choose(const OptionList& list, const std::string_view& message) = 0;
     virtual uint input(uint min, uint max) = 0;
 public:
     StepByStepAgent(uint myId) : Agent(myId) {};
+    const Team& getTeam(const UnitsRepository& repo) override;
     DiscardDecision getDiscard(const State&) override;
     MoveDecision getMovement(const State& state, unsigned int) override;
     ActionDecision getAction(const State& state) override;

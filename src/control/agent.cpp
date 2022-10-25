@@ -7,9 +7,14 @@
 #include <map>
 #include <iostream>
 #include <charconv>
+#include <cstring>
 
 const char* const StepByStepAgent::OptionListWrapper::NULL_STRING = "";
-const char* const SKIP = "Skip";
+constexpr std::string_view SKIP = "Skip";
+constexpr std::string_view BACK = "Back";
+const char* const SKIP_KEYS = ">";
+const char* const BACK_KEYS = "<";
+const char* const AGAIN_KEYS = "?";
 
 std::ostream& operator<<(std::ostream& o, const position& pos){
     o << '[' << pos.column << ", " << pos.row << ']';
@@ -36,6 +41,7 @@ std::pair<uint, bool> StepByStepAgent::inputValidation(const OptionList& options
 }
 
 uint HumanAgent::choose(const OptionList& options, const std::string_view& message){
+showOptions:
     for(uint i = 0; i<options.size(); i++){
         std::cout << '[' << i;
         if(*options[i].first != 0) std::cout << '/' << options[i].first;
@@ -44,6 +50,7 @@ uint HumanAgent::choose(const OptionList& options, const std::string_view& messa
     std::cout << message << ": ";
     while(true) {
         char buffer[5]; std::cin.getline(buffer, 5);
+        if(strcmp(buffer, AGAIN_KEYS) == 0) goto showOptions;
         auto [ value, success ] = StepByStepAgent::inputValidation(options, buffer);
         if(success) return value;
         else std::cout << "Please choose a number between 0 and " << options.size() << "!\n";
@@ -76,22 +83,24 @@ unsigned int StepByStepAgent::getSpecialAction(const State& state, Effect& effec
     return iSel;
 }
 
-const Character& StepByStepAgent::chooseCharacter(const State& state) {
-    const Character* possibleValues[NB_CHARACTERS];
+std::pair<const Character*, unsigned int> StepByStepAgent::chooseCharacter(const State &state, OptionListWrapper& otherOptions){
     char keys[NB_CHARACTERS][2];
-    OptionListWrapper options;
+    const Character* possibleValues[NB_CHARACTERS];
+    unsigned int charactersOffset = otherOptions.get().size();
+
     unsigned int j = 0;
     for(uint i=0; i<NB_CHARACTERS; i++){
         if(not isDead(state.units[myId][i].get())){
             keys[i][0] = state.units[myId][i]->uid; keys[i][1] = 0;
-            options.add(state.units[myId][i]->im.name, keys[i]);
-            possibleValues[j] = state.units[myId][i].get();
-            j += 1;
+            otherOptions.add(state.units[myId][i]->im.name, keys[i]);
+            possibleValues[j++] = state.units[myId][i].get();
         }
     }
-
-    uint iSel = choose(options.get(), "Enter which character to select");
-    return *possibleValues[iSel];
+    unsigned int iSel = choose(otherOptions.get(), "Choose a character");
+    if(iSel < charactersOffset)
+        return std::make_pair( nullptr, iSel );
+    else
+        return std::make_pair( possibleValues[iSel - charactersOffset], iSel );
 }
 
 DiscardDecision StepByStepAgent::getDiscard(const State& state) {
@@ -110,24 +119,37 @@ DiscardDecision StepByStepAgent::getDiscard(const State& state) {
         return DiscardDecision(false,iSel - actionsSize);
 }
 
+std::string to_string(const MoveDecision& mov){
+    std::stringstream str; //an ugly way to create a string by using the operator<<
+    for(const auto& direction : mov.moves)
+        str << to_symbol(direction);
+    str << " to " << mov.to;
+    return str.str();
+}
+
 MoveDecision StepByStepAgent::getMovement(const State& state, unsigned int) {
-    const Character& charSel = chooseCharacter(state);
-    std::vector<MoveDecision> possibleMovs = state.allMovementsForCharacter(charSel);
+chooseCharacter:
+    const Character* charSel;
+    {
+        OptionListWrapper options;
+        auto skip = options.add(SKIP, SKIP_KEYS);
+        unsigned int iSel;
+        std::tie(charSel, iSel) = chooseCharacter(state, options);
+        if (iSel == skip) return MoveDecision::pass();
+    }
+    std::vector<MoveDecision> possibleMovs = state.allMovementsForCharacter(*charSel);
+
     OptionListWrapperWithStrings options;
-    options.add(SKIP);
-    for(uint i = 0; i<possibleMovs.size(); i++){
-        std::stringstream str; //an ugly way to create a string by using the operator<<
-        for(const auto& direction : possibleMovs[i].moves)
-            str << to_symbol(direction);
-        str << " to " << possibleMovs[i].to;
-        options.add(str.str());
+    const auto skip_pos = options.add(SKIP);
+    const auto back_pos = options.add(BACK);
+    for(const auto& mov : possibleMovs){
+        options.add(to_string(mov));
     }
-    uint iSel = choose(options.get(), "Enter which position to select or 0 to skip");
-    if(iSel == 0) return MoveDecision::pass();
-    else {
-        MoveDecision movSel = possibleMovs[iSel-1];
-        return movSel;
-    }
+    uint iSel = choose(options.get(), "Enter which position to select");
+
+    if(iSel == back_pos) goto chooseCharacter;
+    else if(iSel == skip_pos) return MoveDecision::pass();
+    else return possibleMovs[iSel-1];
 }
 
 ActionDecision StepByStepAgent::getAction(const State& state) {
@@ -135,6 +157,8 @@ ActionDecision StepByStepAgent::getAction(const State& state) {
     const std::vector<ActionCard>& cards = getMyPlayer(state).getActions();
     if(cards.empty())
         return ActionDecision::pass();
+
+chooseCard:
     { //to limit the scope of @var options and @var iSel
         OptionListWrapper options;
         options.add(SKIP);
@@ -147,8 +171,11 @@ ActionDecision StepByStepAgent::getAction(const State& state) {
             return ActionDecision::pass();
         ret.card = cards[iSel - 1];
     }
+
     if(ret.card == ActionCard::DEFENSE){
-        ret.subjectPos = chooseCharacter(state).pos;
+        auto [ c, iSel ] = chooseCharacter(state);
+        if(c == nullptr) goto chooseCard;
+        ret.subjectPos = c->pos;
     } else {
         auto allPossibleAttacks = state.allAttacks();
         if(allPossibleAttacks.empty())
@@ -168,6 +195,17 @@ ActionDecision StepByStepAgent::getAction(const State& state) {
         ret.objectPos = array[iSel - 1][1]->pos;
     }
     return ret;
+}
+
+const Team& StepByStepAgent::getTeam(const UnitsRepository& repo) {
+    OptionListWrapper options;
+    std::vector<const Team*> backer;
+    for(const auto& team : repo.getTeams()) {
+        options.add(team.first); // name of the team
+        backer.push_back(&team.second);
+    }
+    unsigned int iSel = choose(options.get(), "Choose a team");
+    return *backer[iSel];
 }
 
 RandomAgent::RandomAgent(uint myId): StepByStepAgent(myId), generator(std::random_device()()) {

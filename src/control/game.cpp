@@ -14,6 +14,11 @@ Game::Game(std::array<const Team*, 2> teams, std::array<std::unique_ptr<Agent>, 
 {
 }
 
+Game Game::createFromAgents(std::array<std::unique_ptr<Agent>, 2>&& agents, const UnitsRepository& repo) {
+    std::array<const Team*, 2> teams = { &agents[0]->getTeam(repo), &agents[1]->getTeam(repo) };
+    return Game(teams, std::move(agents));
+}
+
 bool Game::play(ServerRoom* serverRoom, bool logToTerminal) {
     auto* logger = new Logger(state, teams);
     if(serverRoom)
