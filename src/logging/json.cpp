@@ -32,6 +32,7 @@ void to_json(json& j, const ImmutableCharacter& chr){
 }
 
 void to_json(json& j, const Team& team){
+    json units = json::array();
     for(unsigned row = 0; row<2; row++){
         json jrow = json::array();
         for(unsigned col = 0; col<ARMY_WIDTH; col++){
@@ -39,8 +40,9 @@ void to_json(json& j, const Team& team){
                 jrow.push_back(team.characters[row][col]->name);
             else jrow.push_back(nullptr);
         }
-        j.push_back(jrow);
+        units.push_back(jrow);
     }
+    j = {{"units", units}, {"name", team.name}};
 }
 
 void to_json(json& j, const Character& chr){

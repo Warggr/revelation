@@ -161,7 +161,7 @@ ActionDecision StepByStepAgent::getAction(const State& state) {
 chooseCard:
     { //to limit the scope of @var options and @var iSel
         OptionListWrapper options;
-        options.add(SKIP);
+        options.add(SKIP, SKIP_KEYS);
         for(auto card: cards) {
             options.add(to_string(card));
         }
@@ -173,8 +173,14 @@ chooseCard:
     }
 
     if(ret.card == ActionCard::DEFENSE){
-        auto [ c, iSel ] = chooseCharacter(state);
-        if(c == nullptr) goto chooseCard;
+        OptionListWrapper options;
+        options.add(SKIP, SKIP_KEYS); options.add(BACK, BACK_KEYS);
+        auto [ c, iSel ] = chooseCharacter(state, options);
+        if(c == nullptr){
+            if(iSel == 0) return ActionDecision::pass();
+            else if(iSel == 1) goto chooseCard;
+            else assert(false);
+        }
         ret.subjectPos = c->pos;
     } else {
         auto allPossibleAttacks = state.allAttacks();
@@ -182,7 +188,7 @@ chooseCard:
             return ActionDecision::pass();
         std::vector<std::array<const Character*, 2>> array;
         OptionListWrapperWithStrings options;
-        options.add(SKIP);
+        options.add(SKIP, SKIP_KEYS); options.add(BACK, BACK_KEYS);
         for(const auto& [ unit, enemies ] : allPossibleAttacks){
             for(const auto& enemy : enemies){
                 array.push_back( { unit, enemy } );
@@ -191,8 +197,10 @@ chooseCard:
         }
         uint iSel = choose(options.get(), "Enter which attack to select: (or 0 to skip)");
         if(iSel == 0) return ActionDecision::pass();
-        ret.subjectPos = array[iSel - 1][0]->pos;
-        ret.objectPos = array[iSel - 1][1]->pos;
+        else if(iSel == 1) goto chooseCard;
+        constexpr int OFFSET = 2;
+        ret.subjectPos = array[iSel - OFFSET][0]->pos;
+        ret.objectPos = array[iSel - OFFSET][1]->pos;
     }
     return ret;
 }

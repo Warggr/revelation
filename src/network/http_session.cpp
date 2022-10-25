@@ -161,6 +161,12 @@ void HttpSession::on_read(error_code ec, std::size_t){
         return res;
     };
 
+    auto const redirect = [&](boost::beast::string_view location){
+        http::response<http::string_body> res{http::status::moved_permanently, req_.version()};
+        res.set(http::field::location, location);
+        return res;
+    };
+
     auto const jsonResponse = [&](const json& j){
         http::response<http::string_body> res{ http::status::ok, req_.version() };
         res.set(http::field::content_type, "application/json");
@@ -294,6 +300,9 @@ void HttpSession::on_read(error_code ec, std::size_t){
     const char doc_api_path[] = "/files";
     constexpr unsigned int doc_api_path_len = sizeof(doc_api_path) / sizeof(char) - 1;
     if(req_.method() == http::verb::get or req_.method() == http::verb::head){
+        if(boost::beast::iequals(req_.target(), "/"))
+            return sendResponse(redirect("/files/"));
+
         boost::string_view req_path;
 
         if(boost::beast::iequals(doc_api_path, req_.target().substr(0, doc_api_path_len))){
@@ -305,7 +314,6 @@ void HttpSession::on_read(error_code ec, std::size_t){
             if(req_path.empty() or req_path[0] != '/' or req_path.find("..") != boost::beast::string_view::npos)
                 return sendResponse(bad_request("Illegal request-target"));
         }
-        else if(boost::beast::iequals(req_.target(), "/")) req_path = "/index.html";
         else if(boost::beast::iequals(req_.target(), "/favicon.ico")) req_path = "/favicon.ico";
         else return sendResponse(bad_request("File not found"));
 
