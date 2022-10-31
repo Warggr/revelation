@@ -81,7 +81,7 @@ void ServerRoom::onConnect(Spectator& spectator) {
 
     std::shared_ptr<const std::string> message = std::make_shared<const std::string>(
             this->greeterMessage.empty() ?
-            "Welcome! The game has not started yet" :
+            "\"Welcome! The game has not started yet\"" :
             this->greeterMessage + "]}"
     );
     spectator.send(message);

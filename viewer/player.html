@@ -267,13 +267,8 @@
 		};
 		socket.onclose = (event) => { connectionStatusDom.textContent = 'Nicht verbunden'; };
 		socket.onmessage = (event) => {
-			try {
-				JSON.parse(event.data)
-				initialized = true;
-			} catch (e) {
-				initialized = false;
-			}
 			console.log(event.data);
+			data = JSON.parse(event.data);
 
 			if(JSON.stringify(event.data).includes("state") && initialized) {
 				stepsNState = readGame(event.data);

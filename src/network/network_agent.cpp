@@ -32,6 +32,17 @@ std::vector<std::unique_ptr<NetworkAgent>> NetworkAgent::makeAgents(unsigned sho
     return retVal;
 }
 
+// Adapted from https://en.cppreference.com/w/cpp/string/basic_string/replace
+std::size_t replace_all(std::string& inout, std::string_view what, std::string_view with){
+    std::size_t count{};
+    for (std::string::size_type pos{};
+         inout.npos != (pos = inout.find(what.data(), pos, what.length()));
+         pos += with.length(), ++count) {
+        inout.replace(pos, what.length(), with.data(), with.length());
+    }
+    return count;
+}
+
 uint NetworkAgent::choose(const OptionList& options, const std::string_view& message) {
     std::string optionList = std::string("[");
     for(const auto& [ keys, optionText ] : options){
@@ -55,9 +66,11 @@ show_options:
         if(str == "?") goto show_options;
         auto [ value, success ] = StepByStepAgent::inputValidation( options, str );
         if(not success){
-            sender->send(std::string("!Wrong value: `") + str + '`');
+            replace_all(str, "\\", "\\\\");
+            replace_all(str, "\"", "\\\""); //Escape the string to make it valid json
+            sender->send(std::string("\"!Wrong value: `") + str + "`\"");
             goto input_loop;
         }
-    sender->send("Ok");
+    sender->send("\"Ok\"");
     return value;
 }
