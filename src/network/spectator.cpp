@@ -6,6 +6,7 @@
 #include "room.hpp"
 #include "control/agent.hpp"
 #include <iostream>
+#include <utility>
 
 constexpr int NB_OUTSIDE_THREADS = 1;
 
@@ -52,7 +53,7 @@ void Spectator::on_connect(error_code ec){
     );
 }
 
-void Spectator::send(const std::shared_ptr<const std::string>& message){
+void Spectator::send(std::shared_ptr<const std::string> message){
     std::cout << "(main) Sending message\n";
     bool queue_empty = writing_queue.empty();
 
@@ -69,6 +70,12 @@ void Spectator::send(const std::shared_ptr<const std::string>& message){
                 }
         );
     }
+}
+
+void Spectator::send_sync(std::shared_ptr<const std::string> message){
+    net::post(ws->get_executor(),
+        [&,message=std::move(message)]{ send(message); }
+    );
 }
 
 void Spectator::on_write(error_code ec, std::size_t){

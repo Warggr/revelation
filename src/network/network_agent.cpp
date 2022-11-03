@@ -53,8 +53,11 @@ uint NetworkAgent::choose(const OptionList& options, const std::string_view& mes
     optionList += '"';
     optionList += message;
     optionList += "\"]";
+    auto message_shared = std::make_shared<const std::string>(std::move(optionList));
 show_options:
-    sender->send(optionList);
+    sender->send_sync(message_shared);
+
+#define SHARE(str) std::make_shared<std::string>(str)
 
     input_loop:
         std::string str;
@@ -68,9 +71,9 @@ show_options:
         if(not success){
             replace_all(str, "\\", "\\\\");
             replace_all(str, "\"", "\\\""); //Escape the string to make it valid json
-            sender->send(std::string("\"!Wrong value: `") + str + "`\"");
+            sender->send_sync(SHARE(std::string("\"!Wrong value: `") + str + "`\""));
             goto input_loop;
         }
-    sender->send("\"Ok\"");
+    sender->send_sync(SHARE("\"Ok\""));
     return value;
 }

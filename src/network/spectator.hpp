@@ -50,8 +50,9 @@ public:
         ws->async_accept( req, [sp=shared_from_this()](error_code ec){ sp->on_connect(ec); } );
     }
 
-    void send(const std::shared_ptr<const std::string>& message);
+    void send(std::shared_ptr<const std::string> message);
     void send(const std::string& message){ send(std::make_shared<const std::string>(message)); }
+    void send_sync(std::shared_ptr<const std::string> message);
 
     bool isConnected() const { return state == CONNECTED; }
     bool isClaimed() const { return state == CLAIMED; }
