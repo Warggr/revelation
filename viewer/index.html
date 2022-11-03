@@ -19,12 +19,12 @@
 			for(let room of data){
 				let roomDOM = document.createElement('div');
 				let myh3 = document.createElement('h3'); myh3.textContent = 'Room ' + room.id; roomDOM.appendChild(myh3);
-				let watch = document.createElement('a'); watch.href = `/files/player.html?g=${room.id}`; watch.textContent = 'Watch'; roomDOM.appendChild(watch);
+				let watch = document.createElement('a'); watch.href = `/files/player.html?roomId=${room.id}`; watch.textContent = 'Watch'; roomDOM.appendChild(watch);
 				let myp = document.createElement('p'); myp.textContent = room.spectators + ' spectators'; roomDOM.appendChild(myp);
 				let agentsList = document.createElement('div');
 				for(let agentId in room.agents){
 					let agentDOM = document.createElement('span');
-					if(room.agents[agentId] == "free") agentDOM.innerHTML = `<a href="/files/player.html?g=${room.id}&a=${Number(agentId)+1}">Join</a>`;
+					if(room.agents[agentId] == "free") agentDOM.innerHTML = `<a href="/files/player.html?roomId=${room.id}&playerId=${Number(agentId)+1}">Join</a>`;
 					else agentDOM.innerHTML = '<p>' + room.agents[agentId] + '</p>';
 					agentsList.appendChild(agentDOM);
 				}

@@ -28,19 +28,23 @@
 		<h2 id="card">Karte auswählen</h2>
 	</div>
 	<div>
-		<h2>Mit Live-Server verbinden</h2>
-		<label for="server-to-connect">Server-Adresse</label>
-		<input type="text" id="server-to-connect" value="revelation-server-2.westeurope.cloudapp.azure.com:8000"/>
-		<label for="teamNr">Teamnummer eingeben</label>
-		<input type="text" id="teamNr"/>
+		<span>Status:</span><span id="connection-status">Nicht verbunden</span>
+		<form onsubmit="connectToServer(); return false;">
+			<h2>Mit Live-Server verbinden</h2>
+			<label for="serverUrl">Server-Adresse</label>
+			<input type="text" id="serverUrl"/>
+			<label for="playerId">Teamnummer</label>
+			<input type="text" value="0" id="playerId"/>
+			<label for="roomId">Raumnummer</label>
+			<input type="text" id="roomId"/>
+			<button type="submit">Raum beitreten</button>
+		</form>
 		<input type="text" value="submit" id="roomNr"/>
 		<button onclick="httpRequest();">Neuen Raum starten</button>
-		<input type="text" value="submit" id="existingRoomNr"/>
-		<button onclick="connectToServer();">Raum beitreten</button>
-		<span>Status:</span><span id="connection-status">Nicht verbunden</span>
 	</div>
 </body>
 <script>
+	function getServerUrl(){ return document.getElementById('serverUrl').value; }
 
 	var steps = [];
 	var inverts = [];
@@ -245,14 +249,14 @@
 				}
 			}
 		}
-		openRoom.open("POST", "https://cors-anywhere.herokuapp.com/http://revelation-server-2.westeurope.cloudapp.azure.com:8000/room", true);
+		openRoom.open("POST", 'https://cors-anywhere.herokuapp.com/' + getServerUrl() + "/room", true);
 		openRoom.send();
 		return openRoom.responseText;
 	}
 	const connectToServer = () => {
-		const url = document.getElementById('server-to-connect').value;
-		const teamNr = document.getElementById('teamNr').value;
-		const roomNr = document.getElementById('existingRoomNr').value;
+		const url = getServerUrl();
+		const teamNr = document.getElementById('playerId').value;
+		const roomNr = document.getElementById('roomId').value;
 
 		connectionStatusDom.textContent = 'Verbindung starten...';
 		if(window.WebSocket === undefined) {
@@ -335,15 +339,16 @@
 	}
 
 	const urlParams = new URLSearchParams(window.location.search);
-	const liveurl = urlParams.get('liveurl');
-	if(liveurl){
-		document.getElementById('server-to-connect').value = liveurl;
-		connectToServer();
-	}
 
-	var calculateMoves = function(content) {
-		var moves = JSON.parse(content);
+	function readFromUrlParams(urlParams, key){
+		const value = urlParams.get(key);
+		if(value) document.getElementById(key).value = value;
+		return value;
 	}
-
+	const roomId = readFromUrlParams(urlParams, 'roomId');
+	const playerId = readFromUrlParams(urlParams, 'playerId');
+	const serverUrl = readFromUrlParams(urlParams, 'serverUrl');
+	if(!serverUrl) document.getElementById('serverUrl').value = window.location.host;
+	if(roomId) connectToServer();
 </script>
 </html>
