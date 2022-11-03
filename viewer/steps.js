@@ -136,7 +136,7 @@ function apply(step, backwards) {
 				iActive = 1 - iActive;
 				let charDom = undefined;
 				if(step.delete){
-					charDom = characterFactory(step.deleted, 1 - iActive);
+					charDom = characterFactory(step.deleted, 1 - iActive, teamNames[1-iActive]);
 					boardDom.children[ step.object[1] + FULL_BOARD_WIDTH*step.object[0] ].appendChild(charDom);
 					delete step.deleted;
 				} else {
@@ -171,8 +171,10 @@ var resourceLists = [];
 var screen = null;
 var iActive = 0;
 
-function createState(teams, names, board, players){
-	for(let team of teams)
+function createState(startState){
+	teamNames = startState.teamNames;
+
+	for(let team of startState.aliveUnits)
 		for(let row of team)
 				if(!row.HP) row.HP = row.maxHP;
 
@@ -203,29 +205,28 @@ function createState(teams, names, board, players){
 	let headers = [];
 
 	for(let i=0; i<2; i++){
-		teamNames[i] = names[i];
 		let header = document.createElement('div');
-		header.innerHTML = `<h3>${teamNames[i]}</h3>`;
+		header.innerHTML = `<h3>${startState.teamNames[i]}</h3>`;
 		let resourceList = document.createElement('ul');
 		resourceList.classList.add('resource-list');
 		resourceLists.push(resourceList);
 		header.appendChild(resourceList);
 		header.style.cssText += 'margin:1;'
-		header.classList.add(teamClass(i));
+		header.classList.add(teamClass(startState.teamNames[i]));
 		header.classList.add('header');
 		header.classList.add('teamIndex-' + i);
 		headers.push(header);
 
 		for(let j=0; j<2; j++) {
-			let team = teams[i];
-			let pos = board[j];
+			let team = startState.aliveUnits[i];
+			let pos = startState.board[j];
 			if (i == 0) {
 				for (let k = 0; k < HALF_BOARD_WIDTH; k++) {
 					let poss = pos[k];
 					let charDom;
 					if(poss != null) {
 						let posChar = poss[1];
-						charDom = characterFactory(team[posChar], i);
+						charDom = characterFactory(team[posChar], i, teamNames[i]);
 						boardDom.children[k + FULL_BOARD_WIDTH * j].appendChild(charDom);
 					}
 				}
@@ -235,7 +236,7 @@ function createState(teams, names, board, players){
 					let poss = pos[k];
 					if(poss != null) {
 						let posChar = poss[1];
-						charDom = characterFactory(team[posChar], i);
+						charDom = characterFactory(team[posChar], i, teamNames[i]);
 						boardDom.children[k + FULL_BOARD_WIDTH * j].appendChild(charDom);
 					}
 				}
@@ -246,25 +247,16 @@ function createState(teams, names, board, players){
 	screen.append(headers[1]);
 
 	for(let iPlayer=0; iPlayer<2; iPlayer++){
-		for(let card of players[iPlayer].actions) draw('action - ' + card, iPlayer);
-		for(let card of players[iPlayer].resources) draw('resource - ' + card, iPlayer);
+		for(let card of startState.players[iPlayer].actions) draw('action - ' + card, iPlayer);
+		for(let card of startState.players[iPlayer].resources) draw('resource - ' + card, iPlayer);
 	}
 
 	return null;
 }
 
 function readGame(content){
-	try {
-		const ret = JSON.parse(content);
-		let init = ret.state.players;
-		let teams = ret.state.aliveUnits;
-		let names = ret.state.teamNames;
-		let board = ret.state.board;
-		let state = createState(teams, names, board, init);
-		return { state : state, steps : ret.steps }
-	} catch(e) {
-		return "No parsing";
-	}
+	game = JSON.parse(content);
+	return { state : createState(game.state), steps : game.steps };
 }
 
 function readStep(content) {

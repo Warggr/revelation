@@ -284,7 +284,7 @@
 					return;
 			}
 
-			if(JSON.stringify(event.data).includes("state") && initialized) {
+			if(JSON.stringify(event.data).includes("state")) {
 				stepsNState = readGame(event.data);
 				restart(stepsNState);
 				connectionStatusDom.textContent = 'Bereit';

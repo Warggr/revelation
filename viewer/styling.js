@@ -1,11 +1,11 @@
-function teamClass(iTeam){
-	return 'teamid-' + teamNames[iTeam].toLowerCase().replaceAll(' ', '-')
+function teamClass(teamName){
+	return 'teamid-' + teamName.toLowerCase().replaceAll(' ', '-')
 }
 
-function characterFactory(char, iTeam){
+function characterFactory(char, iTeam, teamName){
 	var charDom = document.createElement('div');
 	charDom.id = 'cid-' + char.cid;
-	charDom.classList.add( teamClass(iTeam) );
+	charDom.classList.add( teamClass(teamName) );
 	charDom.classList.add('character');
 	charDom.classList.add('team-' + (iTeam+1));
 	charDom.innerHTML =

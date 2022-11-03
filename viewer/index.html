@@ -39,7 +39,7 @@
 			unitsName = [];
 			for(let unit of data){
 				unit.cid = 'a'; unit.HP = unit.maxHP;
-				unitsDiv.appendChild(characterFactory(unit, 0));
+				unitsDiv.appendChild(characterFactory(unit, 0, 'anonymous'));
 				unitsName.push(unit.name);
 			}
 			let teamCreatorForm = document.getElementById('team-creator-all6units');
