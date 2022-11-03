@@ -14,12 +14,13 @@ Spectator::Spectator(ServerRoom& room, AgentId id)
 
 Spectator& Spectator::claim(tcp::socket &&socket) {
     ws = std::make_unique<websocket::stream<tcp::socket>>(std::move(socket));
-    claimed = true;
+    assert(state == FREE);
+    state = CLAIMED;
     return *this;
 }
 
 Spectator::~Spectator(){
-    assert(not connected);
+    assert(state == FREE or state == INTERRUPTED_BY_SERVER);
 }
 
 void Spectator::fail(error_code ec, char const* what){
@@ -34,9 +35,9 @@ void Spectator::on_connect(error_code ec){
         room.reportAfk(*this);
         return fail(ec, "accept");
     }
-    assert(claimed and not connected);
+    assert(state == CLAIMED);
     protectReadingQueue.lock();
-    connected = true;
+    state = CONNECTED;
     protectReadingQueue.unlock();
     signalReadingQueue.notify_one();
 
@@ -58,7 +59,7 @@ void Spectator::send(const std::shared_ptr<const std::string>& message){
     // Always add to queue
     writing_queue.push(message);
 
-    if(not connected) return;
+    if(state != CONNECTED) return;
     if(queue_empty) {
         // We are not currently writing, so send this immediately
         ws->async_write(
@@ -91,7 +92,7 @@ void Spectator::on_write(error_code ec, std::size_t){
 void Spectator::interrupt(){
     std::cout << "(async spectator" << id << ") connection interrupted\n";
     protectReadingQueue.lock();
-    connected = false; claimed = true;
+    state = INTERRUPTED_BY_SERVER;
     protectReadingQueue.unlock();
     signalReadingQueue.notify_one(); //in case anyone was waiting for it
     if(ws and ws->is_open())
@@ -99,12 +100,12 @@ void Spectator::interrupt(){
 }
 
 void Spectator::on_read(error_code ec, std::size_t size) {
-    if(!connected) return;
+    if(not isConnected()) return;
     // Handle the error, if any
     if(ec == websocket::error::closed or size == 0){
         std::cout << "(async spectator" << id << ") received close, ask for disconnect\n";
         protectReadingQueue.lock();
-        connected = false; claimed = false;
+        state = FREE;
         protectReadingQueue.unlock();
         signalReadingQueue.notify_one();
         room.reportAfk(*this);
@@ -133,44 +134,42 @@ void Spectator::on_read(error_code ec, std::size_t size) {
 }
 
 std::string Session::get_sync(){
-    while(true) {
-        std::cout << "(main) Getting string, waiting for mutex...\n";
-
-        // There are two waiting states: connected (waiting for string...) and disconnected (waiting for connection...)
-        // Each can transform into the other. For memory performance reasons, both use the same mutex / cv / semaphore.
-        // Both will return quickly if their precondition isn't met.
-        // Arbitrarily starting with the connected (wait for string...) state.
-        // This is similar to what awaitReconnect() does.
-        {
-            std::unique_lock<std::mutex> lock(protectReadingQueue);
-            if(reading_queue.empty()) {
-                if(not connected) continue; // "fail rapidly if the precondition isn't met"
-                signalReadingQueue.wait(lock, [&] { return not reading_queue.empty() or not connected; });
-            }
-            if(not reading_queue.empty()) { //this is not an else - reading_queue will probably have changed since last check
-                std::string retVal = std::move(reading_queue.front());
-                reading_queue.pop();
-                return retVal;
-            }
+    // There are two waiting states: connected (waiting for string...) and disconnected (waiting for connection...)
+    // Each can transform into the other. For memory performance reasons, both use the same mutex / cv / semaphore.
+    // Both will return quickly if their precondition isn't met.
+    // Arbitrarily starting with the connected (wait for string...) state.
+    std::cout << "(main) Getting string, waiting for mutex...\n";
+    {
+connected:
+        std::unique_lock<std::mutex> lock(protectReadingQueue);
+        if(reading_queue.empty()){
+            if(state != CONNECTED) goto disconnected; //"fail rapidly if the precondition isn't met"
+            signalReadingQueue.wait(lock, [&] { return not reading_queue.empty() or state != CONNECTED; });
+            if(state != CONNECTED) goto disconnected;
+            assert(not reading_queue.empty());
         }
 
-        awaitReconnect();
-        std::cout << "(main) String mutex acquired\n";
+        std::string retVal = std::move(reading_queue.front());
+        reading_queue.pop();
+        return retVal;
     }
+disconnected:
+    awaitReconnect();
+    goto connected;
 }
 
 void Session::awaitReconnect() {
     std::unique_lock<std::mutex> lock(protectReadingQueue);
-    if(not connected and claimed) throw DisconnectedException(); //this is how the server tells us we're in a "shutting down" state
-    if(connected) return; //fail rapidly if the precondition isn't met
+    if(state == INTERRUPTED_BY_SERVER) throw DisconnectedException();
+    if(state == CONNECTED) return; //exit rapidly if the precondition isn't met
 
     std::cout << "(sync session) Awaiting reconnect...\n";
     using namespace std::chrono_literals;
     if(signalReadingQueue.wait_for(lock, 3min) == std::cv_status::timeout) throw TimeoutException();
     std::cout << "(sync session) ...reconnect signal heard\n";
-    if(not connected){
-        assert(claimed);
-        throw DisconnectedException(); //the server has signaled us but not set us to connected;
-    }
+
+    if(state == INTERRUPTED_BY_SERVER) throw DisconnectedException();
+
+    assert(state == CONNECTED);
     std::cout << "(sync session) reconnected!\n";
 }

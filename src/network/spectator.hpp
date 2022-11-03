@@ -29,7 +29,8 @@ protected:
     std::condition_variable signalReadingQueue;
     std::queue<std::string> reading_queue; //All messages that haven't been read yet
     ServerRoom& room;
-    bool connected = false, claimed = false, previouslyConnected = false;
+    enum state { FREE, CLAIMED, CONNECTED, INTERRUPTED_BY_SERVER } state = FREE;
+    bool previouslyConnected = false;
     void on_connect(error_code ec);
     void on_write(error_code ec, std::size_t bytes_transferred);
     void on_read(error_code ec, std::size_t bytes_transferred);
@@ -52,8 +53,8 @@ public:
     void send(const std::shared_ptr<const std::string>& message);
     void send(const std::string& message){ send(std::make_shared<const std::string>(message)); }
 
-    bool isConnected() const { return connected; }
-    bool isClaimed() const { return claimed; }
+    bool isConnected() const { return state == CONNECTED; }
+    bool isClaimed() const { return state == CLAIMED; }
     bool wasPreviouslyConnected() const { return previouslyConnected; }
 };
 
