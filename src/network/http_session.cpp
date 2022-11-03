@@ -106,7 +106,7 @@ bool read_request_path(boost::string_view& str, unsigned short& retVal){
         char digit = str[iter++] - '0';
         if(0 > digit or digit > 9) return false;
         retVal = 10*retVal + digit;
-    } while(str[iter] != '/' and iter < str.size());
+    } while(iter < str.size() and str[iter] != '/');
     str = str.substr(iter);
     return true;
 }

@@ -351,7 +351,6 @@
 	function sockSendCharacter(id) {
 		console.log(charId);
 		socket.send(charId.split('-').at(1));
-		socket.onerror = (err) => { console.error(err); }
 	}
 
 	function sockSendPos(id) {
