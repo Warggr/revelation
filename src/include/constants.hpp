@@ -3,6 +3,7 @@
 #define REVELATION_CONSTANTS_HPP
 
 #include "position.hpp"
+#include "nlohmann/json_fwd.hpp"
 #include <cassert>
 #include <string>
 
@@ -18,14 +19,17 @@ constexpr int ARMY_SIZE = 2*ARMY_WIDTH;
 enum Faction {
     NONE = 0, BLOOD = 1, MERCURY = 2, HORROR = 3, SPECTRUM = 4, ETHER = 5,
 };
+void to_json(nlohmann::json& j, const Faction& faction);
 
 enum Timestep {
     BEGIN = 0, DREW = 1, DISCARDED = 2, MOVEDfirst = 3, MOVEDlast = 4, ABILITYCHOSEN = 5, ACTED = 6
 };
+void to_json(nlohmann::json& j, const Timestep& step);
 
 enum ActionCard {
     HARDATK , SOFTATK , DEFENSE, SPECIALACTION
 };
+void to_json(nlohmann::json& j, const ActionCard& card);
 
 inline std::string_view to_string(enum ActionCard card){
     switch(card){

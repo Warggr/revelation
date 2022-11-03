@@ -27,6 +27,8 @@ enum Direction {
     UP = 0, LEFT = 1, RIGHT = 2, DOWN = 3
 };
 
+void to_json(nlohmann::json& j, const Direction& dir);
+
 inline position getNeighbour(const position& pos, Direction dir) {
     switch(dir){
     case UP:
