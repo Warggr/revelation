@@ -24,14 +24,14 @@ struct ImmutableCharacter {
     std::string name;
     std::forward_list<Effect*> specialAction;
     short maxAtk;
-    float netWorth = 0;
+    unsigned int netWorth = 0;
     std::string flavor = {};
     bool usesArcAttack = false;
 
     ImmutableCharacter() = default;
 #define WRITE(type, name) type name,
     ImmutableCharacter(const std::string_view& name, ImmutableCharacter_ALL(WRITE)
-                       float netWorth, bool usesArcAttack = false, const char* flavor = "");
+                       unsigned int netWorth, bool usesArcAttack = false, const char* flavor = "");
 #undef WRITE
     ImmutableCharacter(WriterVisitor& visitor);
     //ImmutableCharacter manages resources (namely specialAction which needs to be deleted), so it must not have a copy ctor

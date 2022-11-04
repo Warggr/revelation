@@ -50,11 +50,11 @@ public:
 */
 
 const Team& UnitsRepository::mkNearEast(){
-    auto MountedArchers = addCharacter( "Mounted archers", 60, 30, 10, 3, 3, 534.90, true );
-    auto Captives       = addCharacter( "Captives"       , 20, 20, 10, 2, 1, 288.70 );
-    auto Saracens       = addCharacter( "Saracens"       , 80, 50, 20, 2, 1, 454.90, false, "Defense 20(light)" );
-    auto Canons         = addCharacter( "Canons"         , 60, 70, 0, 1, 4, 551.60, false );
-    auto ArabOfficer    = addCharacter( "Arab officer"   , 100, 10, 10, 2, 1, 355.30 );
+    auto MountedArchers = addCharacter( "Mounted archers", 60, 30, 10, 3, 3, 53490, true );
+    auto Captives       = addCharacter( "Captives"       , 20, 20, 10, 2, 1, 28870 );
+    auto Saracens       = addCharacter( "Saracens"       , 80, 50, 20, 2, 1, 45490, false, "Defense 20(light)" );
+    auto Canons         = addCharacter( "Canons"         , 60, 70, 0, 1, 4, 55160, false );
+    auto ArabOfficer    = addCharacter( "Arab officer"   , 100, 10, 10, 2, 1, 35530 );
 
     //Captives->specialAction.push_front(new DiscardEffect(1));
 
@@ -65,11 +65,11 @@ const Team& UnitsRepository::mkNearEast(){
 }
 
 const Team& UnitsRepository::mkEurope() {
-    auto Crossbowman   = addCharacter( "Crossbowman"        , 40, 40, 20, 2, 3, 489.10, false );
-    auto ArmoredKnight = addCharacter( "Armored knight"     , 100, 60, 30, 1, 1, 449.90, false, "Defense 20(light)" );
-    auto Fanatics      = addCharacter( "Fanatics"           , 20, 20, 10, 2, 1, 288.70 );
-    auto Knight        = addCharacter( "Knight"             , 90, 50, 10, 3, 1, 520.50, false, "Defense 20(light)" );
-    auto LordOfficer   = addCharacter( "Lord officer"       , 100, 10, 10, 2, 1, 355.3 );
+    auto Crossbowman   = addCharacter( "Crossbowman"        , 40, 40, 20, 2, 3, 48910, false );
+    auto ArmoredKnight = addCharacter( "Armored knight"     , 100, 60, 30, 1, 1, 44990, false, "Defense 20(light)" );
+    auto Fanatics      = addCharacter( "Fanatics"           , 20, 20, 10, 2, 1, 28870 );
+    auto Knight        = addCharacter( "Knight"             , 90, 50, 10, 3, 1, 52050, false, "Defense 20(light)" );
+    auto LordOfficer   = addCharacter( "Lord officer"       , 100, 10, 10, 2, 1, 35530 );
 
     return *createTeam(
         { Crossbowman, ArmoredKnight, Fanatics, Fanatics, Knight, LordOfficer },

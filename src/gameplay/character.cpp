@@ -12,7 +12,7 @@ Character::Character(const ImmutableCharacter& im, char uid):
 }
 
 ImmutableCharacter::ImmutableCharacter(const std::string_view& name, short maxHP, short softAtk, short hardAtk, uint8_t mov,
-                     uint8_t rng, float netWorth, bool usesArcAttack, const char* flavor)
+                     uint8_t rng, unsigned netWorth, bool usesArcAttack, const char* flavor)
  : name(name), usesArcAttack(usesArcAttack) {
     this->maxHP = maxHP;
     this->softAtk = softAtk;
