@@ -87,7 +87,7 @@
 				if(req.status<300) load(statusDiv,JSON.parse(req.responseText));
 				else console.warn("ERROR");
 			}};
-			req.open('GET', `http://localhost:8000/${what}/`); req.send();
+			req.open('GET', `/${what}/`); req.send();
 		}
 		reload('room', loadRooms);
 		reload('team', loadTeams);

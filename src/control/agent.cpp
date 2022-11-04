@@ -10,8 +10,8 @@
 #include <cstring>
 
 const char* const StepByStepAgent::OptionListWrapper::NULL_STRING = "";
-constexpr std::string_view SKIP = "Skip";
-constexpr std::string_view BACK = "Back";
+constexpr std::string_view SKIP = "!Skip";
+constexpr std::string_view BACK = "!Back";
 const char* const SKIP_KEYS = ">";
 const char* const BACK_KEYS = "<";
 const char* const AGAIN_KEYS = "?";
@@ -142,6 +142,7 @@ chooseCharacter:
     OptionListWrapperWithStrings options;
     const auto skip_pos = options.add(SKIP);
     const auto back_pos = options.add(BACK);
+    constexpr auto OFFSET = 2;
     for(const auto& mov : possibleMovs){
         options.add(to_string(mov));
     }
@@ -149,7 +150,7 @@ chooseCharacter:
 
     if(iSel == back_pos) goto chooseCharacter;
     else if(iSel == skip_pos) return MoveDecision::pass();
-    else return possibleMovs[iSel-1];
+    else return possibleMovs[iSel-OFFSET];
 }
 
 ActionDecision StepByStepAgent::getAction(const State& state) {
