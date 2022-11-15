@@ -21,6 +21,8 @@ namespace websocket = boost::beast::websocket;
 
 /** Represents an active WebSocket connection to the server. */
 class Spectator : public std::enable_shared_from_this<Spectator> {
+public:
+    enum state { FREE, CLAIMED, CONNECTED, INTERRUPTED_BY_SERVER };
 protected:
     beast::flat_buffer buffer; //Only used for reading
     std::unique_ptr<websocket::stream<tcp::socket>> ws;
@@ -29,7 +31,7 @@ protected:
     std::condition_variable signalReadingQueue;
     std::queue<std::string> reading_queue; //All messages that haven't been read yet
     ServerRoom& room;
-    enum state { FREE, CLAIMED, CONNECTED, INTERRUPTED_BY_SERVER } state = FREE;
+    enum state state = FREE;
     bool previouslyConnected = false;
     void on_connect(error_code ec);
     void on_write(error_code ec, std::size_t bytes_transferred);
@@ -56,6 +58,7 @@ public:
 
     bool isConnected() const { return state == CONNECTED; }
     bool isClaimed() const { return state == CLAIMED; }
+    enum state getState() const { return state; }
     bool wasPreviouslyConnected() const { return previouslyConnected; }
 };
 

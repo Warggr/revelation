@@ -267,7 +267,7 @@
 				if(openRoom.status < 300) {
 					console.log(openRoom.responseText);
 					document.getElementById("roomNr").value = openRoom.responseText;
-					document.getElementById('existingRoomNr').value = openRoom.responseText;
+					document.getElementById('roomId').value = openRoom.responseText;
 				} else {
 					console.warn("ERROR");
 				}
@@ -356,7 +356,7 @@
 
 				let myCallback = (data) => {
 					if(data == "Ok") return { keepme:false, processed:true };
-					else if(data.startsWith("!Wrong value")){
+					else if((typeof data === 'string' || data instanceof String) && data.startsWith("!Wrong value")){
 						let valueToSend = prompt(promptText);
 						socket.send(valueToSend);
 						return { keepme:true, processed:true }; //Wrong value. Send a new one and keep listening

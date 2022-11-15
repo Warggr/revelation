@@ -62,7 +62,7 @@ std::shared_ptr<Spectator> ServerRoom::addSpectator(tcp::socket& socket, AgentId
     if(id != 0){
         auto iter_agent = sessions.find(id);
         if(iter_agent == sessions.end()) return nullptr; //no such seat
-        if(iter_agent->second->isClaimed()) return nullptr; //seat already claimed
+        if(iter_agent->second->getState() != Spectator::state::FREE) return nullptr; //seat already claimed
 
         iter_agent->second->claim(std::move(socket));
         return iter_agent->second;
