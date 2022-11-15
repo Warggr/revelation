@@ -42,6 +42,7 @@
 		<input type="text" value="submit" id="roomNr"/>
 		<button onclick="httpRequest();">Neuen Raum starten</button>
 	</div>
+	<button onclick="getClientLogs()">Download client logs</button>
 </body>
 <script>
 	function getServerUrl(){ return document.getElementById('serverUrl').value; }
@@ -51,6 +52,29 @@
 	var playing = false;
 	var initialized = false;
 	var playLock = undefined;
+	class WebSocketWithLogger extends WebSocket {
+		constructor(arg){ super(arg); this.log = []; }
+		send(i){ this.log.push({ send : i}); super.send(i); }
+		set onmessage(func){ super.onmessage = (event) => {
+			try { this.log.push({ get: JSON.parse(event.data) }); }
+			catch(err){ this.log.push({ get: "warning:data not JSON", rawData: event.data }) }
+			func(event);
+		}; }
+	}
+	function getClientLogs(){
+		const blob = new Blob([JSON.stringify(socket.log)], {type: 'application/json'});
+		const filename = `client_${new Date().toISOString()}.json`;
+		if(window.navigator.msSaveOrOpenBlob){
+			window.navigator.msSaveBlob(blob, filename);
+		} else {
+			const elem = window.document.createElement('a');
+			elem.href = window.URL.createObjectURL(blob);
+			elem.download = filename;
+			document.body.appendChild(elem);
+			elem.click();
+			document.body.removeChild(elem);
+		}
+	}
 	var socket = undefined;
 	var currentStep = 0;
 	var draggableCharacters;
@@ -264,7 +288,7 @@
 			return;
 		}
 
-		socket = new WebSocket('ws://' + url + '/' + roomNr + '/' + teamNr);
+		socket = new WebSocketWithLogger('ws://' + url + '/' + roomNr + '/' + teamNr);
 		socket.onopen = (event) => {
 			connectionStatusDom.textContent = 'Verbunden';
 			initialized = false;
