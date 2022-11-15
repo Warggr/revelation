@@ -1,2 +1,8 @@
 build
+Dockerfile
 .git
+.gitignore
+.idea
+README.md
+replays
+.run
