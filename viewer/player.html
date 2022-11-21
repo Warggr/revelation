@@ -15,6 +15,7 @@
 		<button onclick="pre();">&#x25c0;</button>
 		<button onclick="playPause(this);">&#x23ef;</button>
 		<button onclick="nxt();">&#x25b6;</button>
+		<button onclick="sockSendPos(moves);">Position auswählen</button>
 	</div>
 	<div>
 		<h2>Replay anschauen</h2>
@@ -42,7 +43,6 @@
 		<input type="text" value="submit" id="roomNr"/>
 		<button onclick="httpRequest();">Neuen Raum starten</button>
 	</div>
-	<button onclick="getClientLogs()">Download client logs</button>
 </body>
 <script>
 	function getServerUrl(){ return document.getElementById('serverUrl').value; }
@@ -52,29 +52,6 @@
 	var playing = false;
 	var initialized = false;
 	var playLock = undefined;
-	class WebSocketWithLogger extends WebSocket {
-		constructor(arg){ super(arg); this.log = []; }
-		send(i){ this.log.push({ send : i}); super.send(i); }
-		set onmessage(func){ super.onmessage = (event) => {
-			try { this.log.push({ get: JSON.parse(event.data) }); }
-			catch(err){ this.log.push({ get: "warning:data not JSON", rawData: event.data }) }
-			func(event);
-		}; }
-	}
-	function getClientLogs(){
-		const blob = new Blob([JSON.stringify(socket.log)], {type: 'application/json'});
-		const filename = `client_${new Date().toISOString()}.json`;
-		if(window.navigator.msSaveOrOpenBlob){
-			window.navigator.msSaveBlob(blob, filename);
-		} else {
-			const elem = window.document.createElement('a');
-			elem.href = window.URL.createObjectURL(blob);
-			elem.download = filename;
-			document.body.appendChild(elem);
-			elem.click();
-			document.body.removeChild(elem);
-		}
-	}
 	var socket = undefined;
 	var currentStep = 0;
 	var draggableCharacters;
@@ -83,34 +60,9 @@
 	var stepCountDom = document.getElementById('step-count');
 	var connectionStatusDom = document.getElementById('connection-status');
 	var message;
-	var boardfields = document.querySelectorAll('.board-field');
-	var flag = false;
-	const removeEvents = () => {
-		boardfields.forEach(item => item.removeEventListener('mouseover', item.fn, false));
-		boardfields.forEach(item => item.removeEventListener('click', startPos, false));
-		boardfields.forEach(item => item.removeEventListener('mouseout', removeGrey_, false));
-	}
-	function removeGrey() {
-		boardfields.forEach(function (item) {
-			if(item.hasAttribute("style")) {
-				item.setAttribute("style", "background-color:white;");
-				if(item.hasChildNodes()) {
-					item.firstElementChild.removeAttribute('style');
-				}
-			}
-		});
-	}
-	function removeGrey_() {
-		boardfields.forEach(function (item) {
-			var color = item.getAttribute("style");
-			if(item.hasAttribute("style") && !color.includes('red')) {
-				item.setAttribute("style", "background-color:white;");
-				if(item.hasChildNodes()) {
-					item.firstElementChild.removeAttribute('style');
-				}
-			}
-		});
-	}
+	var boardfields = document.querySelectorAll("div.board-field");
+	var moves = '';
+
 	function startChar() {
 		if(this.id) {
 			charId = this.id;
@@ -120,42 +72,22 @@
 			sockSendCharacter(this.id);
 		}
 	}
-	function startPos() {
-		selectedId = this.getAttribute('array');
-		console.log(selectedId);
-		if(selectedId === document.getElementById(charId).parentElement.getAttribute('array')) {
-			socket.send(0);
-		} else {
-			sockSendPos(selectedId);
+	function removeRed() {
+		boardfields = document.querySelectorAll(".board-field");
+
+		for(var j = 0; j < boardfields.length; j++) {
+			boardfields.item(j).style.borderStyle = "";
+			boardfields.item(j).style.borderColor = "red";
 		}
 	}
-	function readMoves() {
-		var moves = possibilities.forEach(item => item.split(' ').at(0));
-		console.log(moves);
-	}
-	function showPos(fields, possibilities) {
-		let i;
-		const moves = [];
-		for(i = 0; i < possibilities.length; i++) {
-			moves.push(possibilities.at(i).split(' ').at(0).replace('\\"', ''))
-		}
-		moves.forEach(item =>
-			item.split('').forEach(c => function () {
-				switch (c) {
-					case '>':
-						var value = document.getElementById(charId).getAttribute('array');
-				}
-			}))
-
-
-		for(i = 0; i < possibilities.length; i++) {
-			for(j = 0; j < fields.length; j++) {
-				cmp = fields.item(j).getAttribute('array');
+	function dragStart(fields, possibilities) {
+		console.log(possibilities);
+		for(var i = 0; i < possibilities.length; i++) {
+			for(var j = 0; j < fields.length; j++) {
+				var cmp = fields.item(j).getAttribute('array');
 				if(possibilities.at(i).includes(cmp)) {
-					fields.item(j).setAttribute("style", "background-color:grey")
-					if(fields.item(j).firstChild) {
-						fields.item(j).firstChild.setAttribute("style", "background-color:grey");
-					}
+					fields.item(j).style.borderStyle = "dashed solid";
+					fields.item(j).style.borderColor = "red";
 				}
 			}
 		}
@@ -267,17 +199,26 @@
 				if(openRoom.status < 300) {
 					console.log(openRoom.responseText);
 					document.getElementById("roomNr").value = openRoom.responseText;
-					document.getElementById('roomId').value = openRoom.responseText;
+					//document.getElementById('existingRoomNr').value = openRoom.responseText;
 				} else {
 					console.warn("ERROR");
 				}
 			}
 		}
-		openRoom.open("POST", 'https://cors-anywhere.herokuapp.com/' + getServerUrl() + "/room", true);
+		//openRoom.open("POST", "https://cors-anywhere.herokuapp.com/http://revelation-server-2.westeurope.cloudapp.azure.com:8000/room", true);
+		openRoom.open("POST", "http://" + getServerUrl() + "/room", true);
 		openRoom.send();
 		return openRoom.responseText;
 	}
+	function swap(element1,element2) {
+		var clonedElement1 = element1.cloneNode(true);
+		var clonedElement2 = element2.cloneNode(true);
+		element2.parentNode.replaceChild(clonedElement1, element2);
+		element1.parentNode.replaceChild(clonedElement2, element1);
+		return clonedElement1;
+	}
 	const connectToServer = () => {
+		//const url = 'revelation-server-2.westeurope.cloudapp.azure.com:8000';
 		const url = getServerUrl();
 		const teamNr = document.getElementById('playerId').value;
 		const roomNr = document.getElementById('roomId').value;
@@ -288,7 +229,7 @@
 			return;
 		}
 
-		socket = new WebSocketWithLogger('ws://' + url + '/' + roomNr + '/' + teamNr);
+		socket = new WebSocket('ws://' + url + '/' + roomNr + '/' + teamNr);
 		socket.onopen = (event) => {
 			connectionStatusDom.textContent = 'Verbunden';
 			initialized = false;
@@ -316,36 +257,80 @@
 			}
 
 			if (JSON.stringify(event.data).includes("action") && !JSON.stringify(event.data).includes("state")) {
-				removeGrey();
 				let step = readStep(event.data, socket);
 				steps.push(step);
 				reloadNbSteps();
 				if (steps.length == 1) nxt();
-				removeEvents();
 			} else if (JSON.stringify(event.data).includes("character") && !JSON.stringify(event.data).includes("state")) {
 				message = event.data;
 				draggableCharacters = document.querySelectorAll('.board-field div');
 				draggableCharacters.forEach(item =>
 						item.addEventListener('click', startChar)
 				);
-				removeEvents();
-
 			} else if (JSON.stringify(event.data).includes("position") && !JSON.stringify(event.data).includes("state")) {
-				possibilities = JSON.stringify(event.data).split('",');
+				var possibilities = JSON.stringify(event.data).split('",');
+				boardfields = document.querySelectorAll(".board-field");
+				var draggedPiece;
+				moves = '';
 				console.log(event.data);
-				boardfields = document.querySelectorAll('.board-field');
 				message = possibilities;
 				draggableCharacters.forEach(item => item.removeEventListener('click', startChar, false));
-				boardfields.forEach(item => item.addEventListener('click', startPos));
-				boardfields.forEach(item => item.addEventListener('mouseover',
-						item.fn = function () {
-							showPos(boardfields, possibilities);
-							this.style.backgroundColor = '#5A5A5A';
-						}, false))
-				boardfields.forEach(item => item.addEventListener('mouseout', removeGrey_, false))
+
+				document.getElementById(charId).draggable = true;
+				boardfields.forEach(item => item.parentElement.addEventListener('dragstart', event => {
+					console.log('Drag start event');
+					if (event.target.draggable) {
+						draggedPiece = event.target;
+						dragStart(boardfields, possibilities);
+						console.log('Drag start event');
+					}
+				}));
+
+				boardfields.forEach(item => item.parentElement.addEventListener('dragenter', event => {
+					//removeRed();
+					console.log('Drag enter event');
+
+				}));
+
+				boardfields.forEach(item => item.parentElement.addEventListener('dragover', event => {
+					event.preventDefault();
+					console.log('Drag over event');
+				}));
+
+				boardfields.forEach(item => item.addEventListener('drop', event => {
+					event.preventDefault();
+					console.log('Drop event');
+					console.log(event.target);
+					var to = event.target.getAttribute('array');
+					var from = draggedPiece.parentElement.getAttribute('array');
+					var toNode = document.querySelector("[array=" + CSS.escape(to) + "]");
+					var fromNode = document.querySelector("[array=" + CSS.escape(from) + "]");
+					toNode.setAttribute('style', 'background-color: green');
+					if(toNode.hasChildNodes()) {
+						swap(fromNode.firstChild, toNode.firstChild);
+					}  else {
+						toNode.appendChild(fromNode.firstChild);
+					}
+
+					var xTo = Number(to.split('').at(1)); // position format: [x, y] x:column, y:row
+					var yTo = Number(to.split('').at(4));
+					var xFrom = Number(from.split('').at(1));
+					var yFrom = Number(from.split('').at(4));
+
+					//directions
+					if(xTo > xFrom) {
+						moves += '>';
+					} else if(xTo < xFrom) {
+						moves += '<';
+					} else if(yTo < yFrom) {
+						moves += '^';
+					} else if(yTo > yFrom) {
+						moves += 'v';
+					}
+					console.log(moves);
+				}));
 
 			} else if (JSON.stringify(event.data).includes("card") && !JSON.stringify(event.data).includes("state")) {
-				removeEvents();
 				loadCard(event.data);
 			} else if (Array.isArray(data)) {
 				var promptText = data[data.length - 1];
@@ -356,7 +341,7 @@
 
 				let myCallback = (data) => {
 					if(data == "Ok") return { keepme:false, processed:true };
-					else if((typeof data === 'string' || data instanceof String) && data.startsWith("!Wrong value")){
+					else if(data.startsWith("!Wrong value")){
 						let valueToSend = prompt(promptText);
 						socket.send(valueToSend);
 						return { keepme:true, processed:true }; //Wrong value. Send a new one and keep listening
@@ -370,22 +355,24 @@
 			}
 		}
 		socket.onerror = (err) => { console.error(err); }
+		socket.onerror = (err) => { console.error(err); }
 	}
-
 	function sockSendCharacter(id) {
 		console.log(charId);
 		socket.send(charId.split('-').at(1));
 	}
-
-	function sockSendPos(id) {
-		for(i = 0; i < message.length; i++) {
-			if(message.at(i).includes(id)) {
+	function sockSendPos(mo) {
+		console.log(message);
+		removeRed();
+		for(var i = 0; i < message.length; i++) {
+			var m = message.at(i).replace('\\"', '').split(' ');
+			console.log(m);
+			if(m.at(0) === mo) {
 				socket.send(i);
 				break;
 			}
 		}
 	}
-
 	function sockSendCard(i) {
 		console.log(i);
 		socket.send(i);
