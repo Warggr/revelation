@@ -64,10 +64,12 @@ function move(step, backwards) {
 		if(step.firstCOF != 0 && getBoardField(newPosition).hasChildNodes()) console.error('Position ' + newPosition + ' not empty during COF');
 		let previousPosition = newPosition;
 		// The steps after the first COF should all contain units, which will be moved one field backwards
-		for( ; iMove < step.moves.length; iMove++){
-			newPosition = getNeighbor( newPosition, step.moves[iMove] );
-			getBoardField(previousPosition).appendChild(getBoardField(newPosition).firstChild); //move unit one field backwards
-			previousPosition = newPosition;
+		if(iActive != (document.getElementById('playerId').value - 1)){
+			for( ; iMove < step.moves.length; iMove++){
+				newPosition = getNeighbor( newPosition, step.moves[iMove] );
+				getBoardField(previousPosition).appendChild(getBoardField(newPosition).firstChild); //move unit one field backwards
+				previousPosition = newPosition;
+			}
 		}
 	} else { // do everything in the opposite direction
 		let previousPosition = newPosition;
@@ -85,9 +87,11 @@ function move(step, backwards) {
 	}
 	// we're there!
 	let unit = getBoardField(step.frm).firstChild;
-	if(unit.id != 'cid-' + step.target) console.warn('Target is named ' + unit.id + ' instead of cid-' + step.target);
+	//if(unit.id != 'cid-' + step.target) console.warn('Target is named ' + unit.id + ' instead of cid-' + step.target);
 	if(newPosition[0] != step.to[0] || newPosition[1] != step.to[1]) console.error('Arrived at ' + newPosition + ' instead of ' + step.to);
-	getBoardField(newPosition).appendChild(unit); //move the unit
+	if(iActive != (document.getElementById('playerId').value - 1)) {
+		getBoardField(newPosition).appendChild(unit); //move the unit
+	}
 	return { 'action' : 'move', 'frm' : step.to, 'to' : step.frm, 'target' : step.target, moves: step.moves, 'firstCOF' : step.firstCOF };
 }
 
