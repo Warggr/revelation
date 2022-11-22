@@ -62,7 +62,8 @@
 	var message;
 	var boardfields = document.querySelectorAll("div.board-field");
 	var moves = '';
-
+	var possibilities = '';
+	var draggedPiece;
 	function startChar() {
 		if(this.id) {
 			charId = this.id;
@@ -74,11 +75,18 @@
 	}
 	function removeRed() {
 		boardfields = document.querySelectorAll(".board-field");
-
+		boardfields.forEach(item => {
+			item.removeEventListener('dragstart', _dragStart);
+			item.removeEventListener('dragenter', _dragEnter);
+			item.removeEventListener('dragover', _dragOver);
+			item.removeEventListener('drop', _drop);
+		})
 		for(var j = 0; j < boardfields.length; j++) {
 			boardfields.item(j).style.borderStyle = "";
-			boardfields.item(j).style.borderColor = "red";
+			boardfields.item(j).style.borderColor = "";
+			boardfields.item(j).style.backgroundColor = "";
 		}
+		possibilities = '';
 	}
 	function dragStart(fields, possibilities) {
 		console.log(possibilities);
@@ -217,6 +225,51 @@
 		element1.parentNode.replaceChild(clonedElement2, element1);
 		return clonedElement1;
 	}
+	var _dragStart = function(event) {
+		if (event.target.draggable) {
+			draggedPiece = event.target;
+			dragStart(boardfields, possibilities);
+			console.log('drag start event');
+		}
+	}
+	var _dragEnter = function(event) {}
+	var _dragOver = function (event) {
+		event.preventDefault();
+		console.log('drag over event');
+	}
+	var _drop = function (event) {
+		event.preventDefault();
+		console.log('drop event');
+		console.log(event.target);
+		console.log(draggedPiece);
+		var to = event.target.getAttribute('array');
+		var from = draggedPiece.parentElement.getAttribute('array');
+		var toNode = document.querySelector("[array=" + CSS.escape(to) + "]");
+		var fromNode = document.querySelector("[array=" + CSS.escape(from) + "]");
+		toNode.setAttribute('style', 'background-color: green');
+		if(toNode.hasChildNodes()) {
+			swap(fromNode.firstChild, toNode.firstChild);
+		}  else {
+			toNode.appendChild(fromNode.firstChild);
+		}
+
+		var xTo = Number(to.split('').at(1)); // position format: [x, y] x:column, y:row
+		var yTo = Number(to.split('').at(4));
+		var xFrom = Number(from.split('').at(1));
+		var yFrom = Number(from.split('').at(4));
+
+		//directions
+		if(xTo > xFrom) {
+			moves += '>';
+		} else if(xTo < xFrom) {
+			moves += '<';
+		} else if(yTo < yFrom) {
+			moves += '^';
+		} else if(yTo > yFrom) {
+			moves += 'v';
+		}
+		console.log(moves);
+	}
 	const connectToServer = () => {
 		//const url = 'revelation-server-2.westeurope.cloudapp.azure.com:8000';
 		const url = getServerUrl();
@@ -268,68 +321,18 @@
 						item.addEventListener('click', startChar)
 				);
 			} else if (JSON.stringify(event.data).includes("position") && !JSON.stringify(event.data).includes("state")) {
-				var possibilities = JSON.stringify(event.data).split('",');
+				possibilities = JSON.stringify(event.data).split('",');
 				boardfields = document.querySelectorAll(".board-field");
-				var draggedPiece;
 				moves = '';
 				console.log(event.data);
 				message = possibilities;
 				draggableCharacters.forEach(item => item.removeEventListener('click', startChar, false));
 
 				document.getElementById(charId).draggable = true;
-				boardfields.forEach(item => item.parentElement.addEventListener('dragstart', event => {
-					console.log('Drag start event');
-					if (event.target.draggable) {
-						draggedPiece = event.target;
-						dragStart(boardfields, possibilities);
-						console.log('Drag start event');
-					}
-				}));
-
-				boardfields.forEach(item => item.parentElement.addEventListener('dragenter', event => {
-					//removeRed();
-					console.log('Drag enter event');
-
-				}));
-
-				boardfields.forEach(item => item.parentElement.addEventListener('dragover', event => {
-					event.preventDefault();
-					console.log('Drag over event');
-				}));
-
-				boardfields.forEach(item => item.addEventListener('drop', event => {
-					event.preventDefault();
-					console.log('Drop event');
-					console.log(event.target);
-					var to = event.target.getAttribute('array');
-					var from = draggedPiece.parentElement.getAttribute('array');
-					var toNode = document.querySelector("[array=" + CSS.escape(to) + "]");
-					var fromNode = document.querySelector("[array=" + CSS.escape(from) + "]");
-					toNode.setAttribute('style', 'background-color: green');
-					if(toNode.hasChildNodes()) {
-						swap(fromNode.firstChild, toNode.firstChild);
-					}  else {
-						toNode.appendChild(fromNode.firstChild);
-					}
-
-					var xTo = Number(to.split('').at(1)); // position format: [x, y] x:column, y:row
-					var yTo = Number(to.split('').at(4));
-					var xFrom = Number(from.split('').at(1));
-					var yFrom = Number(from.split('').at(4));
-
-					//directions
-					if(xTo > xFrom) {
-						moves += '>';
-					} else if(xTo < xFrom) {
-						moves += '<';
-					} else if(yTo < yFrom) {
-						moves += '^';
-					} else if(yTo > yFrom) {
-						moves += 'v';
-					}
-					console.log(moves);
-				}));
-
+				boardfields.forEach(item => item.parentElement.addEventListener('dragstart', _dragStart));
+				boardfields.forEach(item => item.parentElement.addEventListener('dragenter', _dragEnter));
+				boardfields.forEach(item => item.parentElement.addEventListener('dragover', _dragOver));
+				boardfields.forEach(item => item.addEventListener('drop', _drop));
 			} else if (JSON.stringify(event.data).includes("card") && !JSON.stringify(event.data).includes("state")) {
 				loadCard(event.data);
 			} else if (Array.isArray(data)) {
