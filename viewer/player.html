@@ -3,6 +3,9 @@
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+	<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+	<script>'use strict'; const e = React.createElement;</script>
 	<script src="steps.js"></script>
 	<script src="styling.js"></script>
 	<link rel="stylesheet" type="text/css" href="style.css">
@@ -41,7 +44,7 @@
 			<button type="submit">Raum beitreten</button>
 		</form>
 		<input type="text" value="submit" id="roomNr"/>
-		<button onclick="httpRequest();">Neuen Raum starten</button>
+		<button onclick="newRoom();">Neuen Raum starten</button>
 	</div>
 	<button onclick="getClientLogs()">Download client logs</button>
 </body>
@@ -224,23 +227,15 @@
 		}
 		console.log(message);
 	}
-	function httpRequest()  {
-		const openRoom = new XMLHttpRequest();
-		openRoom.onreadystatechange = () => {
-			if(openRoom.readyState === XMLHttpRequest.DONE) {
-				if(openRoom.status < 300) {
-					console.log(openRoom.responseText);
-					document.getElementById("roomNr").value = openRoom.responseText;
-					//document.getElementById('existingRoomNr').value = openRoom.responseText;
-				} else {
-					console.warn("ERROR");
-				}
-			}
-		}
-		//openRoom.open("POST", "https://cors-anywhere.herokuapp.com/http://revelation-server-2.westeurope.cloudapp.azure.com:8000/room", true);
-		openRoom.open("POST", "http://" + getServerUrl() + "/room", true);
-		openRoom.send();
-		return openRoom.responseText;
+	async function newRoom() {
+		return await fetch("http://" + getServerUrl() + "/room", { method: 'POST' })
+			.then(response => response.text())
+			.then(newRoomId => {
+				console.log(newRoomId);
+				document.getElementById("roomNr").value = newRoomId;
+				//document.getElementById('roomId').value = newRoomId;
+			})
+		;
 	}
 	function swap(element1,element2) {
 		var clonedElement1 = element1.cloneNode(true);

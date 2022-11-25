@@ -4,42 +4,43 @@
 	<meta charset="utf-8">
 	<title>Revelation Server</title>
 	<link rel="stylesheet" type="text/css" href="style.css">
+	<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+	<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+	<script>'use strict'; const e = React.createElement;</script>
 	<script src="styling.js"></script>
 </head>
 <body>
 	<h1>Welcome</h1>
 	<div id="status-rooms"></div>
-	<button onclick="reload('room', loadRooms)">Refresh</button>
+	<button onclick="reload('room', roomsRoot, loadRooms)">Refresh</button>
 	<button onclick="createNewRoom()">New Room</button>
 	<div id="status-teams"></div>
 	<script type="text/javascript">
-		function loadRooms(statusDiv,data){
-			if(data.length == 0) statusDiv.innerText = '(no rooms)';
-			else statusDiv.innerText = '';
-			for(let room of data){
-				let roomDOM = document.createElement('div');
-				let myh3 = document.createElement('h3'); myh3.textContent = 'Room ' + room.id; roomDOM.appendChild(myh3);
-				let watch = document.createElement('a'); watch.href = `/files/player.html?roomId=${room.id}`; watch.textContent = 'Watch'; roomDOM.appendChild(watch);
-				let myp = document.createElement('p'); myp.textContent = room.spectators + ' spectators'; roomDOM.appendChild(myp);
-				let agentsList = document.createElement('div');
-				for(let agentId in room.agents){
-					let agentDOM = document.createElement('span');
-					if(room.agents[agentId] == "free") agentDOM.innerHTML = `<a href="/files/player.html?roomId=${room.id}&playerId=${Number(agentId)+1}">Join</a>`;
-					else agentDOM.innerHTML = '<p>' + room.agents[agentId] + '</p>';
-					agentsList.appendChild(agentDOM);
-				}
-				roomDOM.appendChild(agentsList);
-				statusDiv.appendChild(roomDOM);
-			}
+		const roomsRoot = ReactDOM.createRoot(document.getElementById('status-rooms'));
+		function loadRooms(data){
+			if(data.length == 0) roomsRoot.render('(no rooms)');
+			else roomsRoot.render(data.map(room =>
+				e('div', {key:room.id}, [
+					e('h3', {key:'h3'}, 'Room ' + room.id),
+					e('a', {key:'a', href: `/files/player.html?roomId=${room.id}`}, 'Watch'),
+					e('p', {key:'p'}, room.spectators + ' spectators'),
+					e('div', {key:'div'}, room.agents.map((agentStatus, agentId) =>
+						e('span', {key:agentId},
+							agentStatus == "free"
+							? e('a', {href:`/files/player.html?roomId=${room.id}&playerId=${Number(agentId)+1}`}, 'Join')
+							: e('p', {}, agentStatus)
+						)
+					))
+				])
+			));
 		}
 		var teamNames = ['Mock Team'];
-		function loadUnits(unitsDiv, data){
-			if(data.length == 0) unitsDiv.innerText = '(no units)';
-			else unitsDiv.innerText = '';
-			unitsName = [];
-			for(let unit of data){
+		function loadUnits(data){
+			if(data.length == 0) return( e('div', {key:'units'}, '(no units)'));
+			unitsName = []; unitsReact = [];
+			for(let iUnit in data){ unit = data[iUnit];
 				unit.cid = 'a'; unit.HP = unit.maxHP;
-				unitsDiv.appendChild(characterFactory(unit, 0, 'anonymous'));
+				unitsReact.push(e(Character, {char:unit, team:{i:0}, key:iUnit}));
 				unitsName.push(unit.name);
 			}
 			let teamCreatorForm = document.getElementById('team-creator-all6units');
@@ -51,66 +52,55 @@
 					child.appendChild(elem);
 				}
 			}
+			return e('div', {key:'units'}, unitsReact);
 		}
-		function loadArmies(armiesDiv, data){
+		function loadArmies(data){
 			teamNames = data.map(army => army.name);
-			if(data.length == 0) unitsDiv.innerText = '(no teams)';
-			else armiesDiv.innerText = '';
-			for(let army of data){
-				let armyDOM = document.createElement('div');
-				let h4 = document.createElement('h4'); h4.innerText = army.name; armyDOM.appendChild(h4);
-				let unitsDOM = document.createElement('div');
-				for(let row of army.units) for(let unitName of row){
-					let myspan = document.createElement('span'); myspan.innerText = unitName;
-					unitsDOM.appendChild(myspan);
-				}
-				armyDOM.appendChild(unitsDOM);
-				armiesDiv.appendChild(armyDOM);
-			}
+			if(data.length == 0) return e('div', {key:'armies'}, '(no teams)');
+			else return e('div', {key:'armies'}, data.map(army =>
+				e('div', {key:army.name}, [
+					e('h4', {key:'name'}, army.name)
+				].concat( army.units.flat().map((unitName,i) =>
+					e('span', {key:i}, unitName)
+				)))
+			));
 		}
-		function loadTeams(teamsDiv, data){
-			teamsDiv.textContent = '';
-			let myh3_1 = document.createElement('h3'); myh3_1.textContent = 'Characters'; teamsDiv.appendChild(myh3_1);
-			let mydiv_1 = document.createElement('div');
-			loadUnits(mydiv_1, data.characters);
-			teamsDiv.appendChild(mydiv_1);
-			let myh3_2 = document.createElement('h3'); myh3_2.textContent = 'Teams'; teamsDiv.appendChild(myh3_2);
-			let mydiv_2 = document.createElement('div');
-			loadArmies(mydiv_2, data.teams);
-			teamsDiv.appendChild(mydiv_2);
+		const teamsRoot = ReactDOM.createRoot(document.getElementById('status-teams'));
+		function loadTeams(data){
+			teamsRoot.render([
+				e('h3', {key:'charactersH3'}, 'Characters'),
+				loadUnits(data.characters),
+				e('h3', {key:'teamsH3'}, 'Teams'),
+				loadArmies(data.teams)
+			]);
 		}
-		function reload(what, load){
-			const statusDiv = document.getElementById(`status-${what}s`);
-			statusDiv.textContent = 'Loading...';
-			const req = new XMLHttpRequest();
-			req.onreadystatechange = () => { if(req.readyState===XMLHttpRequest.DONE){
-				if(req.status<300) load(statusDiv,JSON.parse(req.responseText));
-				else console.warn("ERROR");
-			}};
-			req.open('GET', `/${what}/`); req.send();
+		async function reload(what, reactRoot, load){
+			reactRoot.render('Loading...');
+			await fetch(`/${what}/`)
+				.then(response => response.json())
+				.then(load);
 		}
-		reload('room', loadRooms);
-		reload('team', loadTeams);
-		function createNewRoom(){
-			const req = new XMLHttpRequest();
-			req.onreadystatechange = () => { if(req.readyState===XMLHttpRequest.DONE){ if(req.status<300) reload('room', loadRooms); else console.warn("ERROR");}};
-			req.open('POST', '/room'); req.send();
+		reload('room', roomsRoot, loadRooms);
+		reload('team', teamsRoot, loadTeams);
+		async function createNewRoom(){
+			await fetch('/room', {method:'POST'})
+				.then(() => reload('room', roomsRoot, loadRooms));
 		}
-		function createNewUnit(form){
+		async function createNewUnit(form){
 			const formData = new URLSearchParams(new FormData(form));
-			const req = new XMLHttpRequest();
-			req.onreadystatechange = () => { if(req.readyState===XMLHttpRequest.DONE){ if(req.status<300) reload('team', loadTeams); else console.warn("ERROR");}};
-			req.open('POST', '/unit');
-			req.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
-			req.send(formData);
+			await fetch('/unit', {
+				method:'POST',
+				headers: {'Content-type': 'application/x-www-form-urlencoded'},
+				body: formData
+			}).then(() => reload('team', teamsRoot, loadTeams));
 		}
-		function createNewTeam(form){
+		async function createNewTeam(form){
 			const formData = new URLSearchParams(new FormData(form));
-			const req = new XMLHttpRequest();
-			req.onreadystatechange = () => { if(req.readyState===XMLHttpRequest.DONE){ if(req.status<300) reload('team', loadTeams); else console.warn("ERROR");}};
-			req.open('POST', '/team');
-			req.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
-			req.send(formData);
+			await fetch('/team', {
+				method:'POST',
+				headers: {'Content-type': 'application/x-www-form-urlencoded'},
+				body: formData
+			}).then(() => reload('team', teamsRoot, loadTeams));
 		}
 	</script>
 	<h3>Create a unit</h3>

@@ -2,17 +2,26 @@ function teamClass(teamName){
 	return 'teamid-' + teamName.toLowerCase().replaceAll(' ', '-')
 }
 
-function characterFactory(char, iTeam, teamName){
-	var charDom = document.createElement('div');
-	charDom.id = 'cid-' + char.cid;
-	charDom.classList.add( teamClass(teamName) );
-	charDom.classList.add('character');
-	charDom.classList.add('team-' + (iTeam+1));
-	charDom.innerHTML =
-		`<h1>${char.name}</h1>
-		 <div class="stats">
-		 <div class="HP">${char.HP}</div><div class="maxHP">${char.maxHP}</div>`+
-		`<div class="atk softAtk">${char.softAtk}</div><div class="atk hardAtk">${char.hardAtk}</div><div class="mov">${char.mov}</div><div class="rng">${char.rng}</div>`+
-		`<div class="netWorth">${char.netWorth}</div><i>${char.flavor}</i>`;
-	return charDom;
+class Character extends React.Component {
+	render(){
+		let className = 'character';
+		if(this.props.team.i != undefined) className += ` team-${this.props.team.i+1}`;
+		if(this.props.team.name) className += ` ${teamClass(this.props.team.name)}`;
+		return e('div', {
+			id : 'cid-' + this.props.char.cid,
+			className: className
+		}, [
+			e('h1', {key:'h1'}, this.props.char.name),
+			e('div', { className: "stats", key:'stats' }, [
+				e('div', {className:"HP", key:"HP"}, this.props.char.HP),
+				e('div', {className:"maxHP", key:"maxHP"}, this.props.char.maxHP),
+				e('div', {className:"atk softAtk", key:"softAtk"}, this.props.char.softAtk),
+				e('div', {className:"atk hardAtk", key:"hardAtk"}, this.props.char.hardAtk),
+				e('div', {className:"mov", key:"mov"}, this.props.char.mov),
+				e('div', {className:"rng", key:"rng"}, this.props.char.rng),
+				e('div', {className:"netWorth", key:"netWorth"}, this.props.char.netWorth),
+				e('i', {key:'flavor'}, this.props.char.flavor)
+			])
+		]);
+	}
 }

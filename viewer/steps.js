@@ -14,6 +14,12 @@ function draw(name, who){
 	resourceLists[who].appendChild(resource);
 }
 
+function characterFactory(char, iTeam, domElement){
+	ReactDOM.createRoot(domElement).render(
+		e(Character, {team: {i:iTeam, name:teamNames[iTeam]}, char:char})
+	)
+}
+
 function bluePrintCharacter(charDom){
 	let stats = charDom.children[1];
 	return {
@@ -140,8 +146,8 @@ function apply(step, backwards) {
 				iActive = 1 - iActive;
 				let charDom = undefined;
 				if(step.delete){
-					charDom = characterFactory(step.deleted, 1 - iActive, teamNames[1-iActive]);
-					boardDom.children[ step.object[1] + FULL_BOARD_WIDTH*step.object[0] ].appendChild(charDom);
+					characterFactory(step.deleted, 1 - iActive,
+						boardDom.children[ step.object[1] + FULL_BOARD_WIDTH*step.object[0] ]);
 					delete step.deleted;
 				} else {
 					charDom = boardDom.children[ step.object[1] + FULL_BOARD_WIDTH*step.object[0] ].firstChild;
@@ -230,8 +236,8 @@ function createState(startState){
 					let charDom;
 					if(poss != null) {
 						let posChar = poss[1];
-						charDom = characterFactory(team[posChar], i, teamNames[i]);
-						boardDom.children[k + FULL_BOARD_WIDTH * j].appendChild(charDom);
+						characterFactory(team[posChar], i,
+							boardDom.children[k + FULL_BOARD_WIDTH * j]);
 					}
 				}
 			} else {
@@ -240,8 +246,8 @@ function createState(startState){
 					let poss = pos[k];
 					if(poss != null) {
 						let posChar = poss[1];
-						charDom = characterFactory(team[posChar], i, teamNames[i]);
-						boardDom.children[k + FULL_BOARD_WIDTH * j].appendChild(charDom);
+						characterFactory(team[posChar], i,
+							boardDom.children[k + FULL_BOARD_WIDTH * j]);
 					}
 				}
 			}
