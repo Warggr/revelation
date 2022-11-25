@@ -57,7 +57,7 @@ State State::createStart(const std::array<const Team*, 2>& teams, Generator gene
     for(int i = 0; i < 2; i++ ) {
         for(int j = 0; j < 2; j++) {
             for(int k = 0; k < ARMY_WIDTH; k++) {
-                if(teams[i]->characters[j][k] != 0){ //0 indicates an empty field
+                if(teams[i]->characters[j][k] != nullptr){ //0 indicates an empty field
                     NullableShared<Character> character_ptr = { *teams[i]->characters[j][k], character_uid++};
                     character_ptr->pos = position( j, k + 1 + i*HALF_BOARD_WIDTH);
                     character_ptr->team = i;
@@ -163,10 +163,12 @@ std::tuple<State, uptr<DiscardStep>> State::stepDiscard(DiscardDecision decision
 
 void State::checkConsistency() const {
 #ifndef NDEBUG
-    for(unsigned int i = 0; i<2; i++){
-        const Player& pl = this->players[i];
-        auto decksize = pl.deck.sizeconfig();
-        assert(std::get<0>(decksize) + std::get<1>(decksize) + pl.getActions().size() + pl.getResourceCards().size() == 10);
+    if(not isInvalid(*this)){
+        for(unsigned int i = 0; i < 2; i++){
+            const Player &pl = this->players[i];
+            auto decksize = pl.deck.sizeconfig();
+            assert(std::get<0>(decksize) + std::get<1>(decksize) + pl.getActions().size() + pl.getResourceCards().size() == 10);
+        }
     }
     for(unsigned int i = 0; i<2; i++){
         for(unsigned int j = 0; j<ARMY_SIZE; j++){

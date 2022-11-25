@@ -64,17 +64,17 @@ public:
     virtual Container<SearchNode>& getContainer() = 0;
     void planAhead(const State& state);
     //Return false by default, and true if we should cut off the search directly
-    virtual bool addEndState(State state, const DecisionList& decisions, Heuristic::Value heurVal){
+    virtual bool addEndState(const State& state, const DecisionList& decisions, Heuristic::Value heurVal){
         if(heurVal > maxHeur){
             bestMoves = decisions;
-            bestState = std::move(state);
+            bestState = state;
             maxHeur = heurVal;
         }
         return false;
     }
-    virtual bool addWinState(State state, const DecisionList& decisions){
+    virtual bool addWinState(const State& state, const DecisionList& decisions){
         bestMoves = decisions;
-        bestState = std::move(state);
+        bestState = state;
         maxHeur = std::numeric_limits<float>::max();
         return true;
     }

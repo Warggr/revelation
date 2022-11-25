@@ -33,14 +33,14 @@ std::vector<std::unique_ptr<NetworkAgent>> NetworkAgent::makeAgents(unsigned sho
 }
 
 // Adapted from https://en.cppreference.com/w/cpp/string/basic_string/replace
-std::size_t replace_all(std::string& inout, std::string_view what, std::string_view with){
-    std::size_t count{};
-    for (std::string::size_type pos{};
-         inout.npos != (pos = inout.find(what.data(), pos, what.length()));
-         pos += with.length(), ++count) {
-        inout.replace(pos, what.length(), with.data(), with.length());
+void replace_all(std::string& inout, char what, std::string_view with){
+    std::string::size_type pos = 0;
+    while(true){
+        pos = inout.find(what, pos);
+        if(pos == inout.npos) break;
+        inout.replace(pos, 1, with);
+        pos += with.length();
     }
-    return count;
 }
 
 uint NetworkAgent::choose(const OptionList& options, const std::string_view& message) {
@@ -67,10 +67,11 @@ show_options:
             throw AgentSurrenderedException(myId);
         }
         if(str == "?") goto show_options;
+        if(str == StepByStepAgent::SURRENDER) throw AgentSurrenderedException(myId);
         auto [ value, success ] = StepByStepAgent::inputValidation( options, str );
         if(not success){
-            replace_all(str, "\\", "\\\\");
-            replace_all(str, "\"", "\\\""); //Escape the string to make it valid json
+            replace_all(str, '\\', "\\\\");
+            replace_all(str, '"', "\\\""); //Escape the string to make it valid json
             sender->send_sync(SHARE(std::string("\"!Wrong value: `") + str + "`\""));
             goto input_loop;
         }

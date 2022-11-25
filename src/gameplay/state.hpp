@@ -31,7 +31,7 @@ class State {
     std::forward_list<Effect*> unresolvedSpecialAbility;
 public:
     Timestep timestep;
-    uint8_t iActive;
+    uint8_t iActive = 3;
     std::array<UnitList, 2> units;
     std::array<Player, 2> players;
 
@@ -39,6 +39,7 @@ public:
     State(Generator& generator): players({ Player(Generator(generator() + 1)), Player(Generator(generator() + 1)) }) {};
     State& operator=(const State& copy);
     State(const State& copy){ *this = copy; } //calling the operator=
+    State(State&& move) = default;
     bool operator==(const State& other) const {
         return board == other.board and nbAliveUnits == other.nbAliveUnits and turnID == other.turnID and unresolvedSpecialAbility == other.unresolvedSpecialAbility;
     }

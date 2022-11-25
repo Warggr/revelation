@@ -3,6 +3,7 @@
 
 #include "search.hpp"
 #include <cassert>
+#include <utility>
 
 /**
  * In DFS, it is possible to determine when we leave a branch of the search tree.

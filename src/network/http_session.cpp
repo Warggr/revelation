@@ -198,7 +198,6 @@ void HttpSession::on_read(error_code ec, std::size_t){
             return sendResponse(not_found("Room not found"));
 
         ServerRoom& room = server.getRooms().find(roomId)->second;
-        //ServerRoom& room = server.rooms[roomId];
         auto spec = room.addSpectator(socket_, agentId);
         if (!spec)
             return sendResponse(bad_request("Room did not accept you"));
