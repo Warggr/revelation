@@ -51,19 +51,11 @@ showOptions:
     while(true) {
         char buffer[5]; std::cin.getline(buffer, 5);
         if(strcmp(buffer, AGAIN_KEYS) == 0) goto showOptions;
+        if(strcmp(buffer, SURRENDER.data()) == 0) throw AgentSurrenderedException(myId);
         auto [ value, success ] = StepByStepAgent::inputValidation(options, buffer);
         if(success) return value;
         else std::cout << "Please choose a number between 0 and " << options.size() << "!\n";
     }
-}
-
-uint HumanAgent::input(uint min, uint max){
-    assert(min <= max and max < 100000); //too high values are usually an overflow
-    while(true) {
-        uint iSel; std::cin >> iSel;
-        if(min <= iSel and iSel <= max) return iSel;
-        else std::cout << "Please choose a number between " << min << " and " << max << "!\n";
-    };
 }
 
 const Player& Agent::getMyPlayer(const State& state) const {

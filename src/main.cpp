@@ -26,8 +26,8 @@ int main(){
 
     std::thread network_thread(&Server_impl::start, &server);
 
-    auto networkAgents = NetworkAgent::makeAgents(1, room, 1);
-    std::array<std::unique_ptr<Agent>, 2> agents = { std::move(ag1), std::move(networkAgents[0]) };
+    auto networkAgent = NetworkAgent::declareUninitializedAgent(room, 1);
+    std::array<std::unique_ptr<Agent>, 2> agents = { std::move(ag1), std::move(networkAgent) };
 
     UnitsRepository repository;
     std::array<const Team*, 2> teams = { &repository.mkEurope(), &repository.mkNearEast() };

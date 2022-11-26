@@ -56,9 +56,11 @@ public:
 };
 
 #ifdef HTTP_CONTROLLED_SERVER
+#include "launch_game.hpp"
 #include <thread>
 #include <array>
 struct Team;
+class Agent;
 #endif
 
 class ServerRoom_impl : public ServerRoom {
@@ -73,7 +75,7 @@ public:
     ~ServerRoom_impl(){
         if(myThread.joinable()) myThread.join();
     }
-    void launchGame(RoomId id);
+    void launchGame(RoomId id, AgentDescription&& agents);
 #endif
 };
 

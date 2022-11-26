@@ -10,8 +10,8 @@ list(APPEND files
 add_library(network STATIC ${files})
 target_link_libraries(network PRIVATE pthread agents)
 
-add_library(network.server STATIC ${files})
+add_library(network.server STATIC ${files} launch_game.cpp)
 target_compile_definitions(network.server PUBLIC HTTP_CONTROLLED_SERVER HTTP_SERVE_FILES)
-target_link_libraries(network.server PRIVATE pthread agents control)
+target_link_libraries(network.server PRIVATE pthread agents control search)
 
 find_package( Boost REQUIRED )

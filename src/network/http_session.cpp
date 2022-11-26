@@ -12,6 +12,8 @@
 #include <list>
 
 #ifdef HTTP_CONTROLLED_SERVER
+#include "launch_game.hpp"
+#include "control/agent.hpp"
 #include "setup/team.hpp"
 #endif
 
@@ -161,7 +163,7 @@ void HttpSession::on_read(error_code ec, std::size_t){
         return res;
     };
 
-    auto const redirect = [&](boost::beast::string_view location){
+    [[ maybe_unused ]] auto const redirect = [&](boost::beast::string_view location){
         http::response<http::string_body> res{http::status::moved_permanently, req_.version()};
         res.set(http::field::location, location);
         return res;
@@ -174,15 +176,12 @@ void HttpSession::on_read(error_code ec, std::size_t){
         return res;
     };
 
-#ifdef HTTP_SERVE_FILES
-    // Returns a server error response
-    auto const server_error = [&](boost::beast::string_view what){
+    [[ maybe_unused ]] auto const server_error = [&](boost::beast::string_view what){
         http::response<http::string_body> res{http::status::internal_server_error, req_.version()};
         res.set(http::field::content_type, "text/html");
         res.body() = "An error occurred: '" + what.to_string() + "'";
         return res;
     };
-#endif
 
     // See if it is a WebSocket Upgrade
     if(websocket::is_upgrade(req_)){
@@ -209,8 +208,24 @@ void HttpSession::on_read(error_code ec, std::size_t){
 #define ADD_ENDPOINT(endpoint, thismethod) else if(req_.target() == endpoint and req_.method() == boost::beast::http::verb::thismethod)
 #ifdef HTTP_CONTROLLED_SERVER
     ADD_ENDPOINT("/room", post){
+        AgentDescription agentsDescr;
+        if(req_.body().empty()){
+            agentsDescr = { AgentDescriptor::NETWORK, AgentDescriptor::NETWORK };
+        } else {
+            auto encoding = req_[http::field::content_type];
+            if(encoding != "application/json")
+                return sendResponse(bad_request("Need JSON description of agents"));
+            try{
+                json agentDescrJson = json::parse(req_.body());
+                agentsDescr = parseAgents(agentDescrJson);
+            } catch(json::parse_error& err) {
+                return sendResponse(bad_request(err.what()));
+            } catch(AgentCreationException& err){
+                return sendResponse(bad_request(err.what()));
+            }
+        }
         auto [roomId, room] = server.addRoom();
-        room.launchGame(roomId);
+        room.launchGame(roomId, std::move(agentsDescr));
 
         http::response<http::string_body> res{ http::status::created, req_.version() };
         res.set(http::field::content_type, "text/plain");

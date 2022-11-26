@@ -1,7 +1,6 @@
 #include "network_agent.hpp"
 #include "spectator.hpp"
-#include "server.hpp"
-#include "semaphore.hpp"
+#include "room.hpp"
 #include <algorithm>
 
 NetworkAgent::NetworkAgent(uint myId, std::shared_ptr<Session> session)
@@ -9,27 +8,13 @@ NetworkAgent::NetworkAgent(uint myId, std::shared_ptr<Session> session)
 {
 }
 
-std::vector<std::unique_ptr<NetworkAgent>> NetworkAgent::makeAgents(unsigned short nb, ServerRoom& room, unsigned int startingId){
-    using namespace std::chrono_literals;
+std::unique_ptr<NetworkAgent> NetworkAgent::declareUninitializedAgent(ServerRoom& room, unsigned short agentId){
+    auto session = room.addSession(agentId+1);
+    return std::make_unique<NetworkAgent>(agentId, session);
+}
 
-    std::cout << "(main) make agents\n";
-    std::vector<std::shared_ptr<Session>> sessions(nb);
-    for(int i = 0; i<nb; i++){
-        auto session = room.addSession(i+startingId+1);
-        sessions[i] = session;
-    }
-    std::cout << "(main) wait for agents...\n";
-    std::vector<std::unique_ptr<NetworkAgent>> retVal;
-    for(const auto& session : sessions) {
-        session->awaitReconnect();
-    }
-    for(int i = 0; i<nb; i++) {
-        retVal.emplace_back(
-            std::make_unique<NetworkAgent>(i+startingId, sessions[i])
-        );
-    }
-    std::cout << "(main) found agents!\n";
-    return retVal;
+void NetworkAgent::sync_init(){
+    sender->awaitReconnect();
 }
 
 // Adapted from https://en.cppreference.com/w/cpp/string/basic_string/replace

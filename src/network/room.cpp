@@ -4,30 +4,9 @@
 
 #include "room.hpp"
 #include "spectator.hpp"
-#include "network_agent.hpp"
 #include "server.hpp"
 #include <algorithm>
 #include <iostream>
-
-#ifdef HTTP_CONTROLLED_SERVER
-#include "control/game.hpp"
-
-void ServerRoom_impl::launchGame(RoomId id){
-    std::cout << "(network thread) Launching game\n";
-    myThread = std::thread([&,id=id]{
-        std::cout << "(game thread) Launching game thread, waiting for agents...\n";
-        try {
-            Game game = Game::createFromAgents(NetworkAgent::makeTwoAgents(*this), server->repo);
-            std::cout << "(game thread) ...agents found, game in progress...\n";
-            game.play(this, false);
-            std::cout << "(game thread) ...game finished, ask server for deletion\n";
-        }
-        catch(TimeoutException&) {}
-        catch(DisconnectedException&) {}
-        server->askForRoomDeletion(id);
-    });
-}
-#endif
 
 ServerRoom::ServerRoom(RoomId, Server_impl* server): server(server){}
 

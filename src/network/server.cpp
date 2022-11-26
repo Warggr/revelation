@@ -78,11 +78,7 @@ void Server_impl::askForRoomDeletion(RoomId id) {
 }
 
 void Server::addSession(tcp::socket&& socket){
-#ifdef HTTP_SERVE_FILES
     auto session = new HttpSession(std::move(socket), static_cast<Server_impl&>(*this));
-#else
-    auto session = new HttpSession(std::move(socket), *this);
-#endif
     sessions.insert(session);
     session->run();
 }

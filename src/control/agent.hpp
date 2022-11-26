@@ -29,6 +29,7 @@ protected:
 public:
     Agent(unsigned int myId) : myId(myId) {};
     virtual ~Agent() = default;
+    virtual void sync_init(){};
 
     virtual const Team& getTeam(const UnitsRepository& repo) = 0;
 
@@ -77,7 +78,7 @@ protected:
     }
     static std::pair<uint, bool> inputValidation(const OptionList& list, const std::string_view& input);
     virtual uint choose(const OptionList& list, const std::string_view& message) = 0;
-    virtual uint input(uint min, uint max) = 0;
+    static constexpr std::string_view SURRENDER = "!GG!";
 public:
     StepByStepAgent(uint myId) : Agent(myId) {};
     const Team& getTeam(const UnitsRepository& repo) override;
@@ -89,7 +90,6 @@ public:
 
 class HumanAgent: public StepByStepAgent {
 protected:
-    uint input(uint min, uint max) override;
     uint choose(const OptionList &list, const std::string_view &message) override;
 public:
     HumanAgent(uint myId);
@@ -98,7 +98,7 @@ public:
 class RandomAgent: public StepByStepAgent {
     std::minstd_rand generator;
 protected:
-    uint input(uint min, uint max) override;
+    uint input(uint min, uint max);
     uint choose(const OptionList& list, const std::string_view&) override { return input(0, list.size()); }
 public:
     RandomAgent(uint myId);
