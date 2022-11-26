@@ -6,6 +6,10 @@
 #include "gameplay/state.hpp"
 #include <limits>
 #include <vector>
+#include <memory>
+
+template<typename T>
+using uptr = std::unique_ptr<T>;
 
 struct DecisionList{
 #ifndef NDEBUG
@@ -23,11 +27,11 @@ struct SearchNode {
     DecisionList decisions;
     Heuristic::Value heurVal;
 
-    SearchNode(State state, DecisionList decisions, float heurVal ):
-        state(std::move(state)), decisions(std::move(decisions)), heurVal(heurVal)
+    SearchNode(const State& state, DecisionList decisions, float heurVal ):
+        state(state), decisions(std::move(decisions)), heurVal(heurVal)
         {};
-    [[nodiscard]] SearchNode copy(State newState, Heuristic::Value heuristicIncrement) const {
-        return { std::move(newState), decisions, heurVal + heuristicIncrement };
+    [[nodiscard]] SearchNode copy(const State& newState, Heuristic::Value heuristicIncrement) const {
+        return { newState, decisions, heurVal + heuristicIncrement };
     }
 };
 
@@ -88,11 +92,13 @@ public:
 };
 
 class SearchAgent: public Agent {
-    SearchPolicy& searchPolicy;
+    uptr<SearchPolicy> searchPolicy;
+    uptr<Heuristic> heuristic;
     DecisionList plans {};
     unsigned short int currentSpecialAction = 0;
 public:
-    SearchAgent(unsigned int myId, SearchPolicy& policy): Agent(myId), searchPolicy(policy) {};
+    SearchAgent(unsigned int myId, uptr<SearchPolicy>&& policy, uptr<Heuristic>&& heuristic)
+    : Agent(myId), searchPolicy(std::move(policy)), heuristic(std::move(heuristic)) {};
     DiscardDecision getDiscard(const State&) override;
     MoveDecision getMovement(const State&, unsigned nb) override;
     AbilityDecision getAbility(const State&) override;
@@ -101,7 +107,8 @@ public:
         return plans.specialActions[currentSpecialAction++];
     }
 
-    void onBegin(const State &state) override;
+    const Team& getTeam(const UnitsRepository& repo) override;
+    void onBegin(const State& state) override;
 };
 
 unsigned int pushChildStates(const SearchNode& stackFrame, Container<SearchNode>& putback, const Heuristic& heuristic );

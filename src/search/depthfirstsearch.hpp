@@ -28,13 +28,14 @@ class LifoStack;
  */
 class DepthFirstSearch : public SearchPolicy {
 protected:
-    ProgressLogger& logger;
+    std::shared_ptr<ProgressLogger> logger;
     virtual SearchPolicy* enterOpponentsTurn() = 0;
 public:
-    DepthFirstSearch(const Heuristic& heuristic, ProgressLogger& logger): SearchPolicy(heuristic), logger(logger) {};
+    template<typename... Args>
+    DepthFirstSearch(std::shared_ptr<ProgressLogger> logger, Args&&... args): SearchPolicy(std::forward<Args>(args)...), logger(std::move(logger)) {}
     virtual ~DepthFirstSearch() = default;
-    void informNbChildren(unsigned nbChildren, Timestep timestep) override { logger.enter(timestep, nbChildren); }
-    bool addEndState(State state, const DecisionList& decisions, Heuristic::Value heurVal) override;
+    void informNbChildren(unsigned nbChildren, Timestep timestep) override { logger->enter(timestep, nbChildren); }
+    bool addEndState(const State& state, const DecisionList& decisions, Heuristic::Value heurVal) override;
 
     friend class LifoStack;
 };
@@ -54,7 +55,7 @@ public:
     }
     bool hasChildren() override {
         while(not stack.empty() and stack.back().pass2){
-            parent->logger.exit(stack.back().frame.state.timestep);
+            parent->logger->exit(stack.back().frame.state.timestep);
             stack.pop_back();
         }
         return not stack.empty();
@@ -76,7 +77,8 @@ class PerpetualDFS: public DepthFirstSearch {
 protected:
     SearchPolicy* enterOpponentsTurn() override { return this; }
 public:
-    PerpetualDFS(const Heuristic& heuristic, ProgressLogger& logger): DepthFirstSearch(heuristic, logger) {};
+    template<typename... Args>
+    PerpetualDFS(Args&&... args): DepthFirstSearch(std::forward<Args>(args)...) {}
     void init(const State&) override { containers.emplace_back(this); }
     void exit() override { containers.pop_back(); }
     Container<SearchNode>& getContainer() override {
@@ -88,16 +90,18 @@ public:
 class NormalDFS: public DepthFirstSearch {
     LifoStack container;
 public:
-    NormalDFS(const Heuristic& heuristic, ProgressLogger& logger): DepthFirstSearch(heuristic, logger), container(this) {};
+    template<typename... Args>
+    NormalDFS(Args&&... args): DepthFirstSearch(std::forward<Args>(args)...), container(this) {}
     Container<SearchNode>& getContainer() override { return container; }
 };
 
 class StaticDFS : public NormalDFS {
-    SearchPolicy* opponentsTurn = nullptr;
+    uptr<SearchPolicy> opponentsTurn;
 protected:
-    SearchPolicy* enterOpponentsTurn() override { return opponentsTurn; }
+    SearchPolicy* enterOpponentsTurn() override { return opponentsTurn.get(); }
 public:
-	StaticDFS(const Heuristic& heuristic, ProgressLogger& logger): NormalDFS(heuristic, logger) {};
+    template<typename... Args>
+	StaticDFS(Args&&... args): NormalDFS(std::forward<Args>(args)...) {}
     template<typename PolicyType>
     PolicyType* setOpponentsTurn(PolicyType* t){ opponentsTurn = t; return t; }
 
@@ -112,10 +116,11 @@ public:
 class UntilSomeoneDiesDFS : public PerpetualDFS {
     std::array<unsigned short int, 2> nbAliveUnits;
 public:
-    UntilSomeoneDiesDFS(const Heuristic& heuristic, ProgressLogger& logger): PerpetualDFS(heuristic, logger) {};
+    template<typename... Args>
+    UntilSomeoneDiesDFS(Args&&... args): PerpetualDFS(std::forward<Args>(args)...) {}
     void init(const State& state) override;
     std::tuple<int, int> asTuple() override { return std::make_tuple(-1, -1); }
-    bool addEndState(State state, const DecisionList& decisions, Heuristic::Value heurVal) override;
+    bool addEndState(const State& state, const DecisionList& decisions, Heuristic::Value heurVal) override;
 };
 
 class AdaptiveDepthFirstSearch : public NormalDFS {
@@ -128,16 +133,15 @@ class AdaptiveDepthFirstSearch : public NormalDFS {
     unsigned sumChildren[nbUsedLevels]{0};
     unsigned nbChildren[nbUsedLevels]{0};
     unsigned currentChildrenCount[nbUsedLevels]{0};
-    AdaptiveDepthFirstSearch* opponentsTurn = nullptr;
+    uptr<AdaptiveDepthFirstSearch> opponentsTurn;
 
     unsigned estimateNbBranches();
 protected:
     SearchPolicy* enterOpponentsTurn() override;
     void init(const State& state) override;
 public:
-    AdaptiveDepthFirstSearch(const Heuristic& heuristic, ProgressLogger& logger, unsigned maxNodes = 1000000): NormalDFS(heuristic, logger),
-        maxNodes(maxNodes) {};
-    ~AdaptiveDepthFirstSearch(){ if(opponentsTurn) delete opponentsTurn; }
+    AdaptiveDepthFirstSearch(const Heuristic& heuristic, std::shared_ptr<ProgressLogger> logger, unsigned maxNodes = 1000000)
+    : NormalDFS(std::move(logger), heuristic), maxNodes(maxNodes) {}
     void informNbChildren(unsigned nbChildren, Timestep timestep) override;
     std::tuple<int, int> asTuple() override;
 };

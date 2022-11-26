@@ -9,6 +9,10 @@
 #include <cassert>
 #include <ostream>
 
+const Team& SearchAgent::getTeam(const UnitsRepository& repo){
+    return repo.getTeams().at("Near East"); // TODO
+}
+
 DiscardDecision SearchAgent::getDiscard(const State& state) {
     assert(state == plans.beforeDiscard);
     (void)state;
@@ -35,9 +39,9 @@ ActionDecision SearchAgent::getAction(const State& state) {
 
 void SearchAgent::onBegin(const State& state) {
     currentSpecialAction = 0;
-    searchPolicy.planAhead(state);
+    searchPolicy->planAhead(state);
     State newState; Heuristic::Value heurVal;
-    std::tie(newState, plans, heurVal) = searchPolicy.getResults();
+    std::tie(newState, plans, heurVal) = searchPolicy->getResults();
 }
 
 void SearchPolicy::planAhead(const State& startState){
