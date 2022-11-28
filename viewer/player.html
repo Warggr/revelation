@@ -19,6 +19,7 @@
 		<button onclick="playPause(this);">&#x23ef;</button>
 		<button onclick="nxt();">&#x25b6;</button>
 		<button onclick="sockSendPos(moves);">Position auswählen</button>
+		<button onclick="skip();">Überspringen</button>
 	</div>
 	<div>
 		<h2>Replay anschauen</h2>
@@ -319,14 +320,12 @@
 				if(processed)
 					return;
 			}
-
 			if(JSON.stringify(event.data).includes("state")) {
 				stepsNState = readGame(event.data);
 				restart(stepsNState);
 				connectionStatusDom.textContent = 'Bereit';
 				initialized = true;
 			}
-
 			if (JSON.stringify(event.data).includes("action") && !JSON.stringify(event.data).includes("state")) {
 				let step = readStep(event.data, socket);
 				steps.push(step);
@@ -407,9 +406,6 @@
 		var inverse = '';
 		var id = draggedPiece.id;
 		for(var i = moves.length - 1; i >= 0 ; i--) {
-			console.log(draggedPiece);
-			console.log(id);
-			console.log(document.getElementById(id));
 			var c = moves.at(i);
 			var from = document.getElementById(id).parentElement.getAttribute('array');
 			var fromNode = document.querySelector("[array=" + CSS.escape(from) + "]");
@@ -460,9 +456,11 @@
 				default: break;
 			}
 		}
-
 		removeRed();
 		socket.send(1);
+	}
+	function skip() {
+		socket.send(0);
 	}
 	const urlParams = new URLSearchParams(window.location.search);
 	function readFromUrlParams(urlParams, key){
