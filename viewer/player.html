@@ -97,7 +97,7 @@
 			this.style.backgroundColor = "red";
 			this.parentElement.style.backgroundColor = "red";
 			console.log(this.id);
-			sockSendCharacter(this.id);
+			sockSendCharacter();
 		}
 	}
 	function removeRed() {
@@ -109,10 +109,12 @@
 			item.removeEventListener('drop', _drop);
 		})
 		for(var j = 0; j < boardfields.length; j++) {
-			boardfields.item(j).style.borderStyle = "";
-			boardfields.item(j).style.borderColor = "";
-			boardfields.item(j).style.backgroundColor = "";
+			boardfields.item(j).removeAttribute('style');
+			boardfields.item(j).parentElement.style.backgroundColor = "";
 		}
+
+		var piece = document.getElementById(draggedPiece.getAttribute('id'));
+		piece.removeAttribute('style');
 		possibilities = '';
 	}
 	function dragStart(fields, possibilities) {
@@ -200,25 +202,25 @@
 		for(var i = 0; i < message.length - 1; i++) {
 			let card = message.at(i);
 			if(card.includes('Hard')) {
-				var link = document.createElement('img');
+				link = document.createElement('img');
 				link.src = "./image/hardAtk.jpg"
 				link.onclick =  (function(t){return function(){sockSendCard(t);};})(i)
 				node.appendChild(link);
 			}
 			else if(card.includes('Soft')) {
-				var link = document.createElement('img');
+				link = document.createElement('img');
 				link.src = "./image/softAtk.jpg"
 				link.onclick =  (function(t){return function(){sockSendCard(t);};})(i)
 				node.appendChild(link);
 			}
 			else if(card.includes('Defense')) {
-				var link = document.createElement('img');
+				link = document.createElement('img');
 				link.src = "./image/defense.jpg"
 				link.onclick = (function(t){return function(){sockSendCard(t);};})(i)
 				node.appendChild(link);
 			}
 			else if(card.includes('Skip')) {
-				var link = document.createElement('button');
+				link = document.createElement('button');
 				link.innerHTML = 'Skip';
 				link.onclick = (function(t){return function(){sockSendCard(t);};})(i)
 				node.appendChild(link);
@@ -307,7 +309,7 @@
 			initialized = false;
 		};
 		socket.onclose = (event) => { connectionStatusDom.textContent = 'Nicht verbunden'; };
-
+        // back:
 		var network_listener_callbacks = [];
 		socket.onmessage = (event) => {
 			console.log(event.data);
@@ -378,8 +380,7 @@
 		}
 		socket.onerror = (err) => { console.error(err); }
 	}
-	function sockSendCharacter(id) {
-		console.log(charId);
+	function sockSendCharacter() {
 		socket.send(charId.split('-').at(1));
 	}
 	function sockSendPos(mo) {
@@ -398,9 +399,7 @@
 		console.log(i);
 		socket.send(i);
 	}
-
 	const urlParams = new URLSearchParams(window.location.search);
-
 	function readFromUrlParams(urlParams, key){
 		const value = urlParams.get(key);
 		if(value) document.getElementById(key).value = value;
