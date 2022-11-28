@@ -260,9 +260,6 @@
 	}
 	var _drop = function (event) {
 		event.preventDefault();
-		console.log('drop event');
-		console.log(event.target);
-		console.log(draggedPiece);
 		var to = event.target.getAttribute('array');
 		var from = draggedPiece.parentElement.getAttribute('array');
 		var toNode = document.querySelector("[array=" + CSS.escape(to) + "]");
@@ -341,6 +338,8 @@
 				draggableCharacters.forEach(item =>
 						item.addEventListener('click', startChar)
 				);
+				var backButton = document.getElementById('backButton');
+				backButton.remove();
 			} else if (JSON.stringify(event.data).includes("position") && !JSON.stringify(event.data).includes("state")) {
 				possibilities = JSON.stringify(event.data).split('",');
 				boardfields = document.querySelectorAll(".board-field");
@@ -354,7 +353,15 @@
 				boardfields.forEach(item => item.parentElement.addEventListener('dragenter', _dragEnter));
 				boardfields.forEach(item => item.parentElement.addEventListener('dragover', _dragOver));
 				boardfields.forEach(item => item.addEventListener('drop', _drop));
+
+				var backButton = document.createElement('button');
+				backButton.id = 'backButton';
+				backButton.onclick = sockSendBack;
+				backButton.textContent = "Character rückgängig machen";
+				document.getElementById('buttons').appendChild(backButton);
 			} else if (JSON.stringify(event.data).includes("card") && !JSON.stringify(event.data).includes("state")) {
+				var backButton = document.getElementById('backButton');
+				backButton.remove();
 				loadCard(event.data);
 			} else if (Array.isArray(data)) {
 				var promptText = data[data.length - 1];
@@ -384,11 +391,9 @@
 		socket.send(charId.split('-').at(1));
 	}
 	function sockSendPos(mo) {
-		console.log(message);
 		removeRed();
 		for(var i = 0; i < message.length; i++) {
 			var m = message.at(i).replace('\\"', '').split(' ');
-			console.log(m);
 			if(m.at(0) === mo) {
 				socket.send(i);
 				break;
@@ -396,8 +401,68 @@
 		}
 	}
 	function sockSendCard(i) {
-		console.log(i);
 		socket.send(i);
+	}
+	function sockSendBack() {
+		var inverse = '';
+		var id = draggedPiece.id;
+		for(var i = moves.length - 1; i >= 0 ; i--) {
+			console.log(draggedPiece);
+			console.log(id);
+			console.log(document.getElementById(id));
+			var c = moves.at(i);
+			var from = document.getElementById(id).parentElement.getAttribute('array');
+			var fromNode = document.querySelector("[array=" + CSS.escape(from) + "]");
+			var xFrom = Number(from.split('').at(1));
+			var yFrom = Number(from.split('').at(4));
+
+			switch(c) {
+				case '<':
+					xFrom += 1;
+					var toNode = document.querySelector('[array="[' + xFrom + ', ' + yFrom + ']"]');
+					if(toNode.hasChildNodes()) {
+						swap(fromNode.firstChild, toNode.firstChild);
+					}  else {
+						toNode.appendChild(fromNode.firstChild);
+					}
+					inverse += '>';
+					break;
+				case '>':
+					xFrom -= 1;
+					var toNode = document.querySelector('[array="[' + xFrom + ', ' + yFrom + ']"]');
+					if(toNode.hasChildNodes()) {
+						swap(fromNode.firstChild, toNode.firstChild);
+					}  else {
+						toNode.appendChild(fromNode.firstChild);
+					}
+					inverse += '<';
+					break;
+				case '^':
+					yFrom += 1;
+					var toNode = document.querySelector('[array="[' + xFrom + ', ' + yFrom + ']"]');
+					if(toNode.hasChildNodes()) {
+						swap(fromNode.firstChild, toNode.firstChild);
+					}  else {
+						toNode.appendChild(fromNode.firstChild);
+					}
+					inverse += 'v';
+					break;
+				case 'v':
+					yFrom -= 1;
+					var toNode = document.querySelector('[array="[' + xFrom + ', ' + yFrom + ']"]');
+					if(toNode.hasChildNodes()) {
+						swap(fromNode.firstChild, toNode.firstChild);
+					}  else {
+						toNode.appendChild(fromNode.firstChild);
+					}
+					inverse += '^';
+					break;
+				default: break;
+			}
+		}
+
+		removeRed();
+		socket.send(1);
 	}
 	const urlParams = new URLSearchParams(window.location.search);
 	function readFromUrlParams(urlParams, key){
