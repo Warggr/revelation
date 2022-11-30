@@ -6,11 +6,11 @@
 	<link rel="stylesheet" type="text/css" href="style.css">
 	<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
 	<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-	<script src="player.html"></script>
-	<script src="steps.js"></script>
-	<script src="styling.css"></script>
 	<script>'use strict'; const e = React.createElement;</script>
 	<script src="styling.js"></script>
+	<script>function getServerUrl(){ //In the future, this could be changeable by the user
+		return 'http://revelation-server-2.westeurope.cloudapp.azure.com:8000';
+	}</script>
 </head>
 <body>
 	<h1>Welcome</h1>
@@ -25,12 +25,12 @@
 			else roomsRoot.render(data.map(room =>
 				e('div', {key:room.id}, [
 					e('h3', {key:'h3'}, 'Room ' + room.id),
-					e('a', {key:'a', href: `/files/player.html?roomId=${room.id}`}, 'Watch'),
+					e('a', {key:'a', href: `player.html?roomId=${room.id}`}, 'Watch'),
 					e('p', {key:'p'}, room.spectators + ' spectators'),
 					e('div', {key:'div'}, room.agents.map((agentStatus, agentId) =>
 						e('span', {key:agentId},
 							agentStatus == "free"
-							? e('a', {href:`/viewer/player.html?roomId=${room.id}&playerId=${Number(agentId)+1}`}, 'Join')
+							? e('a', {href:`player.html?roomId=${room.id}&playerId=${Number(agentId)+1}`}, 'Join')
 							: e('p', {}, agentStatus)
 						)
 					))
@@ -79,14 +79,14 @@
 		}
 		async function reload(what, reactRoot, load){
 			reactRoot.render('Loading...');
-			await fetch(`http://revelation-server-2.westeurope.cloudapp.azure.com:8000/${what}/`)
+			await fetch(getServerUrl() + `/${what}/`)
 				.then(response => response.json())
 				.then(load);
 		}
 		reload('room', roomsRoot, loadRooms);
 		reload('team', teamsRoot, loadTeams);
 		async function createNewRoom(){
-			await fetch("http://revelation-server-2.westeurope.cloudapp.azure.com:8000/room", {method:'POST'})
+			await fetch(getServerUrl() + "/room", {method:'POST'})
 				.then(() => reload('room', roomsRoot, loadRooms));
 		}
 		async function createNewUnit(form){
