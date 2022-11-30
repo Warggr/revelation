@@ -204,6 +204,13 @@ void HttpSession::on_read(error_code ec, std::size_t){
         spec->connect(std::move(req_));
         server.askForHttpSessionDeletion(this); //don't schedule any further network operations, delete this, and die.
         return;
+    } else if(req_.method() == boost::beast::http::verb::options) {
+        //see https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
+        http::response<http::string_body> res{http::status::no_content, req_.version()};
+        res.set(http::field::access_control_allow_methods, "POST, GET, OPTIONS");
+        res.set(http::field::access_control_allow_headers, "Content-Type");
+        res.set(http::field::access_control_max_age, "86400");
+        return sendResponse(std::move(res));
     }
 #define ADD_ENDPOINT(endpoint, thismethod) else if(req_.target() == endpoint and req_.method() == boost::beast::http::verb::thismethod)
 #ifdef HTTP_CONTROLLED_SERVER
