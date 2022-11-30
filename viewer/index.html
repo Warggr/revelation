@@ -8,6 +8,7 @@
 	<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
 	<script>'use strict'; const e = React.createElement;</script>
 	<script src="styling.js"></script>
+	<script src="https://raw.githack.com/Warggr/json-grammar-wizard/main/wizard.js"></script>
 	<script>function getServerUrl(){ //In the future, this could be changeable by the user
 		return 'http://revelation-server-2.westeurope.cloudapp.azure.com:8000';
 	}</script>
@@ -17,6 +18,38 @@
 	<div id="status-rooms"></div>
 	<button onclick="reload('room', roomsRoot, loadRooms)">Refresh</button>
 	<button onclick="createNewRoom()">New Room</button>
+	<button onclick="launchRoomWizard()">Advanced options</button>
+	<div hidden="true" id="roomWizard"><button onclick="submitRoomWizard()">Submit</button></div>
+	<script>
+		let wizardDomRoot;
+		const grammar = { // TODO get from server
+			root: [[ "agent", 2 ]],
+			agent: ["humanAgent", "randomAgent", "networkAgent", "botAgent"],
+			humanAgent: [{ type: ["local"] }],
+			randomAgent: [{ type: ["random"] }],
+			networkAgent: [{ type: ["online"] }],
+			botAgent: [{
+				type: ["bot"],
+				policy: "botPolicy",
+				heuristic: "botHeuristic"
+			}],
+			staticDFS: [{ "type": ["staticDFS"], "oppTurn": [ [null], "botPolicy" ] }],
+			adaptiveDFS: [{ "type": ["adaptiveDFS"] }],
+			botPolicy: "staticDFS",
+			botHeuristic: ["pxt"]
+		};
+		function launchRoomWizard(){ wizardDomRoot = makeWord(grammar); let parent = document.getElementById('roomWizard'); parent.hidden = false; parent.appendChild(wizardDomRoot); }
+		async function submitRoomWizard(){
+			let json = readWord(wizardDomRoot);
+			let parent = document.getElementById('roomWizard'); parent.hidden = true;
+			wizardDomRoot.remove();
+			await fetch(getServerUrl() + "/room", {
+					method:'POST',
+					headers: {'Content-Type': 'application/json'},
+					body: JSON.stringify(json)
+				})
+				.then(() => reload('room', roomsRoot, loadRooms)); }
+	</script>
 	<div id="status-teams"></div>
 	<script type="text/javascript">
 		const roomsRoot = ReactDOM.createRoot(document.getElementById('status-rooms'));
