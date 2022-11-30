@@ -30,6 +30,7 @@ protected:
     std::mutex protectReadingQueue;
     std::condition_variable signalReadingQueue;
     std::queue<std::string> reading_queue; //All messages that haven't been read yet
+    bool listening = false;
     ServerRoom& room;
     enum state state = FREE;
     bool previouslyConnected = false;

@@ -131,6 +131,8 @@ void Spectator::on_read(error_code ec, std::size_t size) {
     // Clear the buffer
     buffer.consume(buffer.size());
 
+    if(not listening) send("\"Not listening\"");
+
     // Read another message
     ws->async_read(
         buffer,
@@ -146,6 +148,7 @@ std::string Session::get_sync(){
     // Both will return quickly if their precondition isn't met.
     // Arbitrarily starting with the connected (wait for string...) state.
     std::cout << "(main) Getting string, waiting for mutex...\n";
+    listening = true;
     {
 connected:
         std::unique_lock<std::mutex> lock(protectReadingQueue);
@@ -156,6 +159,7 @@ connected:
             assert(not reading_queue.empty());
         }
 
+        listening = false; //okay, maybe a semaphore would've been cleaner
         std::string retVal = std::move(reading_queue.front());
         reading_queue.pop();
         return retVal;
