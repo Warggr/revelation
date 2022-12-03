@@ -35,6 +35,7 @@ struct AgentDescriptor{
 using AgentDescription = std::array<AgentDescriptor, NB_AGENTS>;
 using Agents = std::array<std::unique_ptr<Agent>, NB_AGENTS>;
 
+extern const std::string_view grammar_as_json_string;
 AgentDescription parseAgents(const json& j);
 Agents agentsFromDescription(AgentDescription&& descr, ServerRoom& room);
 

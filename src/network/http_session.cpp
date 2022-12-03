@@ -214,6 +214,12 @@ void HttpSession::on_read(error_code ec, std::size_t){
     }
 #define ADD_ENDPOINT(endpoint, thismethod) else if(req_.target() == endpoint and req_.method() == boost::beast::http::verb::thismethod)
 #ifdef HTTP_CONTROLLED_SERVER
+    ADD_ENDPOINT("/room/grammar", get){
+        http::response<http::string_body> res{ http::status::ok, req_.version() };
+        res.set(http::field::content_type, "application/json");
+        res.body() = grammar_as_json_string;
+        return sendResponse(std::move(res));
+    }
     ADD_ENDPOINT("/room", post){
         AgentDescription agentsDescr;
         if(req_.body().empty()){
