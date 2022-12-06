@@ -32,7 +32,7 @@ public:
 
     template<typename Function>
     void async_do(Function&& fun){
-        net::post(ioc, fun);
+        net::post(ioc, std::forward<Function>(fun));
     }
 };
 
@@ -76,5 +76,7 @@ public:
     std::unordered_map<RoomId, ServerRoom_impl>& getRooms() { return rooms; }
     const std::unordered_map<RoomId, ServerRoom_impl>& getRooms() const { return rooms; }
 };
+
+std::string path_cat(boost::beast::string_view base, boost::beast::string_view path);
 
 #endif //REVELATION_SERVER_HPP

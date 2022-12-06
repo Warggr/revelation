@@ -83,7 +83,6 @@ SYMBOL(botAgent, std::unique_ptr<SearchAgent>,
 SYMBOL(agent, AgentDescriptor,
     SELECT_BY_TYPE(
         "online", GETSYMBOL(onlineAgent, _) CODE( (void)_; retVal.type = AgentDescriptor::NETWORK ),
-//        "local", GETSYMBOL(localAgent, _) CODE( (void)_; retVal.type = AgentDescriptor::LOCAL ),
         "random", GETSYMBOL(randomAgent, _) CODE( (void)_; retVal.type = AgentDescriptor::RANDOM ),
         "bot",
             GETSYMBOL(botAgent, agent_data)

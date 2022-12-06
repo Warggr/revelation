@@ -16,13 +16,8 @@ const char* const SKIP_KEYS = ">";
 const char* const BACK_KEYS = "<";
 const char* const AGAIN_KEYS = "?";
 
-std::ostream& operator<<(std::ostream& o, const position& pos){
-    o << '[' << pos.column << ", " << pos.row << ']';
-    return o;
-}
-
 std::pair<uint, bool> StepByStepAgent::inputValidation(const OptionList& options, const std::string_view& input){
-    int int_val;
+    int int_val = 0;
     auto result = std::from_chars(input.data(), input.data() + input.size(), int_val);
     if(result.ec != std::errc::invalid_argument) { // valid int
         if(int_val >= 0){

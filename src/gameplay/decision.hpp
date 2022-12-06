@@ -32,10 +32,10 @@ public:
             : card(card), subjectPos(subjectPos), objectPos(objectPos) {}
 
     /*constexpr*/ bool isPass() const override {
-        return card==ActionCard::DEFENSE and subjectPos == position(1, 1) and objectPos == position(1, 1);
+        return card==ActionCard::HARDATK and subjectPos == position(1, 1) and objectPos == position(1, 1);
     }
     static /*constexpr*/ ActionDecision pass(){
-        return { ActionCard::DEFENSE, {1, 1}, {1, 1} };
+        return { ActionCard::HARDATK, {1, 1}, {1, 1} };
     }
 };
 

@@ -10,24 +10,21 @@
 #include <thread>
 
 int main(){
-    /*PowerTimesToughnessHeuristic heur;
-    ProgressBar bar;
-    NoOpLogger noop;
-    AdaptiveDepthFirstSearch pol2(heur, noop);
-    UntilSomeoneDiesDFS pol1(heur, bar);
-    SearchAgent ag2( 1, pol2 );
-    SearchAgent ag1( 1, pol1 );
-    RandomAgent ag1(0);
-    RandomAgent ag2(1);*/
-    auto ag1 = std::make_unique<HumanAgent>(0);
+    auto heur1 = std::make_unique<PowerTimesToughnessHeuristic>(),
+            heur2 = std::make_unique<PowerTimesToughnessHeuristic>();
+    auto bar = std::make_shared<ProgressBar>();
+    auto noop = std::make_shared<NoOpLogger>();
+    auto pol1 = std::make_unique<StaticDFS>(noop, *heur1);
+    auto pol2 = std::make_unique<StaticDFS>(bar, *heur2);
+    auto ag1 = std::make_unique<SearchAgent>( 1, std::move(pol1), std::move(heur1) );
+    auto ag2 = std::make_unique<SearchAgent>( 2, std::move(pol2), std::move(heur2) );
     Server_impl server("0.0.0.0", 8000);
     auto [ id, room ] = server.addRoom();
     std::cout << "Room ID is " << id << '\n';
 
     std::thread network_thread(&Server_impl::start, &server);
 
-    auto networkAgent = NetworkAgent::declareUninitializedAgent(room, 1);
-    std::array<std::unique_ptr<Agent>, 2> agents = { std::move(ag1), std::move(networkAgent) };
+    std::array<std::unique_ptr<Agent>, 2> agents = { std::move(ag1), std::move(ag2) };
 
     UnitsRepository repository;
     std::array<const Team*, 2> teams = { &repository.mkEurope(), &repository.mkNearEast() };
@@ -37,7 +34,7 @@ int main(){
     std::cout << "Using seed " << seed << '\n';
 
 	Game game(teams, std::move(agents), seed);
-	unsigned short int winner = game.play(&room, true);
+	unsigned short int winner = game.play(&room, &std::cout);
     std::cout << winner << " won!\n";
     server.stop();
     network_thread.join();

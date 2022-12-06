@@ -25,14 +25,22 @@ public:
 
 class LiveServerAndLogger : public SubLogger {
     ServerRoom& serverRoom;
+    std::shared_ptr<bool> cancellation_token = std::make_shared<bool>(false);
 public:
     LiveServerAndLogger(ServerRoom& serverRoom, const std::string& start): serverRoom(serverRoom){
-        serverRoom.server->async_do( [&,start=start]{ serverRoom.setGreeterMessage(start); } );
+        serverRoom.server->async_do( [serverRoom=&serverRoom,cancel=cancellation_token,start=start]{
+            if(*cancel) return;
+            serverRoom->setGreeterMessage(start);
+        } );
     };
     ~LiveServerAndLogger() override {
+        *cancellation_token = true;
     }
     void addStep(const json& j) override {
-        serverRoom.server->async_do( [&,jsdump=j.dump()]{ serverRoom.send(jsdump); } );
+        serverRoom.server->async_do( [serverRoom=&serverRoom,cancel=cancellation_token,jsdump=j.dump()]{
+            if(*cancel) return;
+            serverRoom->send(jsdump);
+        } );
     }
 };
 

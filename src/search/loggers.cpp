@@ -11,9 +11,9 @@ void SimpleIndentLogger::message( const char* msg, float x ) const {
 }
 
 void ProgressBar::enter(Timestep timestep, unsigned nbChildren) {
-    (void)nbChildren;
+    assert(nbChildren != 0);
     if(timestep == Timestep::DISCARDED){
-        assert(progress.size() == 0);
+        assert(progress.empty());
         printf("[%4d\\   1]->", nbChildren);
         //std::cout << to_string(timestep) << ' ' << progress.size() << '\n';
         progress.push_back(0);

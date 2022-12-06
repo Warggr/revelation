@@ -99,7 +99,7 @@ class RandomAgent: public StepByStepAgent {
     std::minstd_rand generator;
 protected:
     uint input(uint min, uint max);
-    uint choose(const OptionList& list, const std::string_view&) override { return input(0, list.size()); }
+    uint choose(const OptionList& list, const std::string_view&) override { return input(0, list.size() - 1); }
 public:
     RandomAgent(uint myId);
 };

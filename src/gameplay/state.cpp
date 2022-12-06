@@ -7,6 +7,11 @@
 #include <iostream>
 #define REPEAT(x) x, x, x, x
 
+std::ostream& operator<<(std::ostream& o, const position& pos){
+    o << '[' << pos.column << ", " << pos.row << ']';
+    return o;
+}
+
 std::ostream& operator<<(std::ostream& o, const BoardTile& tile){
     o << static_cast<int>(tile.team) << '[' << tile.index << ']';
     return o;
@@ -213,6 +218,7 @@ std::tuple<State, uptr<MoveStep>> State::stepMov(MoveDecision decision) const {
         this->checkConsistency();
 
         BoardTile moverTile = newState.getBoardField(decision.from);
+        assert(moverTile.team == this->iActive);
         NullableShared<Character> mover = newState.units[this->iActive][moverTile.index].copy();
         mover->turnMoved = newState.turnID;
         newState.units[this->iActive][moverTile.index] = std::move(mover);

@@ -56,6 +56,9 @@ protected:
     State bestState;
     const Heuristic& heuristic;
     Heuristic::Value maxHeur, worstOpponentsHeuristic;
+#ifndef NDEBUG
+    bool reachedEndState;
+#endif
 
     //callback functions that can be overridden
     virtual void init(const State&){};
@@ -70,19 +73,27 @@ public:
     //Return false by default, and true if we should cut off the search directly
     virtual bool addEndState(const State& state, const DecisionList& decisions, Heuristic::Value heurVal){
         if(heurVal > maxHeur){
+#ifndef NDEBUG
+            reachedEndState = true;
+#endif
             bestMoves = decisions;
             bestState = state;
             maxHeur = heurVal;
         }
+        assert(reachedEndState);
         return false;
     }
     virtual bool addWinState(const State& state, const DecisionList& decisions){
+#ifndef NDEBUG
+        reachedEndState = true;
+#endif
         bestMoves = decisions;
         bestState = state;
         maxHeur = std::numeric_limits<float>::max();
         return true;
     }
     virtual std::tuple<State, DecisionList, Heuristic::Value> getResults() {
+        assert(reachedEndState);
         return std::make_tuple(bestState, bestMoves, maxHeur);
     }
 

@@ -80,4 +80,6 @@ constexpr std::nullptr_t DEAD_UNIT = nullptr;
 inline bool isDead(const Character* cha){ return cha == nullptr; }
 inline bool isDead(const NullableShared<Character>& cha){ return cha.get() == nullptr; }
 
+std::ostream& operator<<(std::ostream& o, const Board& board);
+
 #endif //REVELATION_STATE_HPP

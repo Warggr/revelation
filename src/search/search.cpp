@@ -53,8 +53,11 @@ void SearchPolicy::planAhead(const State& startState){
     */
 
     //Reset this
-    maxHeur = std::numeric_limits<float>::min();
+    maxHeur = - std::numeric_limits<float>::max();
     worstOpponentsHeuristic = std::numeric_limits<float>::max();
+#ifndef NDEBUG
+    reachedEndState = false;
+#endif
 
     init(startState);
     Container<SearchNode>& container = getContainer();

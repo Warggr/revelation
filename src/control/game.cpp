@@ -19,12 +19,12 @@ Game Game::createFromAgents(std::array<std::unique_ptr<Agent>, 2>&& agents, cons
     return Game(teams, std::move(agents));
 }
 
-bool Game::play(ServerRoom* serverRoom, bool logToTerminal) {
+bool Game::play(ServerRoom* serverRoom, std::ostream* logFile) {
     auto* logger = new Logger(state, teams);
     if(serverRoom)
         logger = logger->liveServer(*serverRoom);
-    if(logToTerminal)
-        logger = logger->logToFile(std::cout);
+    if(logFile)
+        logger = logger->logToFile(*logFile);
     try { //A disconnected agent should be able to throw an exception and kill the game.
         unsigned short int winner;
         while ((winner = state.getWinner()) == 0) {

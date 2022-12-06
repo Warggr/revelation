@@ -429,6 +429,7 @@ beast::string_view mime_type(beast::string_view path){
     if(iequals(ext, "svgz")) return "image/svg+xml";
     return "application/text";
 }
+#endif
 
 // Append an HTTP rel-path to a local filesystem path.
 // The returned path is normalized for the platform.
@@ -449,4 +450,3 @@ std::string path_cat(boost::beast::string_view base, boost::beast::string_view p
 #endif
     return result;
 }
-#endif
