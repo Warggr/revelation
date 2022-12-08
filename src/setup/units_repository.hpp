@@ -34,7 +34,7 @@ public:
     const Team& mkNearEast();
 //    const Team& mkFarEast();
 //    const Team& mkNorthmen();
-    const Team& mkRandom(Generator& generator, unsigned short int nbUnits);
+    const Team& mkRandom(Generator& generator, unsigned short int nbUnits = ARMY_SIZE);
     void mkDefaultTeams(){
         mkEurope(); mkNearEast();
         //mkFarEast(); mkNorthmen();

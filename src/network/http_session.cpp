@@ -286,6 +286,11 @@ void HttpSession::on_read(error_code ec, std::size_t){
             return sendResponse(bad_request(err.what()));
         }
     }
+    ADD_ENDPOINT("/team/random", post){
+        Generator seed = getRandom();
+        server.repo.mkRandom(seed);
+        return sendResponse( http::response<http::string_body>( http::status::ok, req_.version() ) );;
+    }
     ADD_ENDPOINT("/team/", get){
         json characters = json::array();
         for(const auto& [ name, character ] : server.repo.getCharacters()){
