@@ -1,18 +1,18 @@
 #ifndef REVELATION_AGENT_HPP
 #define REVELATION_AGENT_HPP
 
-#include "gameplay/player.hpp"
-#include "gameplay/character.hpp"
-#include "gameplay/deck.hpp"
 #include "gameplay/decision.hpp"
-#include "setup/team.hpp"
-#include "setup/units_repository.hpp"
-#include "position.hpp"
-#include <iostream>
-#include <random>
 #include <exception>
+#include <vector>
+#include <random>
+#include <string_view>
 
 class State;
+class Player;
+struct Character;
+struct Team;
+class Effect;
+class UnitsRepository;
 
 struct AgentSurrenderedException: public std::exception{
     uint id;
@@ -90,7 +90,7 @@ public:
 
 class HumanAgent: public StepByStepAgent {
 protected:
-    uint choose(const OptionList &list, const std::string_view &message) override;
+    uint choose(const OptionList& list, const std::string_view& message) override;
 public:
     HumanAgent(uint myId);
 };

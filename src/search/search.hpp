@@ -58,12 +58,23 @@ protected:
     Heuristic::Value maxHeur, worstOpponentsHeuristic;
 #ifndef NDEBUG
     bool reachedEndState;
-#endif
+    int nbTimesEntered = 0;
 
     //callback functions that can be overridden
+    virtual void init(const State&){
+        nbTimesEntered++;
+    };
+    virtual void exit(){
+        nbTimesEntered--;
+        assert(nbTimesEntered >= 0);
+    };
+public:
+    int getNbTimesEntered() const { return nbTimesEntered; }
+#else
     virtual void init(const State&){};
     virtual void exit(){};
 public:
+#endif
     Heuristic::Value maxHeurAllowed = std::numeric_limits<float>::max();
 
     SearchPolicy(const Heuristic& heuristic): heuristic(heuristic) {};

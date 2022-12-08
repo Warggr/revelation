@@ -79,13 +79,14 @@ protected:
 public:
     template<typename... Args>
     PerpetualDFS(Args&&... args): DepthFirstSearch(std::forward<Args>(args)...) {}
-    void init(const State&) override { containers.emplace_back(this); }
-    void exit() override { containers.pop_back(); }
+    void init(const State& state) override { containers.emplace_back(this); SearchPolicy::init(state); }
+    void exit() override { containers.pop_back(); SearchPolicy::exit(); }
     Container<SearchNode>& getContainer() override {
         assert(not containers.empty());
         return containers.back();
     }
 };
+
 // All other DFS implementations
 class NormalDFS: public DepthFirstSearch {
     LifoStack container;
@@ -103,7 +104,7 @@ public:
     template<typename... Args>
 	StaticDFS(Args&&... args): NormalDFS(std::forward<Args>(args)...) {}
     template<typename PolicyType>
-    PolicyType* setOpponentsTurn(PolicyType* t){ opponentsTurn = t; return t; }
+    PolicyType* setOpponentsTurn(std::unique_ptr<PolicyType> t){ opponentsTurn = std::move(t); return t.get(); }
 
     std::tuple<int, int> asTuple() override {
         int my = 0, your = 0;

@@ -2,12 +2,11 @@
 #include "heuristic.hpp"
 #include "control/agent.hpp"
 #include "gameplay/state.hpp"
+#include "setup/units_repository.hpp"
 #include "position.hpp"
 #include <tuple>
 #include <unordered_set>
-#include <cstdio>
 #include <cassert>
-#include <ostream>
 
 const Team& SearchAgent::getTeam(const UnitsRepository& repo){
     return repo.getTeams().at("Near East"); // TODO
@@ -42,6 +41,7 @@ void SearchAgent::onBegin(const State& state) {
     searchPolicy->planAhead(state);
     State newState; Heuristic::Value heurVal;
     std::tie(newState, plans, heurVal) = searchPolicy->getResults();
+    assert(searchPolicy->getNbTimesEntered() == 0);
 }
 
 void SearchPolicy::planAhead(const State& startState){
@@ -57,29 +57,34 @@ void SearchPolicy::planAhead(const State& startState){
     worstOpponentsHeuristic = std::numeric_limits<float>::max();
 #ifndef NDEBUG
     reachedEndState = false;
+    const int nbTimesEntered_bak = nbTimesEntered;
 #endif
 
-    init(startState);
-    Container<SearchNode>& container = getContainer();
-    container.addChild( SearchNode(startState, DecisionList(), 0) );
+    this->init(startState);
+    Container<SearchNode>* container = &getContainer();
+    container->addChild( SearchNode(startState, DecisionList(), 0) );
 
-    while(container.hasChildren()){
+    while(container->hasChildren()){
+        assert(container == &getContainer());
         SearchNode node = container.popChild();
 
         const State& state = node.state;
         if(state.getWinner() != 0){
             bool finishEarly = addWinState(state, node.decisions);
-            if(finishEarly) return;
+            if(finishEarly) goto end;
         } else if(state.timestep != Timestep::ACTED){
-            unsigned nbChildren = pushChildStates(node, container, heuristic);
+            unsigned nbChildren = pushChildStates(node, *container, heuristic);
             informNbChildren(nbChildren, state.timestep);
         } else {
             auto [ newState, step ] = state.beginTurn();
             bool finishEarly = addEndState(newState, node.decisions, node.heurVal);
-            if(finishEarly) return;
+            if(finishEarly) goto end;
         }
+        container = &getContainer(); //The vector might have moved, invalidating the container reference
     }
+end:
     this->exit();
+    assert(nbTimesEntered_bak == nbTimesEntered);
 }
 
 using HashKey = int;
