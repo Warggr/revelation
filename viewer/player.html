@@ -92,6 +92,7 @@
 	var moves = '';
 	var possibilities = '';
 	var draggedPiece;
+	var draggedPiecePos;
 	function startChar() {
 		if(this.id) {
 			charId = this.id;
@@ -113,7 +114,6 @@
 			boardfields.item(j).removeAttribute('style');
 			boardfields.item(j).parentElement.style.backgroundColor = "";
 		}
-
 		var piece = document.getElementById(draggedPiece.getAttribute('id'));
 		piece.removeAttribute('style');
 		possibilities = '';
@@ -259,19 +259,20 @@
 		event.preventDefault();
 		console.log('drag over event');
 	}
+    let toNode;
 	var _drop = function (event) {
 		event.preventDefault();
 		var to = event.target.getAttribute('array');
 		var from = draggedPiece.parentElement.getAttribute('array');
-		var toNode = document.querySelector("[array=" + CSS.escape(to) + "]");
+		toNode = document.querySelector("[array=" + CSS.escape(to) + "]");
 		var fromNode = document.querySelector("[array=" + CSS.escape(from) + "]");
 		toNode.setAttribute('style', 'background-color: green');
-		if(toNode.hasChildNodes()) {
-			swap(fromNode.firstChild, toNode.firstChild);
-		}  else {
+
+		if(fromNode.childElementCount > 1) {
+			toNode.appendChild(fromNode.lastChild);
+		} else {
 			toNode.appendChild(fromNode.firstChild);
 		}
-
 		var xTo = Number(to.split('').at(1)); // position format: [x, y] x:column, y:row
 		var yTo = Number(to.split('').at(4));
 		var xFrom = Number(from.split('').at(1));
@@ -344,10 +345,12 @@
 				boardfields = document.querySelectorAll(".board-field");
 				moves = '';
 				console.log(event.data);
+				console.log(event.target);
+
 				message = possibilities;
 				draggableCharacters.forEach(item => item.removeEventListener('click', startChar, false));
-
 				document.getElementById(charId).draggable = true;
+				draggedPiecePos = event.target.parentElement;
 				boardfields.forEach(item => item.parentElement.addEventListener('dragstart', _dragStart));
 				boardfields.forEach(item => item.parentElement.addEventListener('dragenter', _dragEnter));
 				boardfields.forEach(item => item.parentElement.addEventListener('dragover', _dragOver));
@@ -362,7 +365,7 @@
 				var backButton = document.getElementById('backButton');
 				backButton.remove();
 				loadCard(event.data);
-			} else if (Array.isArray(data)) {
+			}  else if (Array.isArray(data)) {
 				var promptText = data[data.length - 1];
 				for(let i = 0; i<data.length-1; i++)
 					promptText += '\n[' + i + ']:' + data[i];
@@ -386,10 +389,101 @@
 		}
 		socket.onerror = (err) => { console.error(err); }
 	}
+	function showAttack(characters) {
+		boardfields = document.querySelectorAll("div.board-field");
+		if(characters.at(2).includes('->')) {
+			showAttack_(characters);
+		} else {
+			for(let i = 0; i < characters.length; i++) {
+				for(let j = 0; j < boardfields.length; j++) {
+					if(boardfields.item(j).hasChildNodes()) {
+						if(characters.at(i).includes(boardfields.item(j).firstElementChild.textContent)) {
+							boardfields.item(j).style.borderStyle = "dashed solid";
+							boardfields.item(j).style.borderColor = "red";
+						}
+					}
+				}
+			}
+		}
+	}
+	function showAttack_(characters) {
+		for(let i = 0; i < characters.length; i++) {
+			for(let j = 0; j < boardfields.length; j++) {
+				if(boardfields.item(j).hasChildNodes()) {
+					if(characters.at(i).includes(boardfields.item(j).firstElementChild.textContent)) {
+						boardfields.item(j).style.borderStyle = "dashed solid";
+						boardfields.item(j).style.borderColor = "red";
+					}
+				}
+			}
+		}
+	}
 	function sockSendCharacter() {
 		socket.send(charId.split('-').at(1));
 	}
 	function sockSendPos(mo) {
+		let id = draggedPiece.id;
+		let node = document.getElementById(id).parentElement;
+		let from;
+		boardfields = document.querySelectorAll("div.board-field");
+		boardfields.forEach(item => {
+			if (item.style.backgroundColor == 'red') {
+				from = item.getAttribute('array');
+			}
+		})
+		if(node.childElementCount > 1) {
+			console.log(document.querySelectorAll('[style="background-color: red;"]'));
+			let fromNode = document.querySelector("[array=" + CSS.escape(from) + "]");
+			let xFrom = Number(from.split('').at(1));
+			let yFrom = Number(from.split('').at(4));
+
+			for(let i = 0; i < moves.length ; i++) {
+				let c = moves.at(i);
+				switch(c) {
+					case '<':
+						xFrom -= 1;
+						var toNode = document.querySelector('[array="[' + xFrom + ', ' + yFrom + ']"]');
+						if(fromNode.hasChildNodes()) {
+							swap(fromNode.firstChild, toNode.firstChild);
+						}  else {
+							fromNode.appendChild(toNode.firstChild);
+						}
+						break;
+					case '>':
+						xFrom += 1;
+						var toNode = document.querySelector('[array="[' + xFrom + ', ' + yFrom + ']"]');
+						if(fromNode.hasChildNodes()) {
+							swap(fromNode.firstChild, toNode.firstChild);
+						}  else {
+							fromNode.appendChild(toNode.firstChild);
+						}
+						break;
+					case '^':
+						yFrom -= 1;
+						var toNode = document.querySelector('[array="[' + xFrom + ', ' + yFrom + ']"]');
+						if(fromNode.hasChildNodes()) {
+							swap(fromNode.firstChild, toNode.firstChild);
+						}  else {
+							fromNode.appendChild(toNode.firstChild);
+						}
+						break;
+					case 'v':
+						yFrom += 1;
+						var toNode = document.querySelector('[array="[' + xFrom + ', ' + yFrom + ']"]');
+						if(fromNode.hasChildNodes()) {
+							swap(fromNode.firstChild, toNode.firstChild);
+						}  else {
+							fromNode.appendChild(toNode.firstChild);
+						}
+						break;
+					default: break;
+				}
+				from = '[' + xFrom + ', ' + yFrom + ']';
+				fromNode = document.querySelector("[array=" + CSS.escape(from) + "]");
+				xFrom = Number(from.split('').at(1));
+				yFrom = Number(from.split('').at(4));
+			}
+		}
 		removeRed();
 		for(var i = 0; i < message.length; i++) {
 			var m = message.at(i).replace('\\"', '').split(' ');
@@ -403,7 +497,6 @@
 		socket.send(i);
 	}
 	function sockSendBack() {
-		var inverse = '';
 		var id = draggedPiece.id;
 		for(var i = moves.length - 1; i >= 0 ; i--) {
 			var c = moves.at(i);
@@ -421,7 +514,6 @@
 					}  else {
 						toNode.appendChild(fromNode.firstChild);
 					}
-					inverse += '>';
 					break;
 				case '>':
 					xFrom -= 1;
@@ -431,7 +523,6 @@
 					}  else {
 						toNode.appendChild(fromNode.firstChild);
 					}
-					inverse += '<';
 					break;
 				case '^':
 					yFrom += 1;
@@ -441,7 +532,6 @@
 					}  else {
 						toNode.appendChild(fromNode.firstChild);
 					}
-					inverse += 'v';
 					break;
 				case 'v':
 					yFrom -= 1;
@@ -451,7 +541,6 @@
 					}  else {
 						toNode.appendChild(fromNode.firstChild);
 					}
-					inverse += '^';
 					break;
 				default: break;
 			}
