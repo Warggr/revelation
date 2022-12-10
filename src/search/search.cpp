@@ -38,13 +38,13 @@ ActionDecision SearchAgent::getAction(const State& state) {
 
 void SearchAgent::onBegin(const State& state) {
     currentSpecialAction = 0;
-    searchPolicy->planAhead(state);
+    searchPolicy->planAhead(state, getProcessContext());
     State newState; Heuristic::Value heurVal;
     std::tie(newState, plans, heurVal) = searchPolicy->getResults();
     assert(searchPolicy->getNbTimesEntered() == 0);
 }
 
-void SearchPolicy::planAhead(const State& startState){
+void SearchPolicy::planAhead(const State& startState, const ProcessContext& pc){
     /*
     Constructs all descendants of @param state until the end of turn.
     The order in which states are processed depend on the container.
@@ -66,7 +66,7 @@ void SearchPolicy::planAhead(const State& startState){
 
     while(container->hasChildren()){
         assert(container == &getContainer());
-        SearchNode node = container.popChild();
+        SearchNode node = container->popChild();
 
         const State& state = node.state;
         if(state.getWinner() != 0){
@@ -76,8 +76,14 @@ void SearchPolicy::planAhead(const State& startState){
             unsigned nbChildren = pushChildStates(node, *container, heuristic);
             informNbChildren(nbChildren, state.timestep);
         } else {
+#ifdef CONFIG_AGENT_IS_INTERRUPTIBLE
+            if(pc.signal_interrupted) /*[[unlikely]]*/ { // preemption point
+                interruptedDecisionsCallStack.emplace_back(std::move(node.decisions), std::move(node.state));
+                goto end;
+            }
+#endif
             auto [ newState, step ] = state.beginTurn();
-            bool finishEarly = addEndState(newState, node.decisions, node.heurVal);
+            bool finishEarly = addEndState(newState, node.decisions, node.heurVal, pc);
             if(finishEarly) goto end;
         }
         container = &getContainer(); //The vector might have moved, invalidating the container reference

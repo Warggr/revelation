@@ -35,7 +35,7 @@ public:
     DepthFirstSearch(std::shared_ptr<ProgressLogger> logger, Args&&... args): SearchPolicy(std::forward<Args>(args)...), logger(std::move(logger)) {}
     virtual ~DepthFirstSearch() = default;
     void informNbChildren(unsigned nbChildren, Timestep timestep) override { logger->enter(timestep, nbChildren); }
-    bool addEndState(const State& state, const DecisionList& decisions, Heuristic::Value heurVal) override;
+    bool addEndState(const State& state, const DecisionList& decisions, Heuristic::Value heurVal, const ProcessContext& pc) override;
 
     friend class LifoStack;
 };
@@ -121,7 +121,7 @@ public:
     UntilSomeoneDiesDFS(Args&&... args): PerpetualDFS(std::forward<Args>(args)...) {}
     void init(const State& state) override;
     std::tuple<int, int> asTuple() override { return std::make_tuple(-1, -1); }
-    bool addEndState(const State& state, const DecisionList& decisions, Heuristic::Value heurVal) override;
+    bool addEndState(const State& state, const DecisionList& decisions, Heuristic::Value heurVal, const ProcessContext& pc) override;
 };
 
 class AdaptiveDepthFirstSearch : public NormalDFS {

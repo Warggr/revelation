@@ -1,11 +1,11 @@
 #include "depthfirstsearch.hpp"
 
-bool DepthFirstSearch::addEndState(const State& state, const DecisionList& decisions, Heuristic::Value heurVal) {
+bool DepthFirstSearch::addEndState(const State& state, const DecisionList& decisions, Heuristic::Value heurVal, const ProcessContext& pc) {
     /* This is depth-first, so we directly go deeper when we enter an end-of-turn state. */
     logger->enter(Timestep::ACTED, 1);
     SearchPolicy* subDepth = enterOpponentsTurn();
     if(!subDepth)
-        return SearchPolicy::addEndState(state, decisions, heurVal);
+        return SearchPolicy::addEndState(state, decisions, heurVal, pc );
 
     auto [ nbTurnsMe, nbTurnsOpponent ] = subDepth->asTuple();
     if(nbTurnsMe != -1){ //asTuple returns -1 when counting the number of remaining turns does not make sense
@@ -23,7 +23,7 @@ bool DepthFirstSearch::addEndState(const State& state, const DecisionList& decis
     logger->message("MINNING with cut-off at", worstOpponentsHeuristic);
     logger->enterTurn();
     subDepth->maxHeurAllowed = worstOpponentsHeuristic;
-    subDepth->planAhead(state);
+    subDepth->planAhead(state, pc);
     logger->exitTurn();
     auto [ newState, _decisions, heurDiff ] = subDepth->getResults();
     (void) _decisions;
@@ -37,7 +37,7 @@ bool DepthFirstSearch::addEndState(const State& state, const DecisionList& decis
     }
     heurVal -= heurDiff;
     logger->message("Search returned", heurDiff);
-    return SearchPolicy::addEndState(newState, decisions, heurVal);
+    return SearchPolicy::addEndState(newState, decisions, heurVal, pc);
 }
 
 void UntilSomeoneDiesDFS::init(const State& state){
@@ -45,11 +45,11 @@ void UntilSomeoneDiesDFS::init(const State& state){
     nbAliveUnits = state.getNbAliveUnits();
 }
 
-bool UntilSomeoneDiesDFS::addEndState(const State& state, const DecisionList& decisions, Heuristic::Value heurVal){
+bool UntilSomeoneDiesDFS::addEndState(const State& state, const DecisionList& decisions, Heuristic::Value heurVal, const ProcessContext& pc){
     if(state.getNbAliveUnits() == this->nbAliveUnits)
-        return SearchPolicy::addEndState(std::move(state), decisions, heurVal); //do not search further
+        return SearchPolicy::addEndState(std::move(state), decisions, heurVal, pc); //do not search further
     else
-        return DepthFirstSearch::addEndState(std::move(state), decisions, heurVal);
+        return DepthFirstSearch::addEndState(std::move(state), decisions, heurVal, pc);
 }
 
 unsigned AdaptiveDepthFirstSearch::estimateNbBranches(){
