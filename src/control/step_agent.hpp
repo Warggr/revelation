@@ -8,6 +8,7 @@
 #include <utility>
 
 class StepByStepAgent: public Agent {
+    static const std::string_view chooseCharacterDefaultMessage;
 protected:
     using OptionList = std::vector<std::pair<const char*, std::string_view>>;
     // TODO OPTIMIZE: very often we know the size of the final vector beforehand, we could already reserve it from the beginning
@@ -38,9 +39,9 @@ protected:
         }
     };
 
-    std::pair<const Character*, unsigned int> chooseCharacter(const State& state, OptionListWrapper& otherOptions);
-    std::pair<const Character*, unsigned int> chooseCharacter(const State& state){
-        OptionListWrapper list; return chooseCharacter(state, list);
+    std::pair<const Character*, unsigned int> chooseCharacter(const State& state, OptionListWrapper& otherOptions, const std::string_view message = chooseCharacterDefaultMessage);
+    std::pair<const Character*, unsigned int> chooseCharacter(const State& state, const std::string_view message = chooseCharacterDefaultMessage){
+        OptionListWrapper list; return chooseCharacter(state, list, message);
     }
     static std::pair<uint, bool> inputValidation(const OptionList& list, const std::string_view& input);
     virtual uint choose(const OptionList& list, const std::string_view& message) = 0;

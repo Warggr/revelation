@@ -66,7 +66,9 @@ unsigned int StepByStepAgent::getSpecialAction(const State& state, const Effect&
     return iSel;
 }
 
-std::pair<const Character*, unsigned int> StepByStepAgent::chooseCharacter(const State &state, OptionListWrapper& otherOptions){
+const std::string_view StepByStepAgent::chooseCharacterDefaultMessage = "Choose a character";
+
+std::pair<const Character*, unsigned int> StepByStepAgent::chooseCharacter(const State &state, OptionListWrapper& otherOptions, const std::string_view message){
     char keys[NB_CHARACTERS][2];
     const Character* possibleValues[NB_CHARACTERS];
     unsigned int charactersOffset = otherOptions.get().size();
@@ -79,7 +81,7 @@ std::pair<const Character*, unsigned int> StepByStepAgent::chooseCharacter(const
             possibleValues[j++] = state.units[myId][i].get();
         }
     }
-    unsigned int iSel = choose(otherOptions.get(), "Choose a character");
+    unsigned int iSel = choose(otherOptions.get(), message);
     if(iSel < charactersOffset)
         return std::make_pair( nullptr, iSel );
     else
@@ -117,7 +119,7 @@ MoveDecision StepByStepAgent::getMovement(const State& state, unsigned int) {
         OptionListWrapper options;
         auto skip = options.add(SKIP, SKIP_KEYS);
         unsigned int iSel;
-        std::tie(charSel, iSel) = chooseCharacter(state, options);
+        std::tie(charSel, iSel) = chooseCharacter(state, options, "Choose a character to move");
         if (iSel == skip) return MoveDecision::pass();
     }
     std::vector<MoveDecision> possibleMovs = state.allMovementsForCharacter(*charSel);
@@ -159,7 +161,7 @@ ActionDecision StepByStepAgent::getAction(const State& state) {
     if(ret.card == ActionCard::DEFENSE){
         OptionListWrapper options;
         options.add(SKIP, SKIP_KEYS); options.add(BACK, BACK_KEYS);
-        auto [ c, iSel ] = chooseCharacter(state, options);
+        auto [ c, iSel ] = chooseCharacter(state, options, "Choose a character to protect");
         if(c == nullptr){
             if(iSel == 0) return ActionDecision::pass();
             else if(iSel == 1) goto chooseCard;
