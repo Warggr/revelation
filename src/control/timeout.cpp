@@ -15,12 +15,14 @@ RetType AgentTimeoutProxy::timeout(RetType (Agent::*function)(Args...), Args... 
             });
     std::future_status success = result_promise.wait_for(3s);
     if(success == std::future_status::ready) return result_promise.get();
-    else if(success == std::future_status::timeout){
+#ifndef NDEBUG
+    else if(success == std::future_status::deferred) assert(false);
+#endif
+    else {
         agent->interrupt();
         Agent& fallback = agent->getFallback();
         return (fallback.*function)(args...);
     }
-    else assert(false);
 }
 
 #define PASS_WITH_TIMEOUT_1_ARGS(funcName, retType, argType) \
