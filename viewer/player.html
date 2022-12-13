@@ -113,13 +113,22 @@
 		for(var j = 0; j < boardfields.length; j++) {
 			boardfields.item(j).removeAttribute('style');
 			boardfields.item(j).parentElement.style.backgroundColor = "";
+			boardfields.item(j).draggable = false;
+			boardfields.item(j).removeAttribute('style')
 		}
-		var piece = document.getElementById(draggedPiece.getAttribute('id'));
-		piece.removeAttribute('style');
+
+		if(draggedPiece) {
+			var piece = document.getElementById(draggedPiece.getAttribute('id'));
+			piece.removeAttribute('style');
+		}
 		possibilities = '';
 	}
 	function dragStart(fields, possibilities) {
 		console.log(possibilities);
+		if(document.getElementById('backButton')) {
+			let button = document.getElementById('backButton');
+			button.remove();
+		}
 		for(var i = 0; i < possibilities.length; i++) {
 			for(var j = 0; j < fields.length; j++) {
 				var cmp = fields.item(j).getAttribute('array');
@@ -340,8 +349,12 @@
 				draggableCharacters.forEach(item =>
 						item.addEventListener('click', startChar)
 				);
-				var backButton = document.getElementById('backButton');
-				backButton.remove();
+
+				if(document.getElementById('backButton')) {
+					var backButton = document.getElementById('backButton');
+					backButton.remove();
+				}
+
 			} else if (JSON.stringify(event.data).includes("position") && !JSON.stringify(event.data).includes("state")) {
 				possibilities = JSON.stringify(event.data).split('",');
 				boardfields = document.querySelectorAll(".board-field");
@@ -358,16 +371,24 @@
 				boardfields.forEach(item => item.parentElement.addEventListener('dragover', _dragOver));
 				boardfields.forEach(item => item.addEventListener('drop', _drop));
 
-				var backButton = document.createElement('button');
-				backButton.id = 'backButton';
-				backButton.onclick = sockSendBack;
-				backButton.textContent = "Character rückgängig machen";
-				document.getElementById('buttons').appendChild(backButton);
+				if(!document.getElementById('backButton')) {
+					var backButton = document.createElement('button');
+					backButton.id = 'backButton';
+					backButton.onclick = characterSkip;
+					backButton.textContent = "Character rückgängig machen";
+					document.getElementById('buttons').appendChild(backButton);
+				}
 			} else if (JSON.stringify(event.data).includes("card") && !JSON.stringify(event.data).includes("state")) {
 				var backButton = document.getElementById('backButton');
-				backButton.remove();
+				if(backButton) {
+					backButton.remove();
+				}
 				loadCard(event.data);
 			}  else if (Array.isArray(data)) {
+				var backButton = document.getElementById('backButton');
+				if(backButton) {
+					backButton.remove();
+				}
 				var promptText = data[data.length - 1];
 				for(let i = 0; i<data.length-1; i++)
 					promptText += '\n[' + i + ']:' + data[i];
@@ -498,7 +519,11 @@
 	function sockSendCard(i) {
 		socket.send(i);
 	}
-	function sockSendBack() {
+	function characterSkip() {
+		removeRed();
+		socket.send(1);
+	}
+	function positionReturn() {
 		var id = draggedPiece.id;
 		for(var i = moves.length - 1; i >= 0 ; i--) {
 			var c = moves.at(i);
