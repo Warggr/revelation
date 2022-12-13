@@ -1,7 +1,7 @@
 #ifndef REVELATION_NETWORK_AGENT_HPP
 #define REVELATION_NETWORK_AGENT_HPP
 
-#include "control/agent.hpp"
+#include "control/step_agent.hpp"
 #include "spectator.hpp"
 #include <vector>
 #include <string>

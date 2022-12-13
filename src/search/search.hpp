@@ -5,6 +5,7 @@
 #include "control/agent.hpp"
 #include "gameplay/state.hpp"
 #include <limits>
+#include <utility>
 #include <vector>
 #include <memory>
 
@@ -27,8 +28,8 @@ struct SearchNode {
     DecisionList decisions;
     Heuristic::Value heurVal;
 
-    SearchNode(const State& state, DecisionList decisions, float heurVal ):
-        state(state), decisions(std::move(decisions)), heurVal(heurVal)
+    SearchNode(State state, DecisionList decisions, float heurVal ):
+        state(std::move(state)), decisions(std::move(decisions)), heurVal(heurVal)
         {};
     [[nodiscard]] SearchNode copy(const State& newState, Heuristic::Value heuristicIncrement) const {
         return { newState, decisions, heurVal + heuristicIncrement };
@@ -56,22 +57,38 @@ protected:
     State bestState;
     const Heuristic& heuristic;
     Heuristic::Value maxHeur, worstOpponentsHeuristic;
+#ifdef CONFIG_AGENT_IS_INTERRUPTIBLE
+    std::vector<std::pair<DecisionList, State>> interruptedDecisionsCallStack;
+#endif
 #ifndef NDEBUG
     bool reachedEndState;
-#endif
+    int nbTimesEntered = 0;
 
     //callback functions that can be overridden
+    virtual void init(const State&){
+        nbTimesEntered++;
+    };
+    virtual void exit(){
+        nbTimesEntered--;
+        assert(nbTimesEntered >= 0);
+    };
+public:
+    int getNbTimesEntered() const { return nbTimesEntered; }
+#else
     virtual void init(const State&){};
     virtual void exit(){};
 public:
+#endif
     Heuristic::Value maxHeurAllowed = std::numeric_limits<float>::max();
 
     SearchPolicy(const Heuristic& heuristic): heuristic(heuristic) {};
     virtual ~SearchPolicy() = default;
     virtual Container<SearchNode>& getContainer() = 0;
-    void planAhead(const State& state);
+
+    void planAhead(const State& state, const ProcessContext& processContext);
+
     //Return false by default, and true if we should cut off the search directly
-    virtual bool addEndState(const State& state, const DecisionList& decisions, Heuristic::Value heurVal){
+    virtual bool addEndState(const State& state, const DecisionList& decisions, Heuristic::Value heurVal, const ProcessContext&){
         if(heurVal > maxHeur){
 #ifndef NDEBUG
             reachedEndState = true;
@@ -108,13 +125,13 @@ class SearchAgent: public Agent {
     DecisionList plans {};
     unsigned short int currentSpecialAction = 0;
 public:
-    SearchAgent(unsigned int myId, uptr<SearchPolicy>&& policy, uptr<Heuristic>&& heuristic)
+    SearchAgent(unsigned int myId, uptr<SearchPolicy> policy, uptr<Heuristic> heuristic)
     : Agent(myId), searchPolicy(std::move(policy)), heuristic(std::move(heuristic)) {};
     DiscardDecision getDiscard(const State&) override;
     MoveDecision getMovement(const State&, unsigned nb) override;
     AbilityDecision getAbility(const State&) override;
     ActionDecision getAction(const State&) override;
-    unsigned int getSpecialAction(const State&, Effect&) override {
+    unsigned int getSpecialAction(const State&, const Effect&) override {
         return plans.specialActions[currentSpecialAction++];
     }
 

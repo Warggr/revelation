@@ -107,6 +107,8 @@ FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download
 FetchContent_MakeAvailable(json)
 include_directories(PRIVATE ${CMAKE_BINARY_DIR}/_deps/json-src/include)
 
+find_package( Boost 1.40 COMPONENTS program_options REQUIRED )
+
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 
 link_libraries(project_warnings project_options)

@@ -77,26 +77,41 @@ const Team& UnitsRepository::mkEurope() {
     );
 }
 
+void writeRandomCharacters(char* whereTo, unsigned nbCharacters, Generator& generator){
+    constexpr int ALPHABET_SIZE = 64;
+    constexpr std::string_view alphabet64 = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+-";
+    static_assert(alphabet64.size() == ALPHABET_SIZE);
+    for(unsigned i = 0; i<nbCharacters; i++){
+        whereTo[i] = alphabet64[ generator() % ALPHABET_SIZE ];
+    }
+}
+
 const Team& UnitsRepository::mkRandom(Generator& generator, unsigned short int nbUnits){
     std::array<const ImmutableCharacter*, ARMY_SIZE> newCharacters = {nullptr};
 
     assert(nbUnits <= ARMY_SIZE);
 
-    for(uint i = 0; i < nbUnits; i++){
-        auto randomCharacter = addCharacter(ImmutableCharacter::random(generator));
-
-        //Inefficient algorithm to find an empty space. Doesn't matter too much because this function is executed at most two times
-        while(true) {
-            auto rnd = generator();
-            unsigned short pos = rnd % 6;
-            if(newCharacters[pos] != nullptr) continue;
-            else{
-                newCharacters[pos] = randomCharacter;
-                break;
-            }
+    for(uint fieldsRemaining = ARMY_SIZE; fieldsRemaining > 0; fieldsRemaining--){
+        auto rnd = generator();
+        bool isThereACharacter = rnd % fieldsRemaining < nbUnits;
+        if(isThereACharacter) {
+            const ImmutableCharacter* randomCharacter;
+            addCharacterToRepo:
+                randomCharacter = addCharacter(ImmutableCharacter::random(generator));
+                if(not randomCharacter) goto addCharacterToRepo;
+            newCharacters[fieldsRemaining] = randomCharacter;
+            nbUnits--;
         }
     }
-    return *createTeam( newCharacters, "random team" ); // TODO give random name, or allow name collisions in the repository
+    const Team* retVal = nullptr;
+
+    char newTeamName[] = "random team AAAAA";
+    char* randomPart = newTeamName + 12;
+    addTeamToRepo:
+        writeRandomCharacters(randomPart, 5, generator);
+        retVal = createTeam(newCharacters, std::string(newTeamName, sizeof(newTeamName)));
+        if(not retVal) goto addTeamToRepo;
+    return *retVal;
 }
 
 ImmutableCharacter::ImmutableCharacter(WriterVisitor& visitor)
@@ -112,4 +127,34 @@ ImmutableCharacter::ImmutableCharacter(WriterVisitor& visitor)
     std::string defaultFlavor = {};
     flavor = visitor.get("flavor", &defaultFlavor);
     maxAtk = hardAtk > softAtk ? hardAtk : softAtk;
+}
+
+inline bool rndBool(Generator& gen){ return (gen() >> 6) % 2; } //apparently, the lowest bit is often not that random, so I take the 7th one
+
+std::string makeRandomName(Generator& gen){
+    std::string_view syllab1[] = {"Sieg", "Ro", "Go", "Ri", "Gi", "C't", "A", "Gan"};
+    std::string_view syllab2[] = {"", "mu", "li", "cha", "de", "hu", "chi", "da"};
+    std::string_view syllab3[] = {"fried", "lus", "ath", "rd", "on", "l'hu", "lles", "lf"};
+    std::string_view titles[] = { "the Brave", "Imperator", "the Invincible", "Lionheart", "Blackblade", "of R'lyeh", "the Hero",  "the Grey" };
+    auto rnd = gen();
+    std::string retVal;
+    retVal += syllab1[ (rnd / 1) % 8 ];
+    retVal += syllab2[ (rnd / 8) % 8 ];
+    retVal += syllab3[ (rnd / 64) % 8 ];
+    retVal += ' ';
+    retVal += titles[ (rnd / 512) % 8 ];
+    return retVal;
+}
+
+ImmutableCharacter ImmutableCharacter::random(Generator& gen){
+
+    return ImmutableCharacter(makeRandomName(gen),
+        std::uniform_int_distribution<short>(0, 150)(gen),
+        std::uniform_int_distribution<short>(0, 80)(gen),
+        std::uniform_int_distribution<short>(0, 80)(gen),
+        std::uniform_int_distribution<unsigned char>(0, 5)(gen),
+        std::uniform_int_distribution<unsigned char>(0, 5)(gen),
+        0,
+        rndBool(gen)
+    );
 }
