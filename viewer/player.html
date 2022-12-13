@@ -266,27 +266,29 @@
 		var from = draggedPiece.parentElement.getAttribute('array');
 		toNode = document.querySelector("[array=" + CSS.escape(to) + "]");
 		var fromNode = document.querySelector("[array=" + CSS.escape(from) + "]");
-		toNode.setAttribute('style', 'background-color: green');
+		if(!toNode.hasAttribute('[style="background-color: red;"]')) {
+			toNode.setAttribute('style', 'background-color: green');
 
-		if(fromNode.childElementCount > 1) {
-			toNode.appendChild(fromNode.lastChild);
-		} else {
-			toNode.appendChild(fromNode.firstChild);
-		}
-		var xTo = Number(to.split('').at(1)); // position format: [x, y] x:column, y:row
-		var yTo = Number(to.split('').at(4));
-		var xFrom = Number(from.split('').at(1));
-		var yFrom = Number(from.split('').at(4));
+			if(fromNode.childElementCount > 1) {
+				toNode.appendChild(fromNode.lastChild);
+			} else {
+				toNode.appendChild(fromNode.firstChild);
+			}
+			var xTo = Number(to.split('').at(1)); // position format: [x, y] x:column, y:row
+			var yTo = Number(to.split('').at(4));
+			var xFrom = Number(from.split('').at(1));
+			var yFrom = Number(from.split('').at(4));
 
-		//directions
-		if(xTo > xFrom) {
-			moves += '>';
-		} else if(xTo < xFrom) {
-			moves += '<';
-		} else if(yTo < yFrom) {
-			moves += '^';
-		} else if(yTo > yFrom) {
-			moves += 'v';
+			//directions
+			if(xTo > xFrom) {
+				moves += '>';
+			} else if(xTo < xFrom) {
+				moves += '<';
+			} else if(yTo < yFrom) {
+				moves += '^';
+			} else if(yTo > yFrom) {
+				moves += 'v';
+			}
 		}
 		console.log(moves);
 	}
