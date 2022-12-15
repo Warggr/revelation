@@ -77,3 +77,6 @@ json makeStartStateJson(const State& state, const std::array<const Team*, 2>& te
     j["teamNames"] = {  teams[0]->name, teams[1]->name };
     return j;
 }
+
+Logger::Logger(const State& startState, const std::array<const Team*, 2>& teams)
+: startState(makeStartStateJson(startState, teams).dump()) {};

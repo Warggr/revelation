@@ -1,14 +1,17 @@
 #include "launch_game.hpp"
 #include "room.hpp"
 #include "network_agent.hpp"
-#include "server.hpp"
+#include "server_impl.hpp"
+#include "logging/file_logger.hpp"
+#include "logging/network_logger.hpp"
 #include "control/game.hpp"
 #include "control/agent.hpp"
 #include "search/search.hpp"
-#include "nlohmann/json.hpp"
 #include <array>
 #include <memory>
 #include <fstream>
+#include <iostream>
+#include <cassert>
 
 Agents agentsFromDescription(AgentDescription&& descr, ServerRoom& room){
     Agents retVal;
@@ -18,27 +21,42 @@ Agents agentsFromDescription(AgentDescription&& descr, ServerRoom& room){
             case AgentDescriptor::LOCAL: retVal[i] = std::make_unique<HumanAgent>(i); break;
             case AgentDescriptor::RANDOM: retVal[i] = std::make_unique<RandomAgent>(i); break;
             case AgentDescriptor::NETWORK: retVal[i] = NetworkAgent::declareUninitializedAgent(room, i); break;
+            default: assert(false);
         }
     }
     return retVal;
 }
 
-void ServerRoom_impl::launchGame(RoomId id, AgentDescription&& agentsDescr){
+void GameRoom_impl::launchGame(RoomId id, GameDescription&& gameDescr){
     std::cout << "(network thread) Launching game\n";
-    Agents agents = agentsFromDescription(std::move(agentsDescr), *this);
-    myThread = std::thread([&,id] (Agents&& agents) {
+    Agents agents = agentsFromDescription(std::move(gameDescr.agents), *this);
+    myThread = std::thread([&,id,gameDescr=gameDescr] (Agents&& agents) {
         std::cout << "(game thread) Launching game thread, waiting for agents...\n";
+        GameSummary results;
         try {
             for (auto &agent: agents)
                 agent->sync_init();
-            Game game = Game::createFromAgents(std::move(agents), server->repo);
+            std::array<const Team*, NB_AGENTS> teams = { nullptr };
+            for(unsigned i = 0; i<NB_AGENTS; i++){
+                const auto teamsMap = server->repo.getTeams();
+                if(gameDescr.teams[i]){
+                    auto found = teamsMap.find(gameDescr.teams[i].value());
+                    if(found != teamsMap.end()){ teams[i] = &found->second; continue; }
+                }
+                teams[i] = &agents[i]->getTeam(server->repo);
+            }
+            Generator generator = gameDescr.seed ? Generator(gameDescr.seed.value()) : getRandom();
+            Game game(teams, std::move(agents), generator);
             std::ofstream logFile(path_cat(server->doc_root, std::string("/log_room_") + std::to_string(id) + ".json") );
+            game.logger.addSubLogger<FileLogger>(logFile)
+                    .addSubLogger<LiveServerAndLogger>(*this);
             std::cout << "(game thread) ...agents found, game in progress...\n";
-            game.play(this, &logFile);
+            results = game.play();
             std::cout << "(game thread) ...game finished, ask server for deletion\n";
         }
         catch (TimeoutException &) {}
         catch (DisconnectedException &) {}
+        server->controlRoom.send(std::string("Game ") + std::to_string(id) + " finished, " + std::to_string(results.whoWon) + " won");
         server->askForRoomDeletion(id);
     },
     std::move(agents));

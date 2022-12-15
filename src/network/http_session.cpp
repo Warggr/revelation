@@ -4,11 +4,10 @@
 
 #include "http_session.hpp"
 #include "spectator.hpp"
-#include "server.hpp"
+#include "server_impl.hpp"
 #include "visitor.hpp"
 #include "nlohmann/json.hpp"
 #include <iostream>
-#include <variant>
 #include <list>
 
 #ifdef HTTP_CONTROLLED_SERVER
@@ -73,7 +72,6 @@ public:
 };
 
 #ifdef HTTP_SERVE_FILES
-std::string path_cat(boost::beast::string_view base, boost::beast::string_view path);
 beast::string_view mime_type(beast::string_view path);
 #endif
 
@@ -113,6 +111,9 @@ bool read_request_path(boost::string_view& str, unsigned short& retVal){
     return true;
 }
 
+using Request = http::request<http::string_body>;
+using Response = http::response<http::string_body>;
+
 template<typename HttpBodyType>
 void HttpSession::sendResponse(http::response<HttpBodyType>&& res){
     std::cout << "(http) " << res.result_int() << ' ' << req_.method_string() << ' '
@@ -133,6 +134,40 @@ void HttpSession::sendResponse(http::response<HttpBodyType>&& res){
                       [&, sp](error_code ec, std::size_t bytes){ on_write(ec, bytes, sp->need_eof()); });
 }
 
+Response bad_request(const Request& req_, boost::beast::string_view why){
+    http::response<http::string_body> res{http::status::bad_request, req_.version()};
+    res.set(http::field::content_type, "text/plain");
+    res.body() = why.to_string();
+    return res;
+}
+
+Response not_found(const Request& req_, boost::beast::string_view target){
+    http::response<http::string_body> res{http::status::not_found, req_.version()};
+    res.set(http::field::content_type, "text/plain");
+    res.body() = "The resource '" + target.to_string() + "' was not found.";
+    return res;
+}
+
+Response redirect(const Request& req_, boost::beast::string_view location){
+    http::response<http::string_body> res{http::status::moved_permanently, req_.version()};
+    res.set(http::field::location, location);
+    return res;
+}
+
+Response jsonResponse(const Request& req_, std::string_view j){
+    http::response<http::string_body> res{ http::status::ok, req_.version() };
+    res.set(http::field::content_type, "application/json");
+    res.body() = j;
+    return res;
+}
+
+Response server_error(const Request& req_, boost::beast::string_view what){
+    http::response<http::string_body> res{http::status::internal_server_error, req_.version()};
+    res.set(http::field::content_type, "text/html");
+    res.body() = "An error occurred: '" + what.to_string() + "'";
+    return res;
+};
+
 void HttpSession::on_read(error_code ec, std::size_t){
     // This means they closed the connection
     if(ec == http::error::end_of_stream){
@@ -147,59 +182,33 @@ void HttpSession::on_read(error_code ec, std::size_t){
         return fail(ec, "read");
     }
 
-    // Returns a bad request response
-    auto const bad_request = [&](boost::beast::string_view why){
-        http::response<http::string_body> res{http::status::bad_request, req_.version()};
-        res.set(http::field::content_type, "text/html");
-        res.body() = why.to_string();
-        return res;
-    };
-
-    // Returns a not found response
-    auto const not_found = [&](boost::beast::string_view target){
-        http::response<http::string_body> res{http::status::not_found, req_.version()};
-        res.set(http::field::content_type, "text/html");
-        res.body() = "The resource '" + target.to_string() + "' was not found.";
-        return res;
-    };
-
-    [[ maybe_unused ]] auto const redirect = [&](boost::beast::string_view location){
-        http::response<http::string_body> res{http::status::moved_permanently, req_.version()};
-        res.set(http::field::location, location);
-        return res;
-    };
-
-    auto const jsonResponse = [&](const json& j){
-        http::response<http::string_body> res{ http::status::ok, req_.version() };
-        res.set(http::field::content_type, "application/json");
-        res.body() = j.dump();
-        return res;
-    };
-
-    [[ maybe_unused ]] auto const server_error = [&](boost::beast::string_view what){
-        http::response<http::string_body> res{http::status::internal_server_error, req_.version()};
-        res.set(http::field::content_type, "text/html");
-        res.body() = "An error occurred: '" + what.to_string() + "'";
-        return res;
-    };
+#define RESPOND(function, ...) return sendResponse(function(req_, __VA_ARGS__ ))
 
     // See if it is a WebSocket Upgrade
     if(websocket::is_upgrade(req_)){
-        std::cout << "(async http) websocket upgrade heard!\n";
+        std::cout << "(async http) websocket upgrade heard! " << req_.target() << '\n';
         // The websocket connection is established! Transfer the socket and the request to the server
         auto request_path = req_.target();
+
+        ServerRoom* room = nullptr;
         RoomId roomId; AgentId agentId;
-        if(not read_request_path(request_path, roomId)
-        or not read_request_path(request_path, agentId))
-            return sendResponse(bad_request("Wrong path"));
+#ifdef HTTP_CONTROLLED_SERVER
+        if(request_path == "/control"){
+            room = &server.controlRoom;
+            agentId = 0;
+        } else
+#endif
+        if(read_request_path(request_path, roomId)
+        and read_request_path(request_path, agentId)) {
+            if (server.getRooms().find(roomId) == server.getRooms().end())
+                RESPOND(not_found, "Room not found");
+            room = &server.getRooms().find(roomId)->second;
+        }
+        else RESPOND(bad_request, "Wrong path");
 
-        if(server.getRooms().find(roomId) == server.getRooms().end())
-            return sendResponse(not_found("Room not found"));
-
-        ServerRoom& room = server.getRooms().find(roomId)->second;
-        auto spec = room.addSpectator(socket_, agentId);
+        auto spec = room->addSpectator(socket_, agentId);
         if (!spec)
-            return sendResponse(bad_request("Room did not accept you"));
+            RESPOND(bad_request, "Room did not accept you");
 
         spec->connect(std::move(req_));
         server.askForHttpSessionDeletion(this); //don't schedule any further network operations, delete this, and die.
@@ -215,30 +224,27 @@ void HttpSession::on_read(error_code ec, std::size_t){
 #define ADD_ENDPOINT(endpoint, thismethod) else if(req_.target() == endpoint and req_.method() == boost::beast::http::verb::thismethod)
 #ifdef HTTP_CONTROLLED_SERVER
     ADD_ENDPOINT("/room/grammar", get){
-        http::response<http::string_body> res{ http::status::ok, req_.version() };
-        res.set(http::field::content_type, "application/json");
-        res.body() = grammar_as_json_string;
-        return sendResponse(std::move(res));
+        RESPOND(jsonResponse, grammar_as_json_string);
     }
     ADD_ENDPOINT("/room", post){
-        AgentDescription agentsDescr;
+        GameDescription gameDescr;
         if(req_.body().empty()){
-            agentsDescr = { AgentDescriptor::NETWORK, AgentDescriptor::NETWORK };
+            gameDescr.agents = { AgentDescriptor::NETWORK, AgentDescriptor::NETWORK };
         } else {
             auto encoding = req_[http::field::content_type];
             if(encoding != "application/json")
-                return sendResponse(bad_request("Need JSON description of agents"));
+                RESPOND(bad_request, "Need JSON description of agents");
             try{
                 json agentDescrJson = json::parse(req_.body());
-                agentsDescr = parseAgents(agentDescrJson);
+                gameDescr = parseGame(agentDescrJson);
             } catch(json::parse_error& err) {
-                return sendResponse(bad_request(err.what()));
+                RESPOND(bad_request, err.what());
             } catch(AgentCreationException& err){
-                return sendResponse(bad_request(err.what()));
+                RESPOND(bad_request, err.what());
             }
         }
         auto [roomId, room] = server.addRoom();
-        room.launchGame(roomId, std::move(agentsDescr));
+        room.launchGame(roomId, std::move(gameDescr));
 
         http::response<http::string_body> res{ http::status::created, req_.version() };
         res.set(http::field::content_type, "text/plain");
@@ -248,7 +254,7 @@ void HttpSession::on_read(error_code ec, std::size_t){
     ADD_ENDPOINT("/unit", post){
         auto encoding = req_[http::field::content_type];
         if(encoding != "application/x-www-form-urlencoded")
-            return sendResponse(bad_request("Form should be urlencoded"));
+            RESPOND(bad_request, "Form should be urlencoded");
         try{
             WwwDataVisitor visitor(req_.body());
             ImmutableCharacter chr(visitor);
@@ -259,13 +265,13 @@ void HttpSession::on_read(error_code ec, std::size_t){
             else
                 return sendResponse( http::response<http::string_body>( http::status::conflict, req_.version() ) );
         } catch(const std::invalid_argument& err) {
-            return sendResponse(bad_request(err.what()));
+            RESPOND(bad_request, err.what());
         }
     }
     ADD_ENDPOINT("/team", post){
         auto encoding = req_[http::field::content_type];
         if(encoding != "application/x-www-form-urlencoded")
-            return sendResponse(bad_request("Form should be urlencoded"));
+            RESPOND(bad_request, "Form should be urlencoded");
         try{
             WwwDataVisitor visitor(req_.body());
             std::array<CharacterId, 6> characters;
@@ -283,7 +289,7 @@ void HttpSession::on_read(error_code ec, std::size_t){
             else
                 return sendResponse( http::response<http::string_body>( http::status::conflict, req_.version() ) );
         } catch(const std::invalid_argument& err){
-            return sendResponse(bad_request(err.what()));
+            RESPOND(bad_request, err.what());
         }
     }
     ADD_ENDPOINT("/team/random", post){
@@ -301,7 +307,7 @@ void HttpSession::on_read(error_code ec, std::size_t){
             teams.push_back(team);
         }
         json j = { {"teams", teams}, {"characters", characters} };
-        return sendResponse(jsonResponse(j));
+        RESPOND(jsonResponse, j.dump());
     }
 #endif
     ADD_ENDPOINT("/room/", get){
@@ -326,14 +332,14 @@ void HttpSession::on_read(error_code ec, std::size_t){
                 {"spectators", nbSpectators}
             }));
         }
-        return sendResponse(jsonResponse(j));
+        RESPOND(jsonResponse, j.dump());
     }
 #ifdef HTTP_SERVE_FILES
     const char doc_api_path[] = "/files";
     constexpr unsigned int doc_api_path_len = sizeof(doc_api_path) / sizeof(char) - 1;
     if(req_.method() == http::verb::get or req_.method() == http::verb::head){
         if(boost::beast::iequals(req_.target(), "/"))
-            return sendResponse(redirect("/files/"));
+            RESPOND(redirect, "/files/");
 
         boost::string_view req_path;
 
@@ -344,10 +350,10 @@ void HttpSession::on_read(error_code ec, std::size_t){
 
             // Request path must be absolute and not contain ".."
             if(req_path.empty() or req_path[0] != '/' or req_path.find("..") != boost::beast::string_view::npos)
-                return sendResponse(bad_request("Illegal request-target"));
+                RESPOND(bad_request, "Illegal request-target");
         }
         else if(boost::beast::iequals(req_.target(), "/favicon.ico")) req_path = "/favicon.ico";
-        else return sendResponse(bad_request("File not found"));
+        else RESPOND(bad_request, "File not found");
 
         auto path = path_cat(server.doc_root, req_path);
         if(req_path.back() == '/') path.append("index.html");
@@ -357,9 +363,9 @@ void HttpSession::on_read(error_code ec, std::size_t){
         body.open(path.c_str(), boost::beast::file_mode::scan, error);
 
         // File doesn't exist
-        if(error == boost::system::errc::no_such_file_or_directory) return sendResponse(not_found(req_.target()));
+        if(error == boost::system::errc::no_such_file_or_directory) RESPOND(not_found, req_.target());
         // Unknown error
-        if(error) return sendResponse(server_error(error.message()));
+        if(error) RESPOND(server_error, error.message());
 
         // Cache the size since we need it after the move
         auto const size = body.size();
@@ -381,7 +387,7 @@ void HttpSession::on_read(error_code ec, std::size_t){
         }
     }
 #endif
-    return sendResponse(bad_request("Not found"));
+    RESPOND(bad_request, "Not found");
 }
 
 void HttpSession::on_write(error_code ec, std::size_t, bool close){

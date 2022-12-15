@@ -6,7 +6,6 @@
 
 #include "net.hpp"
 #include <boost/beast.hpp>
-#include <memory>
 
 class Server_impl;
 

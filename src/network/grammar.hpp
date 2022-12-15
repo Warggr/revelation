@@ -43,16 +43,23 @@ struct Scope;
 #endif
 
 SYMBOL(staticDFS, std::unique_ptr<StaticDFS>,
-    OBJECT(
-        "type", LITERAL("staticDFS")
-    )
     CODE(auto heuristic = reinterpret_cast<Heuristic*>(sc.data))
     CODE(retVal = std::make_unique<StaticDFS>(std::make_unique<NoOpLogger>(), *heuristic))
+    CLASS(
+        CLASS_REQUIRES(
+            "type", LITERAL("staticDFS")
+        ),
+        CLASS_ALLOWS(
+            "opponentsTurn", GETSYMBOL(botPolicy, auto oppTurn) CODE(retVal->setOpponentsTurn(std::move(oppTurn)))
+        )
+    )
 )
 
 SYMBOL(botPolicy, std::unique_ptr<SearchPolicy>,
-    GETSYMBOL(staticDFS, policy)
-    CODE(retVal = std::move(policy))
+    SELECT_BY_TYPE(
+        "staticDFS", GETSYMBOL(staticDFS, retVal),
+        "placeholder", LITERAL("placeholder")
+    )
 )
 
 SYMBOL(botHeuristic, std::unique_ptr<Heuristic>,
@@ -71,31 +78,43 @@ SYMBOL(botAgent, std::unique_ptr<SearchAgent>,
     CODE(std::unique_ptr<SearchPolicy> policy)
     OBJECT(
         "type", LITERAL("bot"),
-        "heuristic", GETSYMBOL(botHeuristic, heur) CODE(heuristic = std::move(heur)),
+        "heuristic", GETSYMBOL(botHeuristic, heuristic),
         "policy",
             CODE( sc.data = reinterpret_cast<void*>(heuristic.get()) )
-            GETSYMBOL(botPolicy, pl)
-            CODE( policy = std::move(pl) )
+            GETSYMBOL(botPolicy, policy)
    )
    CODE(retVal = std::make_unique<SearchAgent>(myId, std::move(policy), std::move(heuristic)))
 )
 
 SYMBOL(agent, AgentDescriptor,
     SELECT_BY_TYPE(
-        "online", GETSYMBOL(onlineAgent, _) CODE( (void)_; retVal.type = AgentDescriptor::NETWORK ),
-        "random", GETSYMBOL(randomAgent, _) CODE( (void)_; retVal.type = AgentDescriptor::RANDOM ),
+        "online", GETSYMBOL(onlineAgent, auto _) CODE( (void)_; retVal.type = AgentDescriptor::NETWORK ),
+        "random", GETSYMBOL(randomAgent, auto _) CODE( (void)_; retVal.type = AgentDescriptor::RANDOM ),
         "bot",
-            GETSYMBOL(botAgent, agent_data)
+            GETSYMBOL(botAgent, auto agent_data)
             CODE(retVal.type = AgentDescriptor::BOT)
             CODE(retVal.data = reinterpret_cast<void*>(agent_data.release()))
     )
 )
 
-SYMBOL(root, AgentDescription,
+SYMBOL(agents, AgentDescription,
     AS_ARRAY(NB_AGENTS,
          CODE(myId = i)
-         GETSYMBOL(agent, value)
-         CODE(retVal[i] = value)
+         GETSYMBOL(agent, retVal[i])
+    )
+)
+
+SYMBOL(root, GameDescription,
+    CLASS(
+        CLASS_REQUIRES_NONE,
+        CODE(retVal.agents = { AgentDescriptor::NETWORK COMMA AgentDescriptor::NETWORK })
+        CLASS_ALLOWS(
+            "agents", GETSYMBOL(agents, retVal.agents),
+            "seed", GETSYMBOL(integer, retVal.seed),
+            "teams", AS_ARRAY(NB_AGENTS,
+                GETSYMBOL(string, retVal.teams[i])
+            )
+        )
     )
 )
 

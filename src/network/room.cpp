@@ -4,26 +4,26 @@
 
 #include "room.hpp"
 #include "spectator.hpp"
-#include "server.hpp"
+#include "server_impl.hpp"
 #include <algorithm>
 #include <iostream>
 
-ServerRoom::ServerRoom(RoomId, Server_impl* server): server(server){}
+GameRoom::GameRoom(Server_impl* server, RoomId): ServerRoom(server, true) {
+    greeterMessage = "\"Welcome! The game has not started yet\"";
+}
 
-void ServerRoom::setGreeterMessage(const std::string& newMessage) {
+void GameRoom::setGreeterMessage(const std::string& newMessage) {
     greeterMessage = "{\"state\":";
     greeterMessage += newMessage;
     greeterMessage += ",\"steps\":[";
     firstStep = true;
     auto message = std::make_shared<std::string>(greeterMessage + "]}");
-    for(const auto& client : spectators)
-        client->send(message);
-    for(const auto& client : sessions)
-        client.second->send(message);
+    ServerRoom::send(message);
 }
 
-void ServerRoom::send(const std::string& message){
-    // When the callbacks will be executed and the string will actually be sent, the string itself might have gone out of scope.
+void GameRoom::send(const std::string& message){
+    // When the callbacks will be executed and the string will actually be sent,
+    // the string itself might have gone out of scope.
     // Wrap it in a shared pointer before that happens.
     auto const ss = std::make_shared<const std::string>(message);
 
@@ -31,6 +31,10 @@ void ServerRoom::send(const std::string& message){
     else greeterMessage += ',';
     greeterMessage += message;
 
+    ServerRoom::send(ss);
+}
+
+void ServerRoom::send(std::shared_ptr<const std::string> ss){
     for(const auto& session : spectators)
         session->send(ss);
     for(const auto& session : sessions)
@@ -54,14 +58,10 @@ std::shared_ptr<Spectator> ServerRoom::addSpectator(tcp::socket& socket, AgentId
 
 void ServerRoom::onConnect(Spectator& spectator) {
     std::cout << "(async) spectator joined\n";
-    if(spectator.id == 0){
+    if(spectator.id == 0)
         spectators.insert(spectator.shared_from_this());
-    }
-
     std::shared_ptr<const std::string> message = std::make_shared<const std::string>(
-            this->greeterMessage.empty() ?
-            "\"Welcome! The game has not started yet\"" :
-            this->greeterMessage + "]}"
+        isGameRoom ? (greeterMessage + "]}") : greeterMessage
     );
     spectator.send(message);
 }
@@ -72,8 +72,8 @@ void ServerRoom::reportAfk(Spectator& spec){
 }
 
 void ServerRoom::interrupt() { //signals the game that it should end as soon as possible.
-    for(auto& [i, session] : sessions){
+    for(auto& [i, session] : sessions)
         session->interrupt();
-    }
-    for(const auto& spectator: spectators) spectator->interrupt();
+    for(const auto& spectator: spectators)
+        spectator->interrupt();
 }

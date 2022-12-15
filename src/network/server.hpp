@@ -1,11 +1,9 @@
 #ifndef REVELATION_SERVER_HPP
 #define REVELATION_SERVER_HPP
 
-#include "room.hpp"
 #include "listener.hpp"
-#include "semaphore.hpp"
-#include <unordered_map>
-#include <iostream>
+#include <unordered_set>
+#include <utility>
 
 class HttpSession;
 
@@ -35,48 +33,5 @@ public:
         net::post(ioc, std::forward<Function>(fun));
     }
 };
-
-#ifdef HTTP_SERVE_FILES
-#include "setup/units_repository.hpp"
-#endif
-
-class Server_impl: public Server {
-    RoomId lastUsedIdentifier = 0;
-    std::unordered_map<RoomId, ServerRoom_impl> rooms; //Each room contains a list of established WebSocket connections.
-public:
-#ifdef HTTP_SERVE_FILES
-    const std::string doc_root;
-#endif
-#ifdef HTTP_CONTROLLED_SERVER
-    UnitsRepository repo;
-#endif
-
-    Server_impl(const char* ipAddress, unsigned short port
-#ifdef HTTP_SERVE_FILES
-    , std::string_view doc_root
-#endif
-    )
-    : Server(ipAddress, port)
-#ifdef HTTP_SERVE_FILES
-    , doc_root(doc_root)
-#endif
-    {
-#ifdef HTTP_CONTROLLED_SERVER
-        repo.mkDefaultTeams();
-#endif
-    };
-
-    void start();
-
-    void stop();
-
-    void askForRoomDeletion(RoomId id);
-    std::pair<RoomId, ServerRoom_impl&> addRoom(RoomId newRoomId);
-    std::pair<RoomId, ServerRoom_impl&> addRoom(){ return addRoom(++lastUsedIdentifier); }
-    std::unordered_map<RoomId, ServerRoom_impl>& getRooms() { return rooms; }
-    const std::unordered_map<RoomId, ServerRoom_impl>& getRooms() const { return rooms; }
-};
-
-std::string path_cat(boost::beast::string_view base, boost::beast::string_view path);
 
 #endif //REVELATION_SERVER_HPP

@@ -2,7 +2,6 @@
 // Copyright (c) 2018 Vinnie Falco (vinnie dot falco at gmail dot com)
 // Distributed under the Boost Software License, Version 1.0. (See copy at http://www.boost.org/LICENSE_1_0.txt)
 #include "listener.hpp"
-#include "http_session.hpp"
 #include "server.hpp"
 #include <iostream>
 

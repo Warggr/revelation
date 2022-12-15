@@ -2,17 +2,13 @@
 #define REVELATION_LOGGER_HPP
 
 #include "gameplay/step.hpp"
-#include "gameplay/player.hpp"
 #include "setup/team.hpp"
-#include "nlohmann/json.hpp"
-#include <ostream>
+#include <string_view>
+#include <string>
 #include <vector>
 #include <memory>
 
-using json = nlohmann::json;
-class ServerRoom;
-
-json makeStartStateJson(const State& startState, const std::array<const Team*, 2>& teams);
+class GameRoom;
 
 /**
  * SubLoggers provide one type of logging functionality, e.g. writing to the screen or to a file.
@@ -21,18 +17,19 @@ json makeStartStateJson(const State& startState, const std::array<const Team*, 2
 class SubLogger {
 public:
     virtual ~SubLogger() = default;
-    virtual void addStep(const json& step) = 0;
+    virtual void addStep(std::string_view step) = 0;
 };
 
 class Logger {
     std::vector<std::unique_ptr<SubLogger>> subLoggers;
     const std::string startState; //a JSON dump of the start state
 public:
-    Logger(const State& startState, const std::array<const Team*, 2>& teams)
-        : startState(makeStartStateJson(startState, teams).dump()) {};
-    Logger* liveServer(ServerRoom& server);
-    Logger* logToFile(std::ostream& file);
-    void addStep(const uptr<Step>& step);
+    Logger(const State& startState, const std::array<const Team*, 2>& teams);
+    template<typename SubLoggerT, typename... Args>
+    Logger& addSubLogger(Args&&... args){
+        subLoggers.push_back(std::make_unique<SubLoggerT>(std::forward<Args>(args)..., startState)); return *this;
+    }
+    void addStep(const Step& step);
 };
 
 #endif //REVELATION_LOGGER_HPP

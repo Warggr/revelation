@@ -1,13 +1,16 @@
 // Adapted from https://github.com/vinniefalco/CppCon2018
 // Copyright (c) 2018 Vinnie Falco (vinnie dot falco at gmail dot com)
 // Distributed under the Boost Software License, Version 1.0. (See copy at http://www.boost.org/LICENSE_1_0.txt)
-#include "server.hpp"
+#include "server_impl.hpp"
 #include "http_session.hpp"
+#include <thread>
+#include <cassert>
+#include <iostream>
+
 #ifdef HAS_ROOM_ZERO_STAYS_OPEN
 #include "setup/team.hpp"
 constexpr bool roomZeroStaysOpen = true;
 #endif
-#include <thread>
 
 Server::Server(const char* ipAddress, unsigned short port)
     : listener( *this, ioc, tcp::endpoint{net::ip::make_address(ipAddress), port} )
@@ -21,10 +24,27 @@ Server::~Server(){
     }
 }
 
+Server_impl::Server_impl(const char* ipAddress, unsigned short port
+#ifdef HTTP_SERVE_FILES
+        , std::string_view doc_root
+#endif
+)
+        : Server(ipAddress, port)
+#ifdef HTTP_SERVE_FILES
+, doc_root(doc_root)
+#endif
+#ifdef HTTP_CONTROLLED_SERVER
+, controlRoom(this)
+#endif
+{
+#ifdef HTTP_CONTROLLED_SERVER
+    repo.mkDefaultTeams();
+    controlRoom.setGreeterMessage("MSG: Welcome to the Control Room!");
+#endif
+}
+
 void Server_impl::start(){
     std::cout << "(network) Starting server...\n";
-    //! this function runs indefinitely.
-    //! To stop it, you need to call stop() (presumably from another thread)
     listener.listen();
 
 #ifdef HAS_ROOM_ZERO_STAYS_OPEN
@@ -40,6 +60,8 @@ void Server_impl::start(){
         stop();
     });
 
+    //! this function runs indefinitely.
+    //! To stop it, you need to call stop() (presumably from another thread)
     ioc.run();
 }
 
@@ -52,10 +74,10 @@ void Server_impl::stop(){
     rooms.clear(); //Closing all rooms (some might wait for their game to end)
 }
 
-std::pair<RoomId, ServerRoom_impl&> Server_impl::addRoom(RoomId newRoomId) {
+std::pair<RoomId, GameRoom_impl&> Server_impl::addRoom(RoomId newRoomId) {
     std::cout << "(main) Add room to server\n";
-    auto [iter, success] = rooms.insert({newRoomId, ServerRoom_impl(newRoomId, this)});
-    //assert(success and iter->first == newRoomId);
+    auto [iter, success] = rooms.insert({newRoomId, GameRoom_impl(this, newRoomId)});
+    assert(success and iter->first == newRoomId);
     return { newRoomId, iter->second };
 }
 
@@ -63,7 +85,7 @@ void Server_impl::askForRoomDeletion(RoomId id) {
     std::cout << "(main server) room deletion requested\n";
 
     async_do([&,id=id] {
-        ServerRoom_impl& room = rooms.find(id)->second;
+        GameRoom_impl& room = rooms.find(id)->second;
         room.interrupt();
     });
     async_do([&,id=id]{

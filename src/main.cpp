@@ -2,9 +2,12 @@
 #include "control/agent.hpp"
 #include "search/depthfirstsearch.hpp"
 #include "search/loggers.hpp"
-#include "random.hpp"
-#include "network/server.hpp"
+#include "network/server_impl.hpp"
 #include "network/network_agent.hpp"
+#include "logging/file_logger.hpp"
+#include "logging/network_logger.hpp"
+#include "setup/units_repository.hpp"
+#include "random.hpp"
 #include <boost/program_options.hpp>
 #include <array>
 #include <iostream>
@@ -66,17 +69,18 @@ int main(int argc, const char* argv[]){
 
     std::array<std::unique_ptr<Agent>, 2> agents = { std::move(ag1), std::move(ag2) };
 
-    Generator seed;
-    if(rawValues.count("seed")) seed = Generator(parsedValues.seed);
-    else seed = getRandom();
+    Generator seed = rawValues.count("seed")
+        ? Generator(parsedValues.seed)
+        : getRandom();
     std::cout << "Using seed " << seed << '\n';
 
     UnitsRepository repository;
-    std::array<const Team*, 2> teams = { &repository.mkRandom(seed, 2), &repository.mkRandom(seed, 1) };
+    std::array<const Team*, 2> teams = { &repository.mkRandom(seed, 6), &repository.mkRandom(seed, 6) };
 
 	Game game(teams, std::move(agents), seed);
-	unsigned short int winner = game.play(&room, &std::cout);
-    std::cout << winner << " won!\n";
+    game.logger.addSubLogger<FileLogger>(std::cout).addSubLogger<LiveServerAndLogger>(room);
+	auto gameInfo = game.play();
+    std::cout << gameInfo.whoWon << " won!\n";
     server.stop();
     network_thread.join();
 }
