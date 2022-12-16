@@ -1,0 +1,3 @@
+[submodule "viewer/wizard"]
+	path = viewer/wizard
+	url = https://github.com/Warggr/json-grammar-wizard.git
