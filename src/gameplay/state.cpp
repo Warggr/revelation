@@ -307,7 +307,8 @@ std::tuple<State, uptr<ActionStep>> State::stepAct(ActionDecision decision) cons
 std::tuple<State, uptr<BeginStep>> State::beginTurn() const {
     this->checkConsistency();
     assert(this->timestep == ACTED);
-    State ret(*this);
+    std::tuple<State, uptr<BeginStep>> retVal = { *this, std::make_unique<BeginStep>() };
+    State& ret = std::get<0>(retVal);
     ret.iActive = 1 - ret.iActive;
     ret.turnID++;
     ret.timestep = BEGIN;
@@ -319,12 +320,13 @@ std::tuple<State, uptr<BeginStep>> State::beginTurn() const {
                 NullableShared<Character> clone = unit.copy();
                 clone->HP += 50;
                 clone->defShieldHP = 0;
+                std::get<1>(retVal)->resetHP.push_back({ 0, 0, clone->pos });
                 ret.units[ret.iActive][i] = std::move(clone);
             }
         }
     }
     ret.checkConsistency();
-    return std::make_tuple(ret, std::make_unique<BeginStep>());
+    return retVal;
 }
 
 std::vector<MoveDecision> State::allMovementsForCharacter(const Character& hero) const {

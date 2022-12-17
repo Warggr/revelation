@@ -101,12 +101,30 @@ function move(step, backwards) {
 	return { 'action' : 'move', 'frm' : step.to, 'to' : step.frm, 'target' : step.target, moves: step.moves, 'firstCOF' : step.firstCOF };
 }
 
+function applySetHP(step){
+	let hpDom = getBoardField( step.subject ).children[0].children[1].children[0];
+
+	let oldPerHP = Number.parseInt( hpDom.children[0].textContent );
+	let oldTmpHP = Number.parseInt( hpDom.children[1].textContent );
+	let newPerHP = oldPerHP + step.permanent;
+	let newTmpHP = oldPerHP + step.temporary;
+	hpDom.children[0].textContent = newTmpHP;
+	hpDom.children[1].textContent = newPerHP;
+	if(newPerHP != newTmpHP) hpDom.children[0].classList.remove('redundant');
+	else hpDom.children[0].classList.add('redundant');
+	step.permanent = oldPerHP - newPerHP;
+	step.temporary = oldTmpHP - newPerHP;
+	console.log(`Go from ${ [ oldPerHP, oldTmpHP ] } to ${ [ newPerHP, newTmpHP ] }` );
+	return step;
+}
+
 function apply(step, backwards) {
 	console.log(step);
 	switch(step.action){
 		case 'beginTurn':
 			iActive = 1 - iActive;
-			return { 'action' : 'beginTurn' };
+			step.resetHP = step.resetHP.map( applySetHP );
+			return step;
 		case 'pass': return { 'action' : 'pass' };
 		case 'move': {
 			return move(step, backwards);
@@ -158,14 +176,10 @@ function apply(step, backwards) {
 			}
 		}
 		case 'def': {
-			let subject = boardDom.children[ step.subject[1] + FULL_BOARD_WIDTH*step.subject[0] ];
+			step = applySetHP(step);
 			if(!backwards){
 				discard('action - ' + step.cardLost);
-				subject.children[0].children[1].children[0].textContent = step.permanent;
-				iActive = 1 - iActive;
 			} else {
-				iActive = 1 - iActive;
-				subject.children[0].children[1].children[0].textContent = step.permanent - 50;
 				draw('action - ' + step.cardLost, iActive);
 			}
 			return step;

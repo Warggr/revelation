@@ -13,7 +13,10 @@ class Character extends React.Component {
 		}, [
 			e('h1', {key:'h1'}, this.props.char.name),
 			e('div', { className: "stats", key:'stats' }, [
-				e('div', {className:"HP", key:"HP"}, this.props.char.HP),
+				e('div', {className:"HP", key:"HP"}, [
+					e('span', {className:"permanent redundant", key:"per"}, this.props.char.HP),
+					e('span', {className:"temporary", key:"tmp"}, this.props.char.HP),
+				]),
 				e('div', {className:"maxHP", key:"maxHP"}, this.props.char.maxHP),
 				e('div', {className:"atk softAtk", key:"softAtk"}, this.props.char.softAtk),
 				e('div', {className:"atk hardAtk", key:"hardAtk"}, this.props.char.hardAtk),

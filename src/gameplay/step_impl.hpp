@@ -9,7 +9,17 @@
 #include <variant>
 #include <string>
 
+struct setHPMiniStep {
+    short int tempHP;
+    short int permanentHP;
+    position character_pos;
+
+    friend void to_json(json& j, const setHPMiniStep& step);
+};
+
 struct BeginStep : public Step{
+    std::vector<setHPMiniStep> resetHP;
+
     bool isPass() const override { return false; }
     void to_json(json& j) const override;
 };

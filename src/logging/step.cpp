@@ -5,6 +5,14 @@ void to_json(json& j, const position& pos){
     j = {pos.row, pos.column};
 }
 
+void to_json(json& j, const setHPMiniStep& step){
+    j = {
+        {"subject", step.character_pos },
+        {"permanent", step.permanentHP},
+        {"temporary", step.tempHP}
+    };
+}
+
 void make_pass_step(json& j, const char* message){
     j["action"] = "pass";
     j["message"] = message;
@@ -12,6 +20,7 @@ void make_pass_step(json& j, const char* message){
 
 void BeginStep::to_json(json& j) const {
     j["action"] = "beginTurn";
+    j["resetHP"] = json(resetHP);
 }
 
 void DrawStep::to_json(json& j) const {

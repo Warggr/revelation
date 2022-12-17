@@ -41,6 +41,14 @@ div.character > div.stats > div {
 	margin: 0 5px;
 }
 
+div.character > div.stats > div.HP > span.permanent {
+	text-decoration: line-through;
+}
+
+div.character > div.stats > div.HP > span.redundant {
+	display: none;
+}
+
 div.character > div.stats > div.HP::after {
 	content: 'HP';
 }
