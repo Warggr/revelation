@@ -69,8 +69,8 @@ int main(int argc, const char* argv[]){
 
     std::array<std::unique_ptr<Agent>, 2> agents = { std::move(ag1), std::move(ag2) };
 
-    Generator seed = rawValues.count("seed")
-        ? Generator(parsedValues.seed)
+    GeneratorSeed seed = rawValues.count("seed")
+        ? parsedValues.seed
         : getRandom();
     std::cout << "Using seed " << seed << '\n';
 

@@ -72,11 +72,12 @@ void to_json(json& j, const State& state) {
     j["aliveUnits"] = aliveUnits;
 }
 
-json makeStartStateJson(const State& state, const std::array<const Team*, 2>& teams){
+json makeStartStateJson(const State& state, const std::array<const Team*, 2>& teams, GeneratorSeed seed){
     json j = state;
     j["teamNames"] = {  teams[0]->name, teams[1]->name };
+    j["seed"] = seed;
     return j;
 }
 
-Logger::Logger(const State& startState, const std::array<const Team*, 2>& teams)
-: startState(makeStartStateJson(startState, teams).dump()) {};
+Logger::Logger(const State& startState, const std::array<const Team*, 2>& teams, GeneratorSeed seed)
+: startState(makeStartStateJson(startState, teams, seed).dump()) {};

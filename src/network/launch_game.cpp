@@ -45,9 +45,10 @@ void GameRoom_impl::launchGame(RoomId id, GameDescription&& gameDescr){
                 }
                 teams[i] = &agents[i]->getTeam(server->repo);
             }
-            Generator generator = gameDescr.seed ? Generator(gameDescr.seed.value()) : getRandom();
-            Game game(teams, std::move(agents), generator);
+            GeneratorSeed seed = gameDescr.seed ? gameDescr.seed.value() : getRandom();
+            //! The file needs to be created before the Game and the Logger, so that it stays open longer!
             std::ofstream logFile(path_cat(server->doc_root, std::string("/log_room_") + std::to_string(id) + ".json") );
+            Game game(teams, std::move(agents), seed);
             game.logger.addSubLogger<FileLogger>(logFile)
                     .addSubLogger<LiveServerAndLogger>(*this);
             std::cout << "(game thread) ...agents found, game in progress...\n";

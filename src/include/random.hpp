@@ -4,7 +4,8 @@
 #include <random>
 
 using Generator = std::minstd_rand;
+using GeneratorSeed = unsigned long;
 
-Generator getRandom();
+GeneratorSeed getRandom();
 
 #endif //REVELATION_SEED_HPP

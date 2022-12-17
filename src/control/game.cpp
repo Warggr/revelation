@@ -4,14 +4,13 @@
 #include "logging/logger.hpp"
 #include <random>
 
-Generator getRandom(){
-    std::random_device rd;
-    return Generator(rd());
+GeneratorSeed getRandom(){
+    return std::random_device()();
 }
 
-Game::Game(std::array<const Team*, 2> teams, std::array<std::unique_ptr<Agent>, 2>&& agents, Generator generator):
-    state(State::createStart(teams, generator)), teams(teams), agents(std::move(agents))
-    , logger(state, teams)
+Game::Game(std::array<const Team*, 2> teams, std::array<std::unique_ptr<Agent>, 2>&& agents, GeneratorSeed seed):
+    state(State::createStart(teams, Generator(seed))), teams(teams), agents(std::move(agents))
+    , logger(state, teams, seed)
 {
 }
 

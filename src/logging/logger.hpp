@@ -3,6 +3,7 @@
 
 #include "gameplay/step.hpp"
 #include "setup/team.hpp"
+#include "random.hpp"
 #include <string_view>
 #include <string>
 #include <vector>
@@ -24,7 +25,7 @@ class Logger {
     std::vector<std::unique_ptr<SubLogger>> subLoggers;
     const std::string startState; //a JSON dump of the start state
 public:
-    Logger(const State& startState, const std::array<const Team*, 2>& teams);
+    Logger(const State& startState, const std::array<const Team*, 2>& teams, GeneratorSeed seed);
     template<typename SubLoggerT, typename... Args>
     Logger& addSubLogger(Args&&... args){
         subLoggers.push_back(std::make_unique<SubLoggerT>(std::forward<Args>(args)..., startState)); return *this;
