@@ -13,6 +13,7 @@ public:
     SUPPORTS(std::string);
     SUPPORTS(bool);
     SUPPORTS(short);
+    SUPPORTS(unsigned int);
     SUPPORTS(unsigned char);
     SUPPORTS(float);
 #undef SUPPORTS
@@ -25,6 +26,8 @@ public:
         }
         return retVal;
     }
+    [[nodiscard]] virtual bool empty() const = 0;
+    [[nodiscard]] virtual std::string_view anyKey() const = 0;
 };
 
 #endif //REVELATION_VISITOR_HPP

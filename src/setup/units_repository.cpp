@@ -2,31 +2,34 @@
 #include "units_repository.hpp"
 #include "effect.hpp"
 #include "gameplay/state.hpp"
+#include "www_visitor.hpp"
 #include "random.hpp"
 #include <cassert>
+#include <fstream>
+#include <exception>
 
-const Team* UnitsRepository::createTeam(const std::array<CharacterRef, ARMY_SIZE>& cters, const std::string_view& name){
+using TeamList = UnitsRepository::TeamList;
+
+std::pair<TeamList::iterator, bool> UnitsRepository::p_createTeam(const std::array<CharacterRef, ARMY_SIZE>& cters, const std::string_view& name){
     Team team = { std::string(name), {} };
     for(unsigned i = 0; i<2; i++){
         for(unsigned j = 0; j<ARMY_WIDTH; j++){
             team.characters[i][j] = cters[i*ARMY_WIDTH + j];
         }
     }
-    auto [ iter, success ] = teams.insert( std::make_pair( name, std::move(team) ) );
-    if(not success) return nullptr;
-    else return &iter->second;
+    return teams.insert( std::make_pair( name, std::move(team) ) );
 }
-const Team* UnitsRepository::createTeam(const std::array<CharacterId, ARMY_SIZE>& names, const std::string_view& name){
+std::pair<TeamList::iterator, bool> UnitsRepository::p_createTeam(const std::array<CharacterId, ARMY_SIZE>& names, const std::string_view& name){
     std::array<const ImmutableCharacter*, 6> usedCharacters = { nullptr };
     for(unsigned i = 0; i<ARMY_SIZE; i++){
         if(names[i] == "") usedCharacters[i] = nullptr;
         else{
             auto iter = characters.find(names[i]);
-            if(iter == characters.end()) return nullptr;
+            if(iter == characters.end()) return std::make_pair(teams.end(), false);
             usedCharacters[i] = &iter->second;
         }
     }
-    return createTeam(usedCharacters, name);
+    return p_createTeam(usedCharacters, name);
 }
 
 /*
@@ -49,32 +52,48 @@ public:
 };
 */
 
-const Team& UnitsRepository::mkNearEast(){
-    auto MountedArchers = addCharacter( "Mounted archers", 60, 30, 10, 3, 3, 53490, true );
-    auto Captives       = addCharacter( "Captives"       , 20, 20, 10, 2, 1, 28870 );
-    auto Saracens       = addCharacter( "Saracens"       , 80, 50, 20, 2, 1, 45490, false, "Defense 20(light)" );
-    auto Canons         = addCharacter( "Canons"         , 60, 70, 0, 1, 4, 55160, false );
-    auto ArabOfficer    = addCharacter( "Arab officer"   , 100, 10, 10, 2, 1, 35530 );
-
-    //Captives->specialAction.push_front(new DiscardEffect(1));
-
-    return *createTeam(
-        { MountedArchers, Captives, Saracens, Canons, ArabOfficer, Captives },
-        "Near East"
-    );
+std::pair<TeamList::iterator, bool> UnitsRepository::p_createTeam(WriterVisitor& visitor) {
+    std::array<CharacterId, NB_CHARACTERS> characterNames;
+    char buffer[] = "0";
+    std::string noCharacter;
+    for(unsigned char i = 0; i<characterNames.size(); i++){
+        buffer[0] = '0' + i;
+        std::string_view sv(buffer, 1);
+        characterNames[i] = visitor.get(sv, &noCharacter);
+    }
+    std::string teamName = visitor.get("name", (std::string*)nullptr);
+    if(not visitor.empty())
+        throw std::invalid_argument(std::string("Extra value: ").append(visitor.anyKey()));
+    return p_createTeam(characterNames, teamName);
 }
 
-const Team& UnitsRepository::mkEurope() {
-    auto Crossbowman   = addCharacter( "Crossbowman"        , 40, 40, 20, 2, 3, 48910, false );
-    auto ArmoredKnight = addCharacter( "Armored knight"     , 100, 60, 30, 1, 1, 44990, false, "Defense 20(light)" );
-    auto Fanatics      = addCharacter( "Fanatics"           , 20, 20, 10, 2, 1, 28870 );
-    auto Knight        = addCharacter( "Knight"             , 90, 50, 10, 3, 1, 52050, false, "Defense 20(light)" );
-    auto LordOfficer   = addCharacter( "Lord officer"       , 100, 10, 10, 2, 1, 35530 );
+void UnitsRepository::readFile(std::istream& file){
+    std::string line;
+    enum { CHARACTERS, TEAMS } readingMode = CHARACTERS;
+    while(getline(file, line)){
+        if(line.empty()) continue;
+        if(line[0] == '['){
+            if(line == "[Characters]") readingMode = CHARACTERS;
+            else if(line == "[Teams]") readingMode = TEAMS;
+            else assert(false);
+        } else {
+            WwwDataVisitor visitor(line);
+            if(readingMode == CHARACTERS){
+                addCharacter( visitor );
+            }
+            else if(readingMode == TEAMS){
+                createTeam( visitor );
+            }
+            else assert(false);
+        }
+    }
+}
 
-    return *createTeam(
-        { Crossbowman, ArmoredKnight, Fanatics, Fanatics, Knight, LordOfficer },
-        "Europe"
-    );
+void UnitsRepository::mkDefaultTeams(){
+    std::ifstream infile("teams.txt");
+    if(not infile.is_open())
+        throw std::runtime_error("Missing teams.txt");
+    readFile(infile);
 }
 
 void writeRandomCharacters(char* whereTo, unsigned nbCharacters, Generator& generator){
@@ -86,7 +105,30 @@ void writeRandomCharacters(char* whereTo, unsigned nbCharacters, Generator& gene
     }
 }
 
-const Team& UnitsRepository::mkRandom(Generator& generator, unsigned short int nbUnits){
+TeamList::iterator UnitsRepository::addTeamWithoutName(const std::array<CharacterRef, ARMY_SIZE>& cters, Generator& gen) {
+    auto retVal = teams.end();
+    char newTeamName[] = "random team AAAAA";
+    char* randomPart = newTeamName + 12;
+    addTeamToRepo:
+        bool success;
+        writeRandomCharacters(randomPart, 5, gen);
+        std::tie(retVal, success) = p_createTeam(cters, std::string(newTeamName, sizeof(newTeamName)));
+        if(not success) goto addTeamToRepo;
+    return retVal;
+}
+
+TeamList::iterator UnitsRepository::mkRandomWithPreexistingCharacters(Generator& generator){
+    std::array<const ImmutableCharacter*, ARMY_SIZE> newCharacters = {nullptr};
+
+    for(uint i = 0; i<ARMY_SIZE; i++){
+        auto rnd = generator() % characters.size();
+        auto iter = characters.begin(); std::advance(iter, rnd);
+        newCharacters[i] = &iter->second;
+    }
+    return addTeamWithoutName(newCharacters, generator);
+}
+
+TeamList::iterator UnitsRepository::mkRandom(Generator& generator, unsigned short int nbUnits){
     std::array<const ImmutableCharacter*, ARMY_SIZE> newCharacters = {nullptr};
 
     assert(nbUnits <= ARMY_SIZE);
@@ -103,26 +145,37 @@ const Team& UnitsRepository::mkRandom(Generator& generator, unsigned short int n
             nbUnits--;
         }
     }
-    const Team* retVal = nullptr;
+    return addTeamWithoutName(newCharacters, generator);
+}
 
-    char newTeamName[] = "random team AAAAA";
-    char* randomPart = newTeamName + 12;
-    addTeamToRepo:
-        writeRandomCharacters(randomPart, 5, generator);
-        retVal = createTeam(newCharacters, std::string(newTeamName, sizeof(newTeamName)));
-        if(not retVal) goto addTeamToRepo;
-    return *retVal;
+ImmutableCharacter::ImmutableCharacter(std::string name, std::string slug, short maxHP, short softAtk, short hardAtk, uint8_t mov,
+                                       uint8_t rng, unsigned netWorth, bool usesArcAttack, const char* flavor)
+: name(std::move(name)), slug(std::move(slug)), usesArcAttack(usesArcAttack) {
+    this->maxHP = maxHP;
+    this->softAtk = softAtk;
+    this->hardAtk = hardAtk;
+    this->mov = mov;
+    this->rng = rng;
+    this->netWorth = netWorth;
+    this->flavor = flavor;
+    this->maxAtk = std::max(softAtk, hardAtk);
+}
+
+ImmutableCharacter::~ImmutableCharacter(){
+    for(auto effect_ptr : specialAction)
+        delete effect_ptr;
 }
 
 ImmutableCharacter::ImmutableCharacter(WriterVisitor& visitor)
 : name(visitor.get("name", (std::string*)nullptr))
+, slug(visitor.get("slug", (std::string*)nullptr))
 {
 #define VISIT(type, x) x = visitor.get(#x, (type*)nullptr);
     ImmutableCharacter_ALL(VISIT)
-#undef VISIT_TYPED
+#undef VISIT
     bool defaultUAA = false;
     usesArcAttack = visitor.get("usesArcAttack", &defaultUAA);
-    float defaultNetWorth = 0;
+    unsigned int defaultNetWorth = 0;
     netWorth = visitor.get("netWorth", &defaultNetWorth);
     std::string defaultFlavor = {};
     flavor = visitor.get("flavor", &defaultFlavor);
@@ -146,12 +199,20 @@ std::string makeRandomName(Generator& gen){
     return retVal;
 }
 
-ImmutableCharacter ImmutableCharacter::random(Generator& gen){
+short int mkRandomNumberWithOutliers(short min, short max, Generator& gen){
+    short retVal = std::uniform_int_distribution<short>(min, max + 3)(gen);
+    if(retVal > max){
+        retVal = (retVal - max) * max;
+    }
+    return retVal;
+}
 
-    return ImmutableCharacter(makeRandomName(gen),
-        std::uniform_int_distribution<short>(0, 150)(gen),
-        std::uniform_int_distribution<short>(0, 80)(gen),
-        std::uniform_int_distribution<short>(0, 80)(gen),
+ImmutableCharacter ImmutableCharacter::random(Generator& gen){
+    char slug[6]; writeRandomCharacters(slug, 6, gen);
+    return ImmutableCharacter(makeRandomName(gen), slug,
+        10 * mkRandomNumberWithOutliers(0, 15, gen),
+        10 * mkRandomNumberWithOutliers(0, 8, gen),
+        10 * mkRandomNumberWithOutliers(0, 8, gen),
         std::uniform_int_distribution<unsigned char>(0, 5)(gen),
         std::uniform_int_distribution<unsigned char>(0, 5)(gen),
         0,

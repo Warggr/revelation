@@ -1,0 +1,15 @@
+[Characters]
+name=Mounted archers&slug=archer&maxHP=60&softAtk=30&hardAtk=10&mov=3&rng=3&netWorth=53490&usesArcAttack=true
+name=Captives&slug=capt&maxHP=20&softAtk=20&hardAtk=10&mov=2&rng=1&netWorth=28870
+name=Saracens&slug=sara&maxHP=80&softAtk=50&hardAtk=20&mov=2&rng=1&netWorth=45490&usesArcAttack=false&flavor=Defense 20(light)
+name=Canons&slug=canon&maxHP=60&softAtk=70&hardAtk=0&mov=1&rng=4&netWorth=55160&usesArcAttack=false
+name=Arab officer&slug=arabOf&maxHP=100&softAtk=10&hardAtk=10&mov=2&rng=1&netWorth=35530
+
+name=Crossbowman&slug=crbow&maxHP=40&softAtk=40&hardAtk=20&mov=2&rng=3&netWorth=48910&usesArcAttack=false
+name=Armored knight&slug=ar-kni&maxHP=100&softAtk=60&hardAtk=30&mov=1&rng=1&netWorth=44990&usesArcAttack=false&flavor=Defense 20(light)
+name=Fanatics&slug=fana&maxHP=20&softAtk=20&hardAtk=10&mov=2&rng=1&netWorth=28870
+name=Knight&slug=kni&maxHP=90&softAtk=50&hardAtk=10&mov=3&rng=1&netWorth=52050&usesArcAttack=false&flavor=Defense 20(light)
+name=Lord officer&slug=lordOf&maxHP=100&softAtk=10&hardAtk=10&mov=2&rng=1&netWorth=35530
+[Teams]
+name=Near+East&0=Mounted+archers&1=Captives&2=Saracens&3=Canons&4=Arab+officer&5=Captives
+name=Europe&0=Crossbowman&1=Armored+knight&2=Fanatics&3=Fanatics&4=Knight&5=Lord+officer

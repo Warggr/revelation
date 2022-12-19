@@ -23,7 +23,9 @@ namespace po = boost::program_options;
 using json = nlohmann::json;
 
 struct ProgramOptions {
-    Generator::result_type seed;
+    std::string json;
+    unsigned short port;
+    GeneratorSeed seed;
 };
 
 void printVersion(){
@@ -38,7 +40,10 @@ std::pair<po::variables_map, ProgramOptions> readArgs(int argc, const char** arg
     options.add_options()
             ("help,h", "produce help message")
             ("version,v", "print the version number")
-            ("seed,s", po::value<long unsigned int>(&parsedValues.seed), "game randomness seed")
+            ("seed,s", po::value<GeneratorSeed>(&parsedValues.seed), "game seed")
+            //("json,j", po::value<std::string>(&parsedValues.json), "game parameters in json")
+            ("print-json,p", "print the allowed JSON syntax")
+            ("server,s", po::value<unsigned short int>(&parsedValues.port), "Launch a live server on the given port")
             ;
 
     po::store(po::parse_command_line(argc, argv, options), rawValues);
@@ -50,6 +55,10 @@ std::pair<po::variables_map, ProgramOptions> readArgs(int argc, const char** arg
     }
     if(rawValues.count("version")){
         printVersion();
+        exit(EXIT_SUCCESS);
+    }
+    if(rawValues.count("print-json")){
+        std::cout << grammar_as_json_string << '\n';
         exit(EXIT_SUCCESS);
     }
 
@@ -74,13 +83,33 @@ int main(int argc, const char* argv[]){
         : getRandom();
     std::cout << "Using seed " << seed << '\n';
 
+    Generator generatorForTeams(seed);
     UnitsRepository repository;
-    std::array<const Team*, 2> teams = { &repository.mkRandom(seed, 6), &repository.mkRandom(seed, 6) };
+    std::filesystem::current_path(std::filesystem::current_path() / "resources");
+    repository.mkDefaultTeams();
+    for(int i = 0; i<30; i++){
+        repository.addCharacter(ImmutableCharacter::random(generatorForTeams));
+    }
 
-	Game game(teams, std::move(agents), seed);
-    game.logger.addSubLogger<FileLogger>(std::cout).addSubLogger<LiveServerAndLogger>(room);
-	auto gameInfo = game.play();
-    std::cout << gameInfo.whoWon << " won!\n";
-    server.stop();
-    network_thread.join();
+    constexpr int NB_GAMES = 100;
+    Generator generatorForGames(seed);
+    for(int i = 0; i<NB_GAMES; i++) {
+        std::cerr << "[" << i << "/" << NB_GAMES << "]";
+        std::array<const Team*, 2> teams = {&repository.mkRandomWithPreexistingCharacters(generatorForTeams)->second,
+                                            &repository.mkRandomWithPreexistingCharacters(generatorForTeams)->second};
+
+        Game game(teams, agents, generatorForGames());
+        auto gameInfo = game.play();
+        for(int j=0; j<8; j++) std::cerr << '\b';
+        std::cerr.flush();
+        std::cout << gameInfo.whoWon;
+        for(const auto& team : teams){
+            for(const auto& row: team->characters) for(const auto& chr : row){
+                std::cout << ',' << chr->slug;
+            }
+            std::cout << ",END";
+        }
+        std::cout << '\n';
+        std::cout.flush();
+    }
 }

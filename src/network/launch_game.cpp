@@ -61,7 +61,7 @@ void GameRoom_impl::launchGame(RoomId id, GameDescription&& gameDescr){
         }
         catch (TimeoutException &) {}
         catch (DisconnectedException &) {}
-        server->controlRoom.send(std::string("Game ") + std::to_string(id) + " finished, " + std::to_string(results.whoWon) + " won");
+        server->controlRoom.send(std::string("FINISH: ") + std::to_string(id) + " {\"winner\":" + std::to_string(results.whoWon) + " }");
         server->askForRoomDeletion(id);
     },
     agentRefs);

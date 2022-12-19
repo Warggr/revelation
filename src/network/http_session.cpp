@@ -161,7 +161,8 @@ void HttpSession::on_read(error_code ec, std::size_t){
         spec->connect(std::move(req_));
         server.askForHttpSessionDeletion(this); //don't schedule any further network operations, delete this, and die.
         return;
-    } else if(req_.method() == boost::beast::http::verb::options) {
+    }
+    else if(req_.method() == boost::beast::http::verb::options) {
         //see https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
         http::response<http::string_body> res{http::status::no_content, req_.version()};
         res.set(http::field::access_control_allow_methods, "POST, GET, OPTIONS");
@@ -223,23 +224,13 @@ void HttpSession::on_read(error_code ec, std::size_t){
         auto encoding = req_[http::field::content_type];
         if(encoding != "application/x-www-form-urlencoded")
             RESPOND(bad_request, "Form should be urlencoded");
-        try{
-            WwwDataVisitor visitor(req_.body());
-            std::array<CharacterId, 6> characters;
-            char buffer[] = "0";
-            std::string noCharacter = "";
-            for(unsigned char i = 0; i<characters.size(); i++){
-                buffer[0] = '0' + i;
-                characters[i] = visitor.get(buffer, &noCharacter);
-            }
-            std::string teamName = visitor.get("name", (std::string*)nullptr);
+        WwwDataVisitor visitor(req_.body());
+        try {
+            server.repo.createTeam(visitor);
             if(not visitor.empty())
                 throw std::invalid_argument(std::string("Extra value: ").append(visitor.anyKey()));
-            if(server.repo.createTeam(characters, teamName))
-                return sendResponse( http::response<http::string_body>( http::status::ok, req_.version() ) );
-            else
-                return sendResponse( http::response<http::string_body>( http::status::conflict, req_.version() ) );
-        } catch(const std::invalid_argument& err){
+            return sendResponse( http::response<http::string_body>( http::status::ok, req_.version() ) );
+        } catch(std::invalid_argument& err){
             RESPOND(bad_request, err.what());
         }
     }

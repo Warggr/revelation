@@ -22,15 +22,15 @@ struct ImmutableCharacter {
     ImmutableCharacter_ALL(DECLARE)
 #undef DECLARE
     std::string name;
+    const std::string slug;
     std::forward_list<Effect*> specialAction;
     short maxAtk;
     unsigned int netWorth = 0;
     std::string flavor = {};
     bool usesArcAttack = false;
 
-    ImmutableCharacter() = default;
 #define WRITE(type, name) type name,
-    ImmutableCharacter(const std::string_view& name, ImmutableCharacter_ALL(WRITE)
+    ImmutableCharacter(std::string name, std::string slug, ImmutableCharacter_ALL(WRITE)
                        unsigned int netWorth, bool usesArcAttack = false, const char* flavor = "");
 #undef WRITE
     ImmutableCharacter(WriterVisitor& visitor);
