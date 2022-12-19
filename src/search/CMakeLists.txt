@@ -1,4 +1,4 @@
-add_library(search STATIC
+add_library(search.agent STATIC
 	depthfirstsearch.cpp
 	heuristic.cpp
 	loggers.cpp

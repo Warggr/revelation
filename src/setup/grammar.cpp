@@ -1,7 +1,9 @@
-#include "launch_game.hpp"
+#include "agent_setup.hpp"
 #include "search/search.hpp"
 #include "search/depthfirstsearch.hpp"
+#include "search/bestfirstsearch.hpp"
 #include "search/loggers.hpp"
+#include "control/timeout.hpp"
 #include "nlohmann/json.hpp"
 #include <utility>
 
@@ -35,7 +37,7 @@ std::string parse_string(const Scope& sc){
     return sc.j->get<std::string>();
 }
 
-#define START_SCOPE(new_scope) { const auto outer_scope = sc; sc = new_scope;
+#define START_SCOPE(new_scope) { const Scope outer_scope = sc; sc = new_scope;
 #define END_SCOPE sc = outer_scope; }
 
 #undef CODE
@@ -57,9 +59,11 @@ std::string parse_string(const Scope& sc){
 
 #define LITERAL(x) ASSERT(*sc.j == (x), "Expected literal" x);
 
+#define OPTION_WITH_GETSYMBOL(a, b) OPTION(a, GETSYMBOL(b, retVal))
+
 #define SELECT_BY_TYPE(...) ASSERT(sc.j->contains("type"), "Missing key 'type'"); \
         std::string optionstring = (*sc.j)["type"].get<std::string>();           \
-        MAKE_PAIRS(OPTION, else, __VA_ARGS__) \
+        MAKE_PAIRS(OPTION_WITH_GETSYMBOL, else, __VA_ARGS__) \
         else { sc = sc.at("type"); FAIL("Unrecognized type"); }
 
 #define SELECT_LITERAL(...) ASSERT(sc.j->is_string(), "String expected"); \
@@ -80,6 +84,6 @@ std::string parse_string(const Scope& sc){
     ASSERT(sc.j->size() == (arrsize), "Expected " #arrsize " elements");               \
     for(uint i = 0; i < (arrsize); i++){ START_SCOPE(sc.at(i)) foreach END_SCOPE }
 
-#define HAS_TYPE(id) return nullptr;
+#define HAS_TYPE(id)
 
 #include "grammar.hpp" // include as function bodies

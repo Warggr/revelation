@@ -10,6 +10,7 @@
  */
 
 // Generally useful macros for all implementations
+#define COMMA ,
 #define STR(x) #x
 #define PARENS ()
 #define ONE_EXPAND(...) __VA_ARGS__
@@ -33,7 +34,7 @@
 #ifdef PRODUCE_JSON
 FIN({)
 #else
-#include "launch_game.hpp"
+#include "agent_setup.hpp"
 #include <memory>
 struct Scope;
 #ifndef SYMBOL
@@ -55,10 +56,21 @@ SYMBOL(staticDFS, std::unique_ptr<StaticDFS>,
     )
 )
 
+SYMBOL(BFS, std::unique_ptr<GreedyBestFirstSearchAgent>,
+    CODE(auto heuristic = reinterpret_cast<Heuristic*>(sc.data))
+    CLASS(
+        CLASS_REQUIRES(
+            "type", LITERAL("BFS"),
+            "depth", GETSYMBOL(integer, unsigned int maxDepth) CODE(retVal = std::make_unique<GreedyBestFirstSearchAgent>(*heuristic, maxDepth))
+        ),
+        CLASS_ALLOWS_NONE
+    )
+)
+
 SYMBOL(botPolicy, std::unique_ptr<SearchPolicy>,
     SELECT_BY_TYPE(
-        "staticDFS", GETSYMBOL(staticDFS, retVal),
-        "placeholder", LITERAL("placeholder")
+        "staticDFS", staticDFS,
+        "BFS", BFS
     )
 )
 
@@ -67,13 +79,12 @@ SYMBOL(botHeuristic, std::unique_ptr<Heuristic>,
     CODE(retVal = std::make_unique<PowerTimesToughnessHeuristic>())
 )
 
-SYMBOL(onlineAgent, void*, HAS_TYPE("online"))
-SYMBOL(localAgent, void*, HAS_TYPE("local"))
-SYMBOL(randomAgent, void*, HAS_TYPE("random"))
+SYMBOL(onlineAgent, AgentDescriptor, HAS_TYPE("online") CODE(retVal.type = AgentDescriptor::NETWORK))
+SYMBOL(randomAgent, AgentDescriptor, HAS_TYPE("random") CODE(retVal.type = AgentDescriptor::RANDOM))
 
 CODE(unsigned int myId)
 
-SYMBOL(botAgent, std::unique_ptr<SearchAgent>,
+SYMBOL(botAgent, AgentDescriptor,
     CODE(std::unique_ptr<Heuristic> heuristic)
     CODE(std::unique_ptr<SearchPolicy> policy)
     OBJECT(
@@ -82,25 +93,32 @@ SYMBOL(botAgent, std::unique_ptr<SearchAgent>,
         "policy",
             CODE( sc.data = reinterpret_cast<void*>(heuristic.get()) )
             GETSYMBOL(botPolicy, policy)
-   )
-   CODE(retVal = std::make_unique<SearchAgent>(myId, std::move(policy), std::move(heuristic)))
+    )
+    CODE(retVal.data = reinterpret_cast<void*>(new SearchAgent(myId, std::move(policy), std::move(heuristic))))
+    CODE(retVal.type = AgentDescriptor::BOT)
+)
+
+SYMBOL(timeoutProxy, AgentDescriptor,
+    OBJECT(
+        "type", LITERAL("timeoutProxy"),
+        "proxy-for", GETSYMBOL(agent, auto inner_agent) CODE( retVal.data = reinterpret_cast<void*>( new AgentDescriptor(inner_agent) ) )
+    )
+    CODE(retVal.type = AgentDescriptor::TIMEOUT_PROXY)
 )
 
 SYMBOL(agent, AgentDescriptor,
     SELECT_BY_TYPE(
-        "online", GETSYMBOL(onlineAgent, auto _) CODE( (void)_; retVal.type = AgentDescriptor::NETWORK ),
-        "random", GETSYMBOL(randomAgent, auto _) CODE( (void)_; retVal.type = AgentDescriptor::RANDOM ),
-        "bot",
-            GETSYMBOL(botAgent, auto agent_data)
-            CODE(retVal.type = AgentDescriptor::BOT)
-            CODE(retVal.data = reinterpret_cast<void*>(agent_data.release()))
+        "online", onlineAgent,
+        "random", randomAgent,
+        "bot", botAgent,
+        "timeoutProxy", timeoutProxy
     )
 )
 
 SYMBOL(agents, AgentDescription,
     AS_ARRAY(NB_AGENTS,
-         CODE(myId = i)
-         GETSYMBOL(agent, retVal[i])
+        CODE(myId = i)
+        GETSYMBOL(agent, retVal[i])
     )
 )
 

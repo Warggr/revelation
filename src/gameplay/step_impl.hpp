@@ -6,6 +6,7 @@
 #include "deck.hpp"
 #include "position.hpp"
 #include "character.hpp"
+#include <vector>
 #include <variant>
 #include <string>
 

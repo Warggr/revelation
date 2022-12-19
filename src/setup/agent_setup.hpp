@@ -1,5 +1,5 @@
-#ifndef REVELATION_LAUNCH_GAME_HPP
-#define REVELATION_LAUNCH_GAME_HPP
+#ifndef REVELATION_AGENT_SETUP_HPP
+#define REVELATION_AGENT_SETUP_HPP
 
 #include "nlohmann/json.hpp"
 #include "random.hpp"
@@ -15,7 +15,7 @@ using nlohmann::json_pointer;
 
 class Agent;
 class ServerRoom;
-class Team;
+struct Team;
 
 class AgentCreationException : public std::exception {
     std::string _what;
@@ -29,7 +29,7 @@ public:
 };
 
 struct AgentDescriptor{
-    enum AgentType { BOT, LOCAL, NETWORK, RANDOM } type;
+    enum AgentType { BOT, LOCAL, NETWORK, RANDOM, TIMEOUT_PROXY } type;
     void* data = nullptr;
     AgentDescriptor() = default;
     AgentDescriptor(AgentType type): type(type){}
@@ -48,4 +48,4 @@ extern const std::string_view grammar_as_json_string;
 GameDescription parseGame(const json& j);
 Agents agentsFromDescription(AgentDescription&& descr, ServerRoom& room);
 
-#endif //REVELATION_LAUNCH_GAME_HPP
+#endif //REVELATION_AGENT_SETUP_HPP

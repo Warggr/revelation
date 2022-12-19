@@ -8,68 +8,16 @@
 #include "visitor.hpp"
 #include "nlohmann/json.hpp"
 #include <iostream>
-#include <list>
+#include <utility>
 
 #ifdef HTTP_CONTROLLED_SERVER
 #include "launch_game.hpp"
 #include "control/agent.hpp"
 #include "setup/team.hpp"
+#include "setup/www_visitor.hpp"
 #endif
 
 using json = nlohmann::json;
-
-class WwwDataVisitor : public WriterVisitor {
-    const std::string _data;
-    using KeyValueStore = std::list<std::pair<std::string_view, std::string_view>>;
-    KeyValueStore parsed_data;
-public:
-    WwwDataVisitor(const std::string_view& data): _data(data){
-        for(uint cursor = 0; cursor != _data.size() + 1; ){
-            auto posEqual = _data.find('=', cursor);
-            if(posEqual == std::string_view::npos)
-                throw std::invalid_argument("Missing a =");
-            std::string_view key( _data.data() + cursor, posEqual - cursor);
-            cursor = posEqual + 1;
-            auto posAnd = _data.find('&', posEqual+1);
-            if(posAnd == std::string_view::npos)
-                posAnd = _data.size();
-            std::string_view value( _data.data() + cursor, posAnd - cursor);
-            cursor = posAnd + 1;
-            parsed_data.emplace_back(std::make_pair( key, value ));
-        }
-    }
-    error_type visit(const std::string_view& key, std::string& value) override {
-        auto iter = std::find_if(parsed_data.begin(), parsed_data.end(),
-                  [&key](const std::pair<std::string_view, std::string_view> iter){ return iter.first == key; });
-        if(iter == parsed_data.end()) return not_found;
-        value = iter->second;
-        parsed_data.erase(iter);
-        return found;
-    }
-    error_type visit(const std::string_view& key, bool& value) override {
-        std::string rawValue;
-        auto result = visit(key, rawValue);
-        value = result; // HTML checkboxes: no value provided when false, value provided when true
-        return found;
-    }
-    error_type visit(const std::string_view& key, short& value) override {
-        std::string rawValue; auto result = visit(key, rawValue); if(result == not_found) return not_found;
-        value = std::stoi(rawValue); // I know, this is inefficient and overflow-unsafe
-        return found;
-    }
-    error_type visit(const std::string_view& key, unsigned char& value) override {
-        std::string rawValue; auto result = visit(key, rawValue); if(result == not_found) return not_found;
-        value = std::stoi(rawValue); // I know, this is inefficient and overflow-unsafe
-        return found;
-    }
-    error_type visit(const std::string_view& key, float& value) override {
-        std::string rawValue; auto result = visit(key, rawValue); if(result == not_found) return not_found;
-        value = std::stof(rawValue); // I know, this is inefficient and overflow-unsafe
-        return found;
-    }
-    [[nodiscard]] bool empty() const { return parsed_data.empty(); }
-    [[nodiscard]] std::string_view anyKey() const { return parsed_data.front().first; }
-};
 
 #ifdef HTTP_SERVE_FILES
 beast::string_view mime_type(beast::string_view path);

@@ -6,15 +6,21 @@
 #include "network/network_agent.hpp"
 #include "logging/file_logger.hpp"
 #include "logging/network_logger.hpp"
+#include "setup/agent_setup.hpp"
 #include "setup/units_repository.hpp"
 #include "random.hpp"
+#include "nlohmann/json.hpp"
 #include <boost/program_options.hpp>
 #include <array>
 #include <iostream>
+#include <fstream>
+#include <filesystem>
 #include <thread>
 #include <utility>
 
 namespace po = boost::program_options;
+
+using json = nlohmann::json;
 
 struct ProgramOptions {
     Generator::result_type seed;

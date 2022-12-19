@@ -1,11 +1,11 @@
-add_library(logging STATIC
+add_library(base.logging STATIC
 	step.cpp
 	json.cpp
 	logger.cpp
 	file_logger.cpp
 )
 
-add_library(network_logger STATIC
+add_library(network.logging STATIC
 		network_logger.cpp
 )
-target_link_libraries(network_logger PRIVATE network logging)
+target_link_libraries(network.logging PRIVATE network)

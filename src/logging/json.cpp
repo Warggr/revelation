@@ -4,6 +4,7 @@
 #include "setup/team.hpp"
 #include "BoardTile.hpp"
 #include "nlohmann/json.hpp"
+#include "setup/unique_character.hpp"
 
 using json = nlohmann::json;
 

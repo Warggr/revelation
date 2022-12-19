@@ -4,4 +4,3 @@ add_library(gameplay STATIC
 	player.cpp
 	state.cpp
 )
-target_link_libraries(gameplay PRIVATE logging)

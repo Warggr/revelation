@@ -3,7 +3,9 @@
 
 #include "unique_character.hpp"
 #include "team.hpp"
+#include "visitor.hpp"
 #include "constants.hpp"
+#include <iosfwd>
 #include <unordered_map>
 #include <string_view>
 #include <array>

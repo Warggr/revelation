@@ -1,4 +1,3 @@
-#include "launch_game.hpp"
 #include "room.hpp"
 #include "network_agent.hpp"
 #include "server_impl.hpp"
@@ -6,7 +5,9 @@
 #include "logging/network_logger.hpp"
 #include "control/game.hpp"
 #include "control/agent.hpp"
+#include "control/timeout.hpp"
 #include "search/search.hpp"
+#include "setup/agent_setup.hpp"
 #include <array>
 #include <memory>
 #include <fstream>

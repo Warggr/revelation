@@ -2,7 +2,7 @@
 #define REVELATION_FILE_LOGGER_HPP
 
 #include "logger.hpp"
-#include <ostream>
+#include <iosfwd>
 
 class FileLogger : public SubLogger {
     std::ostream& file;

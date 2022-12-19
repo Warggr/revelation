@@ -1,17 +1,26 @@
 list(APPEND files
 	http_session.cpp
-	listener.cpp
 	room.cpp
-	spectator.cpp
 	server.cpp
-	network_agent.cpp
 )
 
-add_library(network STATIC ${files})
-target_link_libraries(network PRIVATE pthread agents)
+add_library(base.network STATIC listener.cpp spectator.cpp)
 
-add_library(network.server STATIC ${files} launch_game.cpp grammar.cpp grammar.json.cpp)
-target_compile_definitions(network.server PUBLIC HTTP_CONTROLLED_SERVER HTTP_SERVE_FILES)
-target_link_libraries(network.server PRIVATE pthread agents control search network_logger)
+add_library(network.agent STATIC network_agent.cpp)
+target_link_libraries(network.agent PUBLIC base.agent base.network)
+
+add_library(network STATIC ${files})
+target_link_libraries(network PRIVATE base.network)
+
+add_library(server.network STATIC ${files} launch_game.cpp)
+target_compile_definitions(server.network PUBLIC HTTP_CONTROLLED_SERVER HTTP_SERVE_FILES)
+target_link_libraries(server.network PRIVATE
+		base.network
+		setup
+		control
+		network.agent search.agent base.agent
+		base.logging network.logging
+		pthread
+)
 
 find_package( Boost REQUIRED )
