@@ -22,6 +22,7 @@ Agents agentsFromDescription(AgentDescription&& descr, ServerRoom& room){
             case AgentDescriptor::LOCAL: retVal[i] = std::make_unique<HumanAgent>(i); break;
             case AgentDescriptor::RANDOM: retVal[i] = std::make_unique<RandomAgent>(i); break;
             case AgentDescriptor::NETWORK: retVal[i] = NetworkAgent::declareUninitializedAgent(room, i); break;
+            case AgentDescriptor::TIMEOUT_PROXY: retVal[i] = std::unique_ptr<AgentTimeoutProxy>(reinterpret_cast<AgentTimeoutProxy*>(descr[i].data)); break;
             default: assert(false);
         }
     }

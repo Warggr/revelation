@@ -21,6 +21,7 @@ DiscardDecision SearchAgent::getDiscard(const State& state) {
 MoveDecision SearchAgent::getMovement(const State& state, unsigned nb) {
     assert(state == plans.beforeMove[nb]);
     (void)state;
+    assert(plans.initialized);
     return plans.moves[nb];
 }
 
@@ -56,6 +57,7 @@ void SearchPolicy::planAhead(const State& startState, const ProcessContext& pc){
     maxHeur = - std::numeric_limits<float>::max();
     worstOpponentsHeuristic = std::numeric_limits<float>::max();
 #ifndef NDEBUG
+    bestMoves.initialized = false;
     reachedEndState = false;
     const int nbTimesEntered_bak = nbTimesEntered;
 #endif
@@ -89,8 +91,10 @@ void SearchPolicy::planAhead(const State& startState, const ProcessContext& pc){
         container = &getContainer(); //The vector might have moved, invalidating the container reference
     }
 end:
+    getContainer().clear();
     this->exit();
     assert(nbTimesEntered_bak == nbTimesEntered);
+    assert(reachedEndState);
 }
 
 using HashKey = int;
@@ -125,7 +129,7 @@ unsigned pushChildStates(const SearchNode& stackFrame, Container<SearchNode>& pu
 
     case Timestep::DREW: {
         for(unsigned i = 0; i < state.players[state.iActive].getActions().size(); i++){
-            DiscardDecision decision(i);
+            DiscardDecision decision(true, i);
             auto [ newState, step ] = state.stepDiscard(decision);
             SearchNode newFrame = stackFrame.copy(newState, heuristic.evaluateStep( state.iActive, state, *step ));
             newFrame.decisions.discard = decision;
@@ -167,6 +171,7 @@ unsigned pushChildStates(const SearchNode& stackFrame, Container<SearchNode>& pu
                 for(unsigned iPreviousDecision = 0; iPreviousDecision<iMoveRound; iPreviousDecision++){
                     newStackFrame.decisions.moves[iPreviousDecision] = decisions[iPreviousDecision].dec;
                     #ifndef NDEBUG
+                        newStackFrame.decisions.initialized = true;
                         newStackFrame.decisions.beforeMove[iPreviousDecision] = decisions[iPreviousDecision].stateBefore;
                     #endif
                 }
@@ -178,6 +183,7 @@ unsigned pushChildStates(const SearchNode& stackFrame, Container<SearchNode>& pu
                     newStackFrame = newStackFrame.copy( newSubState, heuristic.evaluateMoveStep( state.iActive, newSubState, *step ) );
                     newStackFrame.decisions.moves[iMoveRound] = decision;
                     #ifndef NDEBUG
+                        newStackFrame.decisions.initialized = true;
                         newStackFrame.decisions.beforeMove[iMoveRound] = subState;
                     #endif
                 }

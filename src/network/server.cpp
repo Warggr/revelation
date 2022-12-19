@@ -70,6 +70,9 @@ void Server_impl::stop(){
     for(auto& [id, room] : rooms){
         room.interrupt();
     }
+#ifdef HTTP_CONTROLLED_SERVER
+    controlRoom.interrupt();
+#endif
     ioc.stop(); //Stop io_context. Now the only things that can block are in the game threads.
     rooms.clear(); //Closing all rooms (some might wait for their game to end)
 }

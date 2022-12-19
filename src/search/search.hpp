@@ -14,6 +14,7 @@ using uptr = std::unique_ptr<T>;
 
 struct DecisionList{
 #ifndef NDEBUG
+    bool initialized = false;
     State beforeDiscard, beforeMove[2], beforeAbility, beforeAction;
 #endif
     DiscardDecision discard;
@@ -42,7 +43,9 @@ public:
     virtual ~Container() = default;
     virtual void addChild(const T& child) = 0;
     virtual bool hasChildren() = 0;
+    bool empty(){ return not hasChildren(); }
     virtual T popChild() = 0;
+    void clear(){ while(hasChildren()) popChild(); }
 };
 
 /**
@@ -111,6 +114,7 @@ public:
     }
     virtual std::tuple<State, DecisionList, Heuristic::Value> getResults() {
         assert(reachedEndState);
+        assert(bestMoves.initialized);
         return std::make_tuple(bestState, bestMoves, maxHeur);
     }
 

@@ -33,9 +33,10 @@ public:
     std::tuple<int, int> asTuple() override {
         return { maxDepth / 2 + maxDepth % 2, maxDepth / 2 };
     }
-    bool addEndState(State state, const DecisionList& decisions, Heuristic::Value heurVal) override {
-        if(currentDepth == maxDepth){
-            SearchPolicy::addEndState(std::move(state), decisions, heurVal);
+    bool addEndState(const State& state, const DecisionList& decisions, Heuristic::Value heurVal, const ProcessContext& pc) override {
+        SearchPolicy::addEndState(std::move(state), decisions, heurVal, pc);
+        if(currentDepth == maxDepth or pc.isInterrupted()){
+            return true;
         } else {
             currentDepth++;
             addChild({state, decisions, heurVal});
