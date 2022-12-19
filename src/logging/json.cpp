@@ -81,4 +81,4 @@ json makeStartStateJson(const State& state, const std::array<const Team*, 2>& te
 }
 
 Logger::Logger(const State& startState, const std::array<const Team*, 2>& teams, GeneratorSeed seed)
-: startState(makeStartStateJson(startState, teams, seed).dump()) {};
+: startState(makeStartStateJson(startState, teams, seed).dump()) {}

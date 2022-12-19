@@ -68,7 +68,7 @@ public:
 };
 
 #ifdef HTTP_CONTROLLED_SERVER
-#include "launch_game.hpp"
+#include "setup/agent_setup.hpp"
 #include <thread>
 #include <array>
 struct Team;

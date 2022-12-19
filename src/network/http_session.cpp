@@ -11,7 +11,7 @@
 #include <utility>
 
 #ifdef HTTP_CONTROLLED_SERVER
-#include "launch_game.hpp"
+#include "setup/agent_setup.hpp"
 #include "control/agent.hpp"
 #include "setup/team.hpp"
 #include "setup/www_visitor.hpp"
@@ -114,7 +114,7 @@ Response server_error(const Request& req_, boost::beast::string_view what){
     res.set(http::field::content_type, "text/html");
     res.body() = "An error occurred: '" + what.to_string() + "'";
     return res;
-};
+}
 
 void HttpSession::on_read(error_code ec, std::size_t){
     // This means they closed the connection
