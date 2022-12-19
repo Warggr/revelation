@@ -12,10 +12,10 @@ class Game {
 public:
     State state;
     std::array<const Team*, 2> teams;
-    std::array<std::unique_ptr<Agent>, 2> agents;
+    std::array<Agent*, 2> agents;
     Logger logger;
 
-    Game(std::array<const Team*, 2> teams, std::array<std::unique_ptr<Agent>, 2>&& agents, GeneratorSeed generator=getRandom());
+    Game(std::array<const Team*, 2> teams, std::array<Agent*, 2> agents, GeneratorSeed generator=getRandom());
 
     GameSummary play();
 };

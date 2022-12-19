@@ -61,19 +61,13 @@ int main(int argc, const char* argv[]){
 
     auto heur1 = std::make_unique<PowerTimesToughnessHeuristic>(),
             heur2 = std::make_unique<PowerTimesToughnessHeuristic>();
-    auto bar = std::make_shared<ProgressBar>();
     auto noop = std::make_shared<NoOpLogger>();
-    auto pol1 = std::make_unique<UntilSomeoneDiesDFS>(noop, *heur1);
-    auto pol2 = std::make_unique<UntilSomeoneDiesDFS>(bar, *heur2);
-    auto ag1 = std::make_unique<SearchAgent>( 1, std::move(pol1), std::move(heur1) );
-    auto ag2 = std::make_unique<SearchAgent>( 2, std::move(pol2), std::move(heur2) );
+    auto pol1 = std::make_unique<StaticDFS>(noop, *heur1);
+    auto pol2 = std::make_unique<StaticDFS>(noop, *heur2);
+    SearchAgent ag1( 1, std::move(pol1), std::move(heur1) );
+    SearchAgent ag2( 2, std::move(pol2), std::move(heur2) );
 
-    Server_impl server("0.0.0.0", 8000);
-    auto [ id, room ] = server.addRoom();
-    std::cout << "Room ID is " << id << '\n';
-    std::thread network_thread(&Server_impl::start, &server);
-
-    std::array<std::unique_ptr<Agent>, 2> agents = { std::move(ag1), std::move(ag2) };
+    std::array<Agent*, NB_AGENTS> agents = { &ag1, &ag2 };
 
     GeneratorSeed seed = rawValues.count("seed")
         ? parsedValues.seed

@@ -8,8 +8,8 @@ GeneratorSeed getRandom(){
     return std::random_device()();
 }
 
-Game::Game(std::array<const Team*, 2> teams, std::array<std::unique_ptr<Agent>, 2>&& agents, GeneratorSeed seed):
-    state(State::createStart(teams, Generator(seed))), teams(teams), agents(std::move(agents))
+Game::Game(std::array<const Team*, 2> teams, std::array<Agent*, 2> agents, GeneratorSeed seed):
+    state(State::createStart(teams, Generator(seed))), teams(teams), agents(agents)
     , logger(state, teams, seed)
 {
 }
