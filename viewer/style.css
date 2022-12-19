@@ -145,3 +145,8 @@ div.HP.body {
 	width: 60px;
 }
 
+#chat {
+	height: 100pt;
+	overflow: scroll;
+	background: lightblue;
+}

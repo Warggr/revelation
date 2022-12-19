@@ -56,7 +56,31 @@
 					headers: {'Content-Type': 'application/json'},
 					body: JSON.stringify(json)
 				})
-				.then(() => reload('room', roomsRoot, loadRooms)); }
+				.then(() => reload('room', roomsRoot, loadRooms));
+		}
+	</script>
+	<div id="chat"></div>
+	<script>
+		const chat = document.getElementById('chat');
+		function preprocessMessage(message){
+			if(message.startsWith('FINISH')){
+				const roomNb = message.split(' ')[1];
+				message += `<a href="player.html?replayUrl=${ encodeURI( getServerUrlRoot() + '/files/log_room_' + roomNb + '.json' )}">View replay</a>`;
+			}
+			return message;
+		}
+		function postMessage(message){
+			let post = document.createElement('p'); post.innerHTML = message;
+			chat.appendChild(post);
+		}
+		findServer.then( foundServer => {
+			console.log('Opening socket...');
+			let socket = new WebSocket('ws://' + foundServer +  '/control');
+			socket.onopen = () => { postMessage('Socket opened'); };
+			socket.onerror = console.error;
+			socket.onclose = () => { postMessage('Socket closed'); };
+			socket.onmessage = (event) => { postMessage(preprocessMessage(event.data)); }
+		});
 	</script>
 	<div id="status-teams"></div>
 	<script type="text/javascript">
