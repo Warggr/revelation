@@ -194,7 +194,7 @@
 		console.log(file);
 		let reader = new FileReader();
 		reader.onload = () => {
-			var stepsNState = readGame(reader.result);
+			var stepsNState = readGame(JSON.parse(reader.result));
 			console.log(stepsNState);
 			restart(stepsNState);
 		}
@@ -322,8 +322,8 @@
         // back:
 		var network_listener_callbacks = [];
 		socket.onmessage = (event) => {
-			console.log(event.data);
-			data = JSON.parse(event.data);
+			const data = JSON.parse(event.data);
+			console.log(data);
 
 			for(let i = 0; i<network_listener_callbacks.length; i++){
 				let {processed:processed, keepme:keepme} = network_listener_callbacks[i](data);
@@ -589,5 +589,11 @@
 	const serverUrl = readFromUrlParams(urlParams, 'serverUrl');
 	if(!serverUrl) document.getElementById('serverUrl').value = window.location.host;
 	if(roomId) connectToServer();
+	else if(urlParams.get('replayUrl')){
+		fetch(urlParams.get('replayUrl'))
+			.then(response => response.json())
+			.then( data => { restart(readGame(data)); } )
+		;
+	}
 </script>
 </html>

@@ -10,27 +10,48 @@
 	<script src="styling.js"></script>
 	<script src="wizard/wizard.js"></script>
 	<link rel="stylesheet" type="text/css" href="wizard/wizard-robe.css"></link>
-	<script>function getServerUrl(){ //In the future, this could be changeable by the user
-		return 'http://revelation-server-2.westeurope.cloudapp.azure.com:8000';
-	}</script>
+	<script>
+	async function tryToConnectToServer(host){
+		return await fetch( 'http://' + host + '/heartbeat')
+		.then(response => { if(! response.ok) throw Error('No heartbeat from ' + host); else return host; } );
+	}
+	var findServer = tryToConnectToServer( window.location.host )
+		.catch(async () => { return await tryToConnectToServer('revelation-server-2.westeurope.cloudapp.azure.com:8000'); } )
+		.catch((err) => { document.getElementById('connection-status').innerHTML = 'No online server found'; throw err; } );
+	var foundServer;
+	findServer.then( url => { foundServer = url; document.getElementById('connection-status').innerHTML = `Connected to <a href="http://${url}">${url}</a>`; } );
+	function getServerUrlRoot(){ return 'http://' + foundServer; }
+	async function s_fetch(path, ...args){
+		return await findServer.then( serverUrl => fetch( 'http://' + serverUrl + path, ...args ) );
+	}
+	</script>
 </head>
 <body>
 	<h1>Welcome</h1>
+	<span id="connection-status"></span>
 	<div id="status-rooms"></div>
 	<button onclick="reload('room', roomsRoot, loadRooms)">Refresh</button>
 	<button onclick="createNewRoom()">New Room</button>
-	<button onclick="launchRoomWizard()">Advanced options</button>
+	<button onclick="toggleAdvancedOptions()">Advanced options</button>
 	<div hidden="true" id="roomWizard"><button onclick="submitRoomWizard()">Submit</button></div>
 	<script>
 		let wizardDomRoot;
 		let grammar;
-		fetch(getServerUrl() + '/room/grammar').then(response => response.json()).then(response => grammar = response);
-		function launchRoomWizard(){ wizardDomRoot = makeWord(grammar); let parent = document.getElementById('roomWizard'); parent.hidden = false; parent.appendChild(wizardDomRoot); }
+		s_fetch('/room/grammar').then(response => response.json()).then(response => grammar = response);
+		function toggleAdvancedOptions(){
+			let parent = document.getElementById('roomWizard');
+			let optionsAreOn = ! parent.hidden;
+			if(optionsAreOn){ parent.hidden = true; }
+			else{
+				parent.hidden = false;
+				if(parent.childElementCount < 2){ wizardDomRoot = makeWord(grammar); parent.appendChild(wizardDomRoot); }
+			}
+		}
 		async function submitRoomWizard(){
 			let json = readWord(wizardDomRoot);
 			let parent = document.getElementById('roomWizard'); parent.hidden = true;
 			wizardDomRoot.remove();
-			await fetch(getServerUrl() + "/room", {
+			await s_fetch("/room", {
 					method:'POST',
 					headers: {'Content-Type': 'application/json'},
 					body: JSON.stringify(json)
@@ -68,6 +89,7 @@
 			}
 			let teamCreatorForm = document.getElementById('team-creator-all6units');
 			for(let child of teamCreatorForm.children){
+				child.replaceChildren();
 				for(let unitName of unitsName){
 					let elem = document.createElement('option');
 					elem.value = unitName;
@@ -99,19 +121,19 @@
 		}
 		async function reload(what, reactRoot, load){
 			reactRoot.render('Loading...');
-			await fetch(getServerUrl() + `/${what}/`)
+			await s_fetch(`/${what}/`)
 				.then(response => response.json())
-				.then(load);
+				.then(data => load(data), error => { reactRoot.render('error'); console.error(error); });
 		}
 		reload('room', roomsRoot, loadRooms);
 		reload('team', teamsRoot, loadTeams);
 		async function createNewRoom(){
-			await fetch(getServerUrl() + "/room", {method:'POST'})
+			await s_fetch("/room", {method:'POST'})
 				.then(() => reload('room', roomsRoot, loadRooms));
 		}
 		async function createNewUnit(form){
 			const formData = new URLSearchParams(new FormData(form));
-			await fetch('/unit', {
+			await s_fetch('/unit', {
 				method:'POST',
 				headers: {'Content-type': 'application/x-www-form-urlencoded'},
 				body: formData
@@ -119,7 +141,7 @@
 		}
 		async function createNewTeam(form){
 			const formData = new URLSearchParams(new FormData(form));
-			await fetch('/team', {
+			await s_fetch('/team', {
 				method:'POST',
 				headers: {'Content-type': 'application/x-www-form-urlencoded'},
 				body: formData

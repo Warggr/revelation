@@ -278,8 +278,7 @@ function createState(startState){
 	return null;
 }
 
-function readGame(content){
-	game = JSON.parse(content);
+function readGame(game){
 	return { state : createState(game.state), steps : game.steps };
 }
 

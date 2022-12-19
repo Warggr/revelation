@@ -170,6 +170,9 @@ void HttpSession::on_read(error_code ec, std::size_t){
         return sendResponse(std::move(res));
     }
 #define ADD_ENDPOINT(endpoint, thismethod) else if(req_.target() == endpoint and req_.method() == boost::beast::http::verb::thismethod)
+    ADD_ENDPOINT("/heartbeat", get){
+        return sendResponse( http::response<http::string_body>( http::status::ok, req_.version() ) );
+    }
 #ifdef HTTP_CONTROLLED_SERVER
     ADD_ENDPOINT("/room/grammar", get){
         RESPOND(jsonResponse, grammar_as_json_string);
