@@ -32,8 +32,7 @@ Agents agentsFromDescription(AgentDescription&& descr, ServerRoom& room){
 void GameRoom_impl::launchGame(RoomId id, GameDescription&& gameDescr){
     std::cout << "(network thread) Launching game\n";
     Agents agents = agentsFromDescription(std::move(gameDescr.agents), *this);
-    std::array<Agent*, NB_AGENTS> agentRefs = { agents[0].get(), agents[1].get() };
-    myThread = std::thread([&,id,gameDescr=gameDescr] (std::array<Agent*, NB_AGENTS> agentRefs) {
+    myThread = std::thread([this,id,gameDescr] (Agents agents) {
         std::cout << "(game thread) Launching game thread, waiting for agents...\n";
         GameSummary results;
         try {
@@ -41,7 +40,7 @@ void GameRoom_impl::launchGame(RoomId id, GameDescription&& gameDescr){
                 agent->sync_init();
             std::array<const Team*, NB_AGENTS> teams = { nullptr };
             for(unsigned i = 0; i<NB_AGENTS; i++){
-                const auto teamsMap = server->repo.getTeams();
+                const auto& teamsMap = server->repo.getTeams();
                 if(gameDescr.teams[i]){
                     auto found = teamsMap.find(gameDescr.teams[i].value());
                     if(found != teamsMap.end()){ teams[i] = &found->second; continue; }
@@ -52,6 +51,7 @@ void GameRoom_impl::launchGame(RoomId id, GameDescription&& gameDescr){
             GeneratorSeed seed = gameDescr.seed ? gameDescr.seed.value() : getRandom();
             //! The file needs to be created before the Game and the Logger, so that it stays open longer!
             std::ofstream logFile(path_cat(server->doc_root, std::string("/log_room_") + std::to_string(id) + ".json") );
+            std::array<Agent*, NB_AGENTS> agentRefs = { agents[0].get(), agents[1].get() };
             Game game(teams, agentRefs, seed);
             game.logger.addSubLogger<FileLogger>(logFile)
                     .addSubLogger<LiveServerAndLogger>(*this);
@@ -64,5 +64,5 @@ void GameRoom_impl::launchGame(RoomId id, GameDescription&& gameDescr){
         server->controlRoom.send(std::string("FINISH: ") + std::to_string(id) + " {\"winner\":" + std::to_string(results.whoWon) + " }");
         server->askForRoomDeletion(id);
     },
-    agentRefs);
+    std::move(agents));
 }
