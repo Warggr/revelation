@@ -200,7 +200,7 @@ function createState(startState){
 
 	for(let team of startState.aliveUnits)
 		for(let row of team)
-				if(!row.HP) row.HP = row.maxHP;
+				if(row && !row.HP) row.HP = row.maxHP;
 
 	let outerScreen = document.getElementById('screen');
 	outerScreen.textContent = '';

@@ -1,5 +1,6 @@
-**/__pycache__/
-build/
-*.json
 .idea/
-cmake-build-*
+cmake-build-*/
+build/
+data/
+**/__pycache__/
+*.json

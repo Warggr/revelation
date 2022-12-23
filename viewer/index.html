@@ -120,6 +120,10 @@
 					elem.innerText = unitName;
 					child.appendChild(elem);
 				}
+				let elem = document.createElement('option');
+				elem.value = '';
+				elem.innerText = '<empty>';
+				child.appendChild(elem);
 			}
 			return e('div', {key:'units'}, unitsReact);
 		}
