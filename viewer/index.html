@@ -114,16 +114,16 @@
 			let teamCreatorForm = document.getElementById('team-creator-all6units');
 			for(let child of teamCreatorForm.children){
 				child.replaceChildren();
+				let elem = document.createElement('option');
+				elem.value = '';
+				elem.innerText = '<empty>';
+				child.appendChild(elem);
 				for(let unitName of unitsName){
 					let elem = document.createElement('option');
 					elem.value = unitName;
 					elem.innerText = unitName;
 					child.appendChild(elem);
 				}
-				let elem = document.createElement('option');
-				elem.value = '';
-				elem.innerText = '<empty>';
-				child.appendChild(elem);
 			}
 			return e('div', {key:'units'}, unitsReact);
 		}

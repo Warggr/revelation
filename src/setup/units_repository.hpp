@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <string_view>
 #include <array>
+#include <cassert>
 
 using TeamId = std::string;
 using CharacterId = std::string; //TODO OPTIMIZE these could be string_views pointing to the character's name
@@ -34,6 +35,7 @@ public:
     template<typename... Args>
     CharacterRef addCharacter(Args&&... args){
         ImmutableCharacter chr(std::forward<Args>(args)...);
+        assert(chr.maxHP > 0);
         auto [ iter, success ] = characters.emplace(std::make_pair(chr.name, std::move(chr)));
         if(not success) return nullptr;
         else return &iter->second;

@@ -352,7 +352,6 @@ void HttpSession::on_write(error_code ec, std::size_t, bool close){
         [&](error_code ec, std::size_t bytes){ on_read(ec, bytes); });
 }
 
-#ifdef HTTP_SERVE_FILES
 // Return a reasonable mime type based on the extension of a file.
 beast::string_view mime_type(beast::string_view path){
     using boost::beast::iequals;
@@ -382,7 +381,6 @@ beast::string_view mime_type(beast::string_view path){
     if(iequals(ext, "svgz")) return "image/svg+xml";
     return "application/text";
 }
-#endif
 
 // Append an HTTP rel-path to a local filesystem path.
 // The returned path is normalized for the platform.

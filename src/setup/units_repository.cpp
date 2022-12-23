@@ -140,7 +140,7 @@ TeamList::iterator UnitsRepository::mkRandom(Generator& generator, UnitProvider&
         auto rnd = generator();
         bool isThereACharacter = rnd % fieldsRemaining < nbUnits;
         if(isThereACharacter) {
-            newCharacters[fieldsRemaining] = provider.getRandomUnit(generator);
+            newCharacters[fieldsRemaining - 1] = provider.getRandomUnit(generator);
             nbUnits--;
         }
     }
@@ -155,6 +155,7 @@ template TeamList::iterator UnitsRepository::mkRandom<UnitsRepository::NewRandom
 ImmutableCharacter::ImmutableCharacter(std::string name, std::string slug, short maxHP, short softAtk, short hardAtk, uint8_t mov,
                                        uint8_t rng, unsigned netWorth, bool usesArcAttack, const char* flavor)
 : name(std::move(name)), slug(std::move(slug)), usesArcAttack(usesArcAttack) {
+    assert(maxHP);
     this->maxHP = maxHP;
     this->softAtk = softAtk;
     this->hardAtk = hardAtk;
@@ -177,6 +178,7 @@ ImmutableCharacter::ImmutableCharacter(WriterVisitor& visitor)
 #define VISIT(type, x) x = visitor.get(#x, (type*)nullptr);
     ImmutableCharacter_ALL(VISIT)
 #undef VISIT
+    if(maxHP <= 0) throw std::invalid_argument("MaxHP should be > 0");
     bool defaultUAA = false;
     usesArcAttack = visitor.get("usesArcAttack", &defaultUAA);
     unsigned int defaultNetWorth = 0;
@@ -214,7 +216,7 @@ short int mkRandomNumberWithOutliers(short min, short max, Generator& gen){
 ImmutableCharacter ImmutableCharacter::random(Generator& gen){
     char slug[6]; writeRandomCharacters(slug, 6, gen);
     return ImmutableCharacter(makeRandomName(gen), slug,
-        10 * mkRandomNumberWithOutliers(0, 15, gen),
+        10 * mkRandomNumberWithOutliers(1, 15, gen),
         10 * mkRandomNumberWithOutliers(0, 8, gen),
         10 * mkRandomNumberWithOutliers(0, 8, gen),
         std::uniform_int_distribution<unsigned char>(0, 5)(gen),
