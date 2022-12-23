@@ -14,7 +14,12 @@ using TeamId = std::string;
 using CharacterId = std::string; //TODO OPTIMIZE these could be string_views pointing to the character's name
 using CharacterRef = const ImmutableCharacter*;
 
-class UnitsRepository {
+struct RandomUnitProvider {
+    virtual ~RandomUnitProvider() = default;
+    virtual CharacterRef getRandomUnit(Generator& generator) = 0;
+};
+
+class UnitsRepository final : public RandomUnitProvider {
 public:
     using TeamList = std::unordered_map<TeamId, const Team>;
     using CharacterList = std::unordered_map<CharacterId, const ImmutableCharacter>;
@@ -45,10 +50,20 @@ public:
     inline void deleteTeam(TeamList::iterator iter){
         teams.erase(iter);
     }
-    TeamList::iterator mkRandom(Generator& generator, unsigned short int nbUnits = ARMY_SIZE);
-    TeamList::iterator mkRandomWithPreexistingCharacters(Generator& generator);
+    template<typename UnitProvider>
+    TeamList::iterator mkRandom(Generator& generator, UnitProvider& provider, unsigned short int nbUnits = ARMY_SIZE);
     void mkDefaultTeams();
     void readFile(std::istream& file);
+
+    CharacterRef getRandomUnit(Generator& generator) override;
+
+    struct NewRandomUnitProvider final : public RandomUnitProvider {
+        UnitsRepository& repo;
+        constexpr NewRandomUnitProvider(UnitsRepository& repo): repo(repo){}
+        CharacterRef getRandomUnit(Generator& generator) override;
+    };
+
+    NewRandomUnitProvider getRandomUnitCreator() { return NewRandomUnitProvider(*this); }
 };
 
 #endif //REVELATION_UNITSREPOSITORY_H

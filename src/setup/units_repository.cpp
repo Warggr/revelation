@@ -117,18 +117,21 @@ TeamList::iterator UnitsRepository::addTeamWithoutName(const std::array<Characte
     return retVal;
 }
 
-TeamList::iterator UnitsRepository::mkRandomWithPreexistingCharacters(Generator& generator){
-    std::array<const ImmutableCharacter*, ARMY_SIZE> newCharacters = {nullptr};
-
-    for(uint i = 0; i<ARMY_SIZE; i++){
-        auto rnd = generator() % characters.size();
-        auto iter = characters.begin(); std::advance(iter, rnd);
-        newCharacters[i] = &iter->second;
-    }
-    return addTeamWithoutName(newCharacters, generator);
+CharacterRef UnitsRepository::getRandomUnit(Generator& generator) {
+    auto rnd = generator() % characters.size();
+    auto iter = characters.begin(); std::advance(iter, rnd);
+    return &iter->second;
 }
 
-TeamList::iterator UnitsRepository::mkRandom(Generator& generator, unsigned short int nbUnits){
+CharacterRef UnitsRepository::NewRandomUnitProvider::getRandomUnit(Generator& generator){
+    const ImmutableCharacter* randomCharacter = nullptr;
+    while(randomCharacter == nullptr)
+        randomCharacter = repo.addCharacter(ImmutableCharacter::random(generator));
+    return randomCharacter;
+}
+
+template<typename UnitProvider>
+TeamList::iterator UnitsRepository::mkRandom(Generator& generator, UnitProvider& provider, unsigned short int nbUnits){
     std::array<const ImmutableCharacter*, ARMY_SIZE> newCharacters = {nullptr};
 
     assert(nbUnits <= ARMY_SIZE);
@@ -137,16 +140,17 @@ TeamList::iterator UnitsRepository::mkRandom(Generator& generator, unsigned shor
         auto rnd = generator();
         bool isThereACharacter = rnd % fieldsRemaining < nbUnits;
         if(isThereACharacter) {
-            const ImmutableCharacter* randomCharacter;
-            addCharacterToRepo:
-                randomCharacter = addCharacter(ImmutableCharacter::random(generator));
-                if(not randomCharacter) goto addCharacterToRepo;
-            newCharacters[fieldsRemaining] = randomCharacter;
+            newCharacters[fieldsRemaining] = provider.getRandomUnit(generator);
             nbUnits--;
         }
     }
     return addTeamWithoutName(newCharacters, generator);
 }
+
+template TeamList::iterator UnitsRepository::mkRandom<UnitsRepository>(
+        Generator& generator, UnitsRepository& provider, unsigned short nbUnits);
+template TeamList::iterator UnitsRepository::mkRandom<UnitsRepository::NewRandomUnitProvider>(
+        Generator& generator, UnitsRepository::NewRandomUnitProvider& provider, unsigned short nbUnits);
 
 ImmutableCharacter::ImmutableCharacter(std::string name, std::string slug, short maxHP, short softAtk, short hardAtk, uint8_t mov,
                                        uint8_t rng, unsigned netWorth, bool usesArcAttack, const char* flavor)

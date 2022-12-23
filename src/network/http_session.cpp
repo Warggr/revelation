@@ -236,7 +236,7 @@ void HttpSession::on_read(error_code ec, std::size_t){
     }
     ADD_ENDPOINT("/team/random", post){
         Generator seed(getRandom());
-        server.repo.mkRandom(seed);
+        server.repo.mkRandom(seed, server.repo, ARMY_SIZE);
         return sendResponse( http::response<http::string_body>( http::status::ok, req_.version() ) );;
     }
     ADD_ENDPOINT("/team/", get){
