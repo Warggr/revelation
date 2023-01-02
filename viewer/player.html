@@ -12,46 +12,46 @@
 	<title>Replayer</title>
 </head>
 <body>
-	<div id="screen" style="background-color: black; color: white; min-height: 80vh;"></div>
-	<div id="buttons" style="text-align: center;">
-		<span id="current-step">(Kein Replay</span><span id="nb-steps"> geladen)</span>
-		<button onclick="pre();">&#x25c0;</button>
-		<button onclick="playPause(this);">&#x23ef;</button>
-		<button onclick="nxt();">&#x25b6;</button>
-		<button onclick="sockSendPos(moves);">Position auswählen</button>
-		<button onclick="skip();">Überspringen</button>
-	</div>
-	<div>
-		<h2>Replay anschauen</h2>
-		<label for="file-to-load">Replay-Datei (JSON) hier ausw&auml;hlen:</label>
-		<input type="file" id="file-to-load"/>
-		<br/>
-		<label for="load-file-button">Dann hier zum Laden clicken:</label>
-		<button onclick="loadFile();" id="load-file-button">Datei laden</button>
-	</div>
-	<div>
-		<h2 id="card">Karte auswählen</h2>
-	</div>
-	<div>
-		<span>Status:</span><span id="connection-status">Nicht verbunden</span>
-		<form onsubmit="connectToServer(); return false;">
-			<h2>Mit Live-Server verbinden</h2>
-			<label for="serverUrl">Server-Adresse</label>
-			<input type="text" id="serverUrl"/>
-			<label for="playerId">Teamnummer</label>
-			<input type="text" value="0" id="playerId"/>
-			<label for="roomId">Raumnummer</label>
-			<input type="text" id="roomId"/>
-			<button type="submit">Raum beitreten</button>
-		</form>
-		<input type="text" value="submit" id="roomNr"/>
-		<button onclick="newRoom();">Neuen Raum starten</button>
-	</div>
-	<button onclick="getClientLogs()">Download client logs</button>
+<div id="screen" style="background-color: black; color: white; min-height: 80vh;"></div>
+<div id="buttons" style="text-align: center;">
+	<span id="current-step">(Kein Replay</span><span id="nb-steps"> geladen)</span>
+	<button onclick="pre();">&#x25c0;</button>
+	<button onclick="playPause(this);">&#x23ef;</button>
+	<button onclick="nxt();">&#x25b6;</button>
+	<button onclick="sockSendPos(moves);">Position auswählen</button>
+	<button onclick="skip();">Überspringen</button>
+</div>
+<div>
+	<h2>Replay anschauen</h2>
+	<label for="file-to-load">Replay-Datei (JSON) hier ausw&auml;hlen:</label>
+	<input type="file" id="file-to-load"/>
+	<br/>
+	<label for="load-file-button">Dann hier zum Laden clicken:</label>
+	<button onclick="loadFile();" id="load-file-button">Datei laden</button>
+</div>
+<div>
+	<h2 id="card">Karte auswählen</h2>
+</div>
+<div>
+	<span>Status:</span><span id="connection-status">Nicht verbunden</span>
+	<form onsubmit="connectToServer(); return false;">
+		<h2>Mit Live-Server verbinden</h2>
+		<label for="serverUrl">Server-Adresse</label>
+		<input type="text" id="serverUrl"/>
+		<label for="playerId">Teamnummer</label>
+		<input type="text" value="0" id="playerId"/>
+		<label for="roomId">Raumnummer</label>
+		<input type="text" id="roomId"/>
+		<button type="submit">Raum beitreten</button>
+	</form>
+	<input type="text" value="submit" id="roomNr"/>
+	<button onclick="newRoom();">Neuen Raum starten</button>
+</div>
+<button onclick="getClientLogs()">Download client logs</button>
 </body>
 <script>
 	function getServerUrl(){ return document.getElementById('serverUrl').value; }
-
+	let characters = [];
 	var steps = [];
 	var inverts = [];
 	var playing = false;
@@ -210,7 +210,7 @@
 		html.appendChild(node);
 		node.innerHTML = '';
 		for(var i = 0; i < message.length - 1; i++) {
-			let card = data.at(i);
+			let card = message.at(i);
 			if(card.includes('Hard')) {
 				link = document.createElement('img');
 				link.src = "./image/hardAtk.jpg"
@@ -235,17 +235,19 @@
 				link.onclick = (function(t){return function(){sockSendCard(t);};})(i)
 				node.appendChild(link);
 			}
+			console.log(i);
 		}
+		console.log(message);
 	}
 	async function newRoom() {
 		return await fetch("http://" + getServerUrl() + "/room", { method: 'POST' })
-			.then(response => response.text())
-			.then(newRoomId => {
-				console.log(newRoomId);
-				document.getElementById("roomNr").value = newRoomId;
-				//document.getElementById('roomId').value = newRoomId;
-			})
-		;
+				.then(response => response.text())
+				.then(newRoomId => {
+					console.log(newRoomId);
+					document.getElementById("roomNr").value = newRoomId;
+					//document.getElementById('roomId').value = newRoomId;
+				})
+				;
 	}
 	function swap(element1,element2) {
 		var clonedElement1 = element1.cloneNode(true);
@@ -266,7 +268,7 @@
 		event.preventDefault();
 		console.log('drag over event');
 	}
-    let toNode;
+	let toNode;
 	var _drop = function (event) {
 		event.preventDefault();
 		var to = event.target.getAttribute('array');
@@ -299,6 +301,20 @@
 		}
 		console.log(moves);
 	}
+	var _sendDefenseCharacter= function () {
+		let name = this.firstElementChild.textContent;
+		boardfields.forEach(item =>  {
+			if(item.hasChildNodes()) {
+				item.firstElementChild.classList.remove("pulse")
+			}
+		});
+		for (let i = 0; i < characters.length; i++) {
+			if (characters.at(i).includes(name)) {
+				socket.send(i);
+			}
+		}
+
+	}
 	const connectToServer = () => {
 		//const url = 'revelation-server-2.westeurope.cloudapp.azure.com:8000';
 		const url = getServerUrl();
@@ -317,7 +333,7 @@
 			initialized = false;
 		};
 		socket.onclose = (event) => { connectionStatusDom.textContent = 'Nicht verbunden'; };
-        // back:
+		// back:
 		var network_listener_callbacks = [];
 		socket.onmessage = (event) => {
 			const data = JSON.parse(event.data);
@@ -330,32 +346,48 @@
 				if(processed)
 					return;
 			}
-			if(data.state) {
-				stepsNState = readGame(data);
+			if(JSON.stringify(event.data).includes("state")) {
+				stepsNState = readGame(event.data);
 				restart(stepsNState);
 				connectionStatusDom.textContent = 'Bereit';
 				initialized = true;
-			} else if (data.action) {
+			}
+			if (JSON.stringify(event.data).includes("action") && !JSON.stringify(event.data).includes("state")) {
 				let step = readStep(event.data, socket);
 				steps.push(step);
 				reloadNbSteps();
 				if (steps.length == 1) nxt();
-			} else if (Array.isArray(data) && data[data.length-1].includes("character")) {
+			} else if (JSON.stringify(event.data).includes("character") && !JSON.stringify(event.data).includes("state") && !JSON.stringify(event.data).includes("protect")) {
 				message = event.data;
 				draggableCharacters = document.querySelectorAll('.board-field div');
+				boardfields.forEach(item =>  {
+					if(item.hasChildNodes()) {
+						item.firstElementChild.removeEventListener('click', _sendDefenseCharacter);
+					}
+				})
 				draggableCharacters.forEach(item =>
 						item.addEventListener('click', startChar)
 				);
 
-				if(document.getElementById('backButton')) {
+				if (document.getElementById('backButton')) {
 					var backButton = document.getElementById('backButton');
 					backButton.remove();
 				}
-
+			} else if(JSON.stringify(event.data).includes("protect")) {
+				characters = JSON.stringify(event.data).split('",');
+				console.log(characters);
+				showDefense(characters);
+				boardfields.forEach(item =>  {
+					if(item.hasChildNodes()) {
+						item.firstElementChild.addEventListener('click', _sendDefenseCharacter)
+					}
+				})
 			} else if (JSON.stringify(event.data).includes("position") && !JSON.stringify(event.data).includes("state")) {
 				possibilities = JSON.stringify(event.data).split('",');
 				boardfields = document.querySelectorAll(".board-field");
 				moves = '';
+				console.log(event.data);
+				console.log(event.target);
 
 				message = possibilities;
 				draggableCharacters.forEach(item => item.removeEventListener('click', startChar, false));
@@ -375,11 +407,11 @@
 				}
 			} else if (JSON.stringify(event.data).includes("card") && !JSON.stringify(event.data).includes("state")) {
 				var backButton = document.getElementById('backButton');
-				if(backButton) {
+				if (backButton) {
 					backButton.remove();
 				}
 				loadCard(event.data);
-			}  else if (Array.isArray(data)) {
+			} else if (Array.isArray(data)) {
 				var backButton = document.getElementById('backButton');
 				if(backButton) {
 					backButton.remove();
@@ -403,12 +435,24 @@
 					}
 				}
 				network_listener_callbacks.unshift(myCallback);
-			} else if(data == "Ok") { //do nothing, we don't really care about Oks
-			} else {
-				throw new Error("Data not handled: " + event.data);
 			}
 		}
 		socket.onerror = (err) => { console.error(err); }
+	}
+
+	function showDefense(characters) {
+		this.characters = characters;
+		boardfields = document.querySelectorAll("div.board-field");
+		for(let i = 0; i < characters.length; i++) {
+			let ind = characters.at(i).replace('"', '').replace(/\\/, '');
+			for(let j = 0; j < boardfields.length; j++) {
+				if(boardfields.item(j).hasChildNodes()) {
+					if(ind.includes(boardfields.item(j).firstElementChild.firstElementChild.textContent)) {
+						boardfields.item(j).firstElementChild.classList.add("pulse");
+					}
+				}
+			}
+		}
 	}
 	function showAttack(characters) {
 		boardfields = document.querySelectorAll("div.board-field");
@@ -467,8 +511,9 @@
 						if(fromNode.hasChildNodes()) {
 							swap(fromNode.firstChild, toNode.firstChild);
 						}  else {
-							fromNode.appendChild(toNode.firstChild);
-						}
+							if(toNode.hasChildNodes()) {
+								fromNode.appendChild(toNode.firstChild);
+							}						}
 						break;
 					case '>':
 						xFrom += 1;
@@ -476,8 +521,9 @@
 						if(fromNode.hasChildNodes()) {
 							swap(fromNode.firstChild, toNode.firstChild);
 						}  else {
-							fromNode.appendChild(toNode.firstChild);
-						}
+							if(toNode.hasChildNodes()) {
+								fromNode.appendChild(toNode.firstChild);
+							}						}
 						break;
 					case '^':
 						yFrom -= 1;
@@ -485,7 +531,9 @@
 						if(fromNode.hasChildNodes()) {
 							swap(fromNode.firstChild, toNode.firstChild);
 						}  else {
-							fromNode.appendChild(toNode.firstChild);
+							if(toNode.hasChildNodes()) {
+								fromNode.appendChild(toNode.firstChild);
+							}
 						}
 						break;
 					case 'v':
@@ -494,8 +542,9 @@
 						if(fromNode.hasChildNodes()) {
 							swap(fromNode.firstChild, toNode.firstChild);
 						}  else {
-							fromNode.appendChild(toNode.firstChild);
-						}
+							if(toNode.hasChildNodes()) {
+								fromNode.appendChild(toNode.firstChild);
+							}						}
 						break;
 					default: break;
 				}
@@ -589,8 +638,8 @@
 	if(roomId) connectToServer();
 	else if(urlParams.get('replayUrl')){
 		fetch(urlParams.get('replayUrl'))
-			.then(response => response.json())
-			.then( data => { restart(readGame(data)); } )
+				.then(response => response.json())
+				.then( data => { restart(readGame(data)); } )
 		;
 	}
 </script>

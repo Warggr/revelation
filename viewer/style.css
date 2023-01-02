@@ -145,6 +145,27 @@ div.HP.body {
 	width: 60px;
 }
 
+div.character.team-2.pulse {
+	animation: pulse-animation 2s infinite;
+}
+
+div.character.team-1.pulse {
+	animation: pulse-animation 2s infinite;
+}
+
+@keyframes pulse-animation {
+	0% {
+		box-shadow: 0 0 0 0px rgba(90, 0, 0, 0.7);
+	}
+	50% {
+		box-shadow: 0 0 0 0px rgba(90, 0, 0, 0.3);
+	}
+	100% {
+		box-shadow: 0 0 0 20px rgba(90, 0, 0, 0);
+	}
+}
+
+
 #chat {
 	height: 100pt;
 	overflow: scroll;
