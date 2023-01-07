@@ -118,6 +118,7 @@ TeamList::iterator UnitsRepository::addTeamWithoutName(const std::array<Characte
 }
 
 CharacterRef UnitsRepository::getRandomUnit(Generator& generator) {
+    if(characters.empty()) throw std::invalid_argument("Repository is empty - can't get character");
     auto rnd = generator() % characters.size();
     auto iter = characters.begin(); std::advance(iter, rnd);
     return &iter->second;

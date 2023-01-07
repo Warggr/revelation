@@ -56,3 +56,19 @@ Heuristic::Value PowerTimesToughnessHeuristic::evaluateActionStep(int myId, cons
 Heuristic::Value PowerTimesToughnessHeuristic::evaluateMoveStep(int, const State&, const MoveStep&) const {
     return -1;
 }
+
+Heuristic::Value SomeoneDiesHeuristic::evaluateMaxForState(int playerId, const State& state, unsigned short nbTurnsRemaining) const {
+    (void) playerId; (void) state; (void) nbTurnsRemaining; return 1; // TODO
+}
+
+Heuristic::Value SomeoneDiesHeuristic::evaluateActionStep(int myId, const State& oldState, const ActionStep& step) const {
+    (void) myId; (void) oldState;
+    if(step.isPass()) return 0;
+    if(step.cardLost == ActionCard::DEFENSE) return 0;
+    if(step.del) return 1;
+    return 0;
+}
+
+Heuristic::Value SomeoneDiesHeuristic::evaluateMoveStep(int, const State&, const MoveStep&) const {
+    return 0;
+}

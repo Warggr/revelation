@@ -39,6 +39,7 @@ struct ImmutableCharacter {
     ImmutableCharacter(ImmutableCharacter&& move) = default;
     ~ImmutableCharacter();
     static ImmutableCharacter random(Generator& generator);
+    friend std::string to_string(const ImmutableCharacter& character);
     friend void to_json(json& j, const ImmutableCharacter& character);
 };
 

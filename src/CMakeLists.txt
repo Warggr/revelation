@@ -1,4 +1,5 @@
 add_executable(revelation main.cpp)
+add_library(revelation-lua SHARED lua.module.cpp)
 add_executable(revelation-server main.server.cpp)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
@@ -12,3 +13,5 @@ add_subdirectory(search)
 add_subdirectory(setup)
 target_link_libraries(revelation PRIVATE setup control network search.agent network.logging ${Boost_LIBRARIES})
 target_link_libraries(revelation-server PRIVATE server.network)
+target_link_libraries(revelation-lua PRIVATE setup print control search.agent)
+target_link_libraries(revelation-lua PRIVATE ${Boost_LIBRARIES} sol2)

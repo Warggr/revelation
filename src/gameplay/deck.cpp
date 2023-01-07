@@ -41,19 +41,5 @@ T Deck<T>::draw() {
     return retVal;
 }
 
-template <typename T>
-std::tuple<int, int> Deck<T>::sizeconfig() const {
-    return std::make_tuple(this->drawPile.size(), this->discardPile.size());
-}
-
-template <typename T>
-size_t Deck<T>::size() {
-    return this->drawPile.size();
-}
-
-template <typename T>
-T Deck<T>::at(size_t i) {
-    return this->drawPile.at(i);
-}
 template class Deck<std::variant<ActionCard, Faction>>;
 //Explicitly instantiate all templates that will be used (else we get linker errors)

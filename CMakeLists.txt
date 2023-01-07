@@ -60,6 +60,10 @@ target_compile_options(project_warnings INTERFACE -Wall -Wextra -Werror
         -Wdouble-promotion
         -Wformat=2)
 
+target_compile_options(project_options INTERFACE
+    -fPIC
+)
+
 # some GCC specific warnings. These flags are added only if the used compiler is GCC.
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     target_compile_options(project_warnings INTERFACE
@@ -106,6 +110,11 @@ include(FetchContent)
 FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.10.5/json.tar.xz)
 FetchContent_MakeAvailable(json)
 include_directories(PRIVATE ${CMAKE_BINARY_DIR}/_deps/json-src/include)
+
+# Lua wrapper
+FetchContent_Declare(sol2 URL https://github.com/ThePhD/sol2/archive/refs/tags/v3.3.0.tar.gz)
+FetchContent_MakeAvailable(sol2)
+include_directories(PRIVATE ${CMAKE_BINARY_DIR}/_deps/sol2-src/include)
 
 find_package( Boost 1.40 COMPONENTS program_options REQUIRED )
 

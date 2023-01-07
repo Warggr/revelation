@@ -21,9 +21,11 @@ public:
     static Deck create(std::initializer_list<T> cards, Generator generator);
     void discard(T card);
     T draw();
-    std::tuple<int, int> sizeconfig() const;
-    size_t size();
-    T at(size_t i);
+    std::tuple<int, int> sizeconfig() const {
+        return std::make_tuple(drawPile.size(), discardPile.size());
+    }
+    size_t size() { return drawPile.size(); }
+    T at(size_t i) { return drawPile.at(i); }
 };
 
 #endif //REVELATION_DECK_HPP
