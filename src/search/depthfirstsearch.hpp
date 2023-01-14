@@ -102,9 +102,9 @@ protected:
     SearchPolicy* enterOpponentsTurn() override { return opponentsTurn.get(); }
 public:
     template<typename... Args>
-	StaticDFS(Args&&... args): NormalDFS(std::forward<Args>(args)...) {}
+    StaticDFS(Args&&... args): NormalDFS(std::forward<Args>(args)...) {}
     template<typename PolicyType>
-    PolicyType* setOpponentsTurn(std::unique_ptr<PolicyType> t){ opponentsTurn = std::move(t); return t.get(); }
+    PolicyType* setOpponentsTurn(std::unique_ptr<PolicyType> t){ auto retVal = t.get(); opponentsTurn = std::move(t); return retVal; }
 
     std::tuple<int, int> asTuple() override {
         int my = 0, your = 0;

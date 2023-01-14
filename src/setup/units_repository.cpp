@@ -72,7 +72,8 @@ void UnitsRepository::readFile(std::istream& file){
     enum { CHARACTERS, TEAMS } readingMode = CHARACTERS;
     while(getline(file, line)){
         if(line.empty()) continue;
-        if(line[0] == '['){
+        if(line[0] == '#') continue;
+        else if(line[0] == '['){
             if(line == "[Characters]") readingMode = CHARACTERS;
             else if(line == "[Teams]") readingMode = TEAMS;
             else assert(false);
@@ -152,6 +153,8 @@ template TeamList::iterator UnitsRepository::mkRandom<UnitsRepository>(
         Generator& generator, UnitsRepository& provider, unsigned short nbUnits);
 template TeamList::iterator UnitsRepository::mkRandom<UnitsRepository::NewRandomUnitProvider>(
         Generator& generator, UnitsRepository::NewRandomUnitProvider& provider, unsigned short nbUnits);
+template TeamList::iterator UnitsRepository::mkRandom<RandomUnitProvider>(
+        Generator& generator, RandomUnitProvider& provider, unsigned short int nbUnits);
 
 ImmutableCharacter::ImmutableCharacter(std::string name, std::string slug, short maxHP, short softAtk, short hardAtk, uint8_t mov,
                                        uint8_t rng, unsigned netWorth, bool usesArcAttack, const char* flavor)

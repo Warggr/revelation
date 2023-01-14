@@ -1,14 +1,13 @@
 #ifndef REVELATION_AGENT_SETUP_HPP
 #define REVELATION_AGENT_SETUP_HPP
 
-#include "nlohmann/json.hpp"
+#include "constants.hpp"
 #include "random.hpp"
+#include "nlohmann/json.hpp"
 #include <exception>
 #include <string>
 #include <array>
 #include <optional>
-
-constexpr unsigned NB_AGENTS = 2;
 
 using nlohmann::json;
 using nlohmann::json_pointer;

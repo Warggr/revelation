@@ -14,22 +14,24 @@ Game::Game(std::array<const Team*, 2> teams, std::array<Agent*, 2> agents, Gener
 {
 }
 
-GameSummary Game::play() {
+GameSummary Game::play(int maxSteps) {
+    GameSummary summary;
     try { //A disconnected agent should be able to throw an exception and kill the game.
-        unsigned short int winner = 0;
-        unsigned int nTurn = 0;
-        while ((winner = state.getWinner()) == 0 and nTurn < 30000) {
-            nTurn++;
+        while ((summary.whoWon = state.getWinner()) == 0 and summary.nbSteps++ != maxSteps) {
+            auto start = std::chrono::steady_clock::now();
             if (state.timestep == Timestep::BEGIN)
                 agents[state.iActive]->onBegin(state);
             auto[newState, step] = state.advance(*agents[state.iActive], *agents[1 - state.iActive]);
+            auto end = std::chrono::steady_clock::now();
+            summary.agents[state.iActive].addTime(end - start);
+
             state = newState;
             logger.addStep(*step);
         }
-        return { winner };
     } catch(AgentSurrenderedException& ex) {
-        return { static_cast<unsigned short>(1 - ex.id) };
+        summary.whoWon = static_cast<unsigned short>(1 - ex.id);
     }
+    return summary;
 }
 
 std::tuple<State, uptr<Step>> State::advance(Agent& active, Agent& opponent) const {

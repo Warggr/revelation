@@ -16,6 +16,8 @@ constexpr int FULL_BOARD_WIDTH = 2*HALF_BOARD_WIDTH;
 constexpr int NB_CHARACTERS = 2*ARMY_WIDTH;
 constexpr int ARMY_SIZE = 2*ARMY_WIDTH;
 
+constexpr int NB_AGENTS = 2;
+
 enum Faction {
     NONE = 0, BLOOD = 1, MERCURY = 2, HORROR = 3, SPECTRUM = 4, ETHER = 5,
 };

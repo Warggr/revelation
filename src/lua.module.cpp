@@ -7,10 +7,7 @@
 #include "setup/www_visitor.hpp"
 #include "random.hpp"
 
-#ifndef NDEBUG
-#define SOL_CHECK_ARGUMENTS
 #define SOL_ALL_SAFETY_ON
-#endif
 #include "sol/sol.hpp"
 
 #include <lua.hpp>
@@ -23,24 +20,15 @@
 [[maybe_unused]] static void dumpstack (lua_State *L) {
     int top=lua_gettop(L);
     for (int i=1; i <= top; i++) {
-        printf("%d\t%s\t", i, luaL_typename(L,i));
+        std::cout << i << '\t' << luaL_typename(L,i) << '\t';
         switch (lua_type(L, i)) {
-        case LUA_TNUMBER:
-            printf("%g\n",lua_tonumber(L,i));
-            break;
-        case LUA_TSTRING:
-            printf("%s\n",lua_tostring(L,i));
-            break;
-        case LUA_TBOOLEAN:
-            printf("%s\n", (lua_toboolean(L, i) ? "true" : "false"));
-            break;
-        case LUA_TNIL:
-            printf("%s\n", "nil");
-            break;
-        default:
-            printf("%p\n",lua_topointer(L,i));
-            break;
+        case LUA_TNUMBER: std::cout << lua_tonumber(L,i); break;
+        case LUA_TSTRING: std::cout << lua_tostring(L,i); break;
+        case LUA_TBOOLEAN: std::cout << (lua_toboolean(L, i) ? "true" :"false"); break;
+        case LUA_TNIL: std::cout << "nil"; break;
+        default: std::cout << lua_topointer(L,i); break;
         }
+        std::cout << '\n';
     }
 }
 
@@ -67,8 +55,7 @@ struct Wrapper {
     const T get() const { return data; }
 };
 
-extern "C" int luaopen_lua(lua_State* state){
-    std::cout << "onload\n";
+extern "C" int luaopen_revelation(lua_State* state){
     // Creating a wrapper around the state
     sol::state_view lua(state);
     lua_register(state, "log", print);
@@ -84,7 +71,9 @@ extern "C" int luaopen_lua(lua_State* state){
     generator_type["__tostring"] = [](){ return "Generator"; };
 
     auto characterref_type = lua.new_usertype<Wrapper<CharacterRef>>(
-        "Character", sol::no_constructor
+        "Character",
+        sol::no_constructor,
+        "slug", sol::property([](Wrapper<CharacterRef> ref) -> const std::string& { return ref.data->slug; })
     );
     characterref_type["__tostring"] = [](Wrapper<CharacterRef>& w){
         return to_string(*w.data);
@@ -106,7 +95,8 @@ extern "C" int luaopen_lua(lua_State* state){
 
     auto repo_type = lua.new_usertype<UnitsRepository>(
         "UnitsRepository",
-        sol::constructors<UnitsRepository()>()
+        sol::constructors<UnitsRepository()>(),
+        sol::base_classes, sol::bases<RandomUnitProvider>()
     );
     repo_type["getRandom"] = [](UnitsRepository& repo, Generator& gen) -> Wrapper<CharacterRef> {
         return { repo.getRandomUnit(gen) };
@@ -119,28 +109,29 @@ extern "C" int luaopen_lua(lua_State* state){
         std::unordered_map<CharacterId, Wrapper<CharacterRef>> retVal;
         for(const auto& [key, value] : repo.getCharacters()){
             auto [iter, success] = retVal.emplace( key, &value );
-            assert(success);
+            (void) success; assert(success);
         }
         return retVal;
     };
     repo_type["getTeams"] = [](UnitsRepository& repo) -> std::unordered_map<TeamId, Wrapper<const Team*>> {
         std::unordered_map<TeamId, Wrapper<const Team*>> retVal;
-        std::cout << "Getting teams:\n";
         for(const auto& [key, value] : repo.getTeams()){
             auto [iter, success] = retVal.emplace( key, &value );
-            std::cout << "Created Wrapper<const Team*> to wrap address " << &value << '\n';
-            assert(success);
+            (void) success; assert(success);
         }
         return retVal;
     };
+    repo_type["mkRandomTeam"] =
+        [](UnitsRepository& repo, Generator& generator, RandomUnitProvider& provider, int size) -> Wrapper<const Team*> {
+            auto iter = repo.mkRandom(generator, provider, size);
+            return { &iter->second };
+        }
+    ;
 
     auto randomUnitCreator_type = lua.new_usertype<UnitsRepository::NewRandomUnitProvider>(
         "RandomUnitCreator",
-        sol::factories(
-            [](sol::userdata rep) -> UnitsRepository::NewRandomUnitProvider {
-                return { rep.as<UnitsRepository>() };
-            }
-        )
+        sol::constructors<UnitsRepository::NewRandomUnitProvider(UnitsRepository&)>(),
+        sol::base_classes, sol::bases<RandomUnitProvider>()
     );
     randomUnitCreator_type["getRandom"] = [](UnitsRepository::NewRandomUnitProvider& creator, Generator& gen) -> Wrapper<CharacterRef> {
         return { creator.getRandomUnit(gen) };
@@ -153,18 +144,38 @@ extern "C" int luaopen_lua(lua_State* state){
     auto progresslogger_type = lua.new_usertype<ProgressLogger>("ProgressLogger", sol::no_constructor);
     progresslogger_type["noop"] = []() -> std::shared_ptr<ProgressLogger> { return std::make_shared<NoOpLogger>(); };
 
-    auto searchpolicy_type = lua.new_usertype<SearchPolicy>("SearchPolicy", sol::no_constructor);
-    searchpolicy_type["staticDFS"] = [](std::shared_ptr<ProgressLogger> logger, const std::unique_ptr<Heuristic>& heuristic) -> std::unique_ptr<SearchPolicy> {
-        return std::make_unique<StaticDFS>(logger, *heuristic.get());
+    struct UptrStaticDFS {
+        std::unique_ptr<StaticDFS> value;
+    };
+    auto staticDFSptr_type = lua.new_usertype<Wrapper<StaticDFS*>>("StaticDFS*", sol::no_constructor);
+    auto staticDFS_type = lua.new_usertype<UptrStaticDFS>("StaticDFS"
+        , sol::factories(
+            [](std::shared_ptr<ProgressLogger> logger, const std::unique_ptr<Heuristic>& heuristic) -> UptrStaticDFS {
+                return { std::make_unique<StaticDFS>(logger, *heuristic.get()) };
+            }
+        )
+        , "get", [](const UptrStaticDFS& ptr) -> Wrapper<StaticDFS*> { return { ptr.value.get() }; }
+    );
+    staticDFSptr_type["setOpponentsTurn"] = [](Wrapper<StaticDFS*> self, UptrStaticDFS& oppTurn) -> Wrapper<StaticDFS*> {
+        return { self.get()->setOpponentsTurn(std::move(oppTurn.value)) };
     };
 
     auto agent_type = lua.new_usertype<Agent>("Agent", sol::no_constructor);
-    agent_type["search"] = [](int myId, uptr<SearchPolicy>& policy, uptr<Heuristic>& heuristic) -> std::unique_ptr<Agent> {
-        return std::make_unique<SearchAgent>( myId, std::move(policy), std::move(heuristic) ); 
+    agent_type["search"] = [](int myId, UptrStaticDFS& policy, uptr<Heuristic>& heuristic) -> std::unique_ptr<Agent> {
+        return std::make_unique<SearchAgent>( myId, std::move(policy.value), std::move(heuristic) ); 
     };
 
-    auto gamesummary_type = lua.new_usertype<GameSummary>("GameSummary", sol::no_constructor);
-    gamesummary_type["whoWon"] = &GameSummary::whoWon;
+    auto agentsummary_type = lua.new_usertype<AgentGameSummary>("AgentGameSummary",
+        sol::no_constructor
+        , "total_time", sol::property([](const AgentGameSummary& sum) -> double { return sum.total_time.count(); })
+    );
+
+    auto gamesummary_type = lua.new_usertype<GameSummary>("GameSummary",
+        sol::no_constructor
+        , "whoWon", &GameSummary::whoWon
+        , "nbSteps", &GameSummary::nbSteps
+        , "agents", &GameSummary::agents
+    );
 
     auto game_type = lua.new_usertype<Game>("Game", sol::factories(
         [](sol::this_state state, sol::table teams_lua, sol::table agents_lua, GeneratorSeed seed) -> Game {
@@ -176,7 +187,6 @@ extern "C" int luaopen_lua(lua_State* state){
                 auto team = teams_lua.get<sol::optional<Wrapper<const Team*>>>( i );
                 if(not team) luaL_argerror(state, 0, (std::string("teams[") + std::to_string(i) + "] is not a Team").c_str() );
                 else teams[i - 1] = team.value().get();
-                std::cout << "Pop team with address " << teams[i - 1] << " for position " << i << '\n';
             }
 
             if(agents_lua.size() != 2) luaL_argerror(state, 1, "Expected array with 2 entries");
@@ -189,6 +199,10 @@ extern "C" int luaopen_lua(lua_State* state){
             return Game(teams, agents, seed);
         }
     ));
+    game_type["play"] = sol::overload(
+        [](Game& game              ) -> GameSummary { return game.play(); }
+        , [](Game& game, int maxSteps) -> GameSummary { return game.play(maxSteps); }
+    );
 
     return 1;
 }
