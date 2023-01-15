@@ -17,6 +17,7 @@
 #include <filesystem>
 #include <thread>
 #include <utility>
+#include <mutex>
 
 namespace po = boost::program_options;
 
@@ -81,27 +82,52 @@ int main(int argc, const char* argv[]){
     for(int i = 0; i<30; i++){
         repository.addCharacter(ImmutableCharacter::random(generatorForTeams));
     }
-
-    constexpr int NB_GAMES = 100;
-    Generator generatorForGames(seed);
-    for(int i = 0; i<NB_GAMES; i++) {
-        std::cerr << "[" << i << "/" << NB_GAMES << "]";
-        std::array<UnitsRepository::TeamList::iterator, 2> teams_iter = {repository.mkRandom(generatorForTeams, repository, ARMY_SIZE),
-                                            repository.mkRandom(generatorForTeams, repository, ARMY_SIZE)};
-        std::array<const Team*, 2> teams = { &teams_iter[0]->second, &teams_iter[1]->second };
-
-        Game game(teams, agents, generatorForGames());
-        auto gameInfo = game.play();
-        for(int j=0; j<8; j++) std::cerr << '\b';
-        std::cerr.flush();
-        std::cout << gameInfo.whoWon;
-        for(const auto& team : teams){
-            for(const auto& row: team->characters) for(const auto& chr : row){
-                std::cout << ',' << chr->slug;
-            }
-            std::cout << ",END";
-        }
-        std::cout << '\n';
-        std::cout.flush();
+    for(const auto& [ name, im ] : repository.getCharacters()){
+        std::cout << im.slug << ':' << json(im).dump() << '\n';
     }
+    std::cout << '\n';
+
+    constexpr int NB_GAMES_PER_THREAD = 5000;
+    constexpr int NB_THREADS = 1;
+    constexpr int NB_GAMES = NB_THREADS * NB_GAMES_PER_THREAD;
+
+    int completed = 0;
+    std::mutex protectOutput;
+    auto createDataSet = [&protectOutput,&completed,&repository,agents,NB_GAMES](GeneratorSeed seed){
+        Generator generatorForGames(seed);
+        Generator generatorForTeams(seed + 4);
+        for(int i = 0; i<NB_GAMES_PER_THREAD; i++) {
+            std::array<UnitsRepository::TeamList::iterator, 2> teams_iter = {
+                    repository.mkRandom(generatorForTeams, repository, 1),
+                    repository.mkRandom(generatorForTeams, repository, 1)
+            };
+            std::array<const Team*, 2> teams_ptr = { &teams_iter[0]->second, &teams_iter[1]->second };
+
+            Game game(teams_ptr, agents, generatorForGames());
+            auto gameInfo = game.play();
+            protectOutput.lock();
+            completed++;
+            for(int j=0; j<11; j++) std::cerr << '\b';
+            std::cerr << '[' << completed << '/' << NB_GAMES << ']';
+            std::cerr.flush();
+            std::cout << gameInfo.whoWon;
+            for(const auto& team : teams_ptr){
+                for(const auto& row: team->characters) for(const auto& chr : row){
+                    std::cout << ',' << chr->slug;
+                }
+                std::cout << ",END";
+            }
+            std::cout << '\n';
+            std::cout.flush();
+            protectOutput.unlock();
+            for(const auto& team : teams_iter)
+                repository.deleteTeam( team );
+        }
+    };
+
+    std::vector<std::thread> threads;
+    for(int i = 0; i<NB_THREADS; i++){
+        threads.emplace_back(createDataSet, seed+i);
+    }
+    for(auto& thread : threads) thread.join();
 }

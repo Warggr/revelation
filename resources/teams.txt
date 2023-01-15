@@ -10,6 +10,9 @@ name=Armored knight&slug=ar-kni&maxHP=100&softAtk=60&hardAtk=30&mov=1&rng=1&netW
 name=Fanatics&slug=fana&maxHP=20&softAtk=20&hardAtk=10&mov=2&rng=1&netWorth=28870
 name=Knight&slug=kni&maxHP=90&softAtk=50&hardAtk=10&mov=3&rng=1&netWorth=52050&usesArcAttack=false&flavor=Defense 20(light)
 name=Lord officer&slug=lordOf&maxHP=100&softAtk=10&hardAtk=10&mov=2&rng=1&netWorth=35530
+
+name=InnocentBaby&slug=baby&maxHP=10&softAtk=10&hardAtk=0&mov=0&rng=0&netWorth=0
+name=Overpowered&slug=OP&maxHP=1000&softAtk=1000&hardAtk=100&mov=5&rng=5&netWorth=10000
 [Teams]
 name=Near+East&0=Mounted+archers&1=Captives&2=Saracens&3=Canons&4=Arab+officer&5=Captives
 name=Europe&0=Crossbowman&1=Armored+knight&2=Fanatics&3=Fanatics&4=Knight&5=Lord+officer
