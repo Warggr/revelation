@@ -82,34 +82,34 @@ void HttpSession::sendResponse(http::response<HttpBodyType>&& res){
                       [&, sp](error_code ec, std::size_t bytes){ on_write(ec, bytes, sp->need_eof()); });
 }
 
-Response bad_request(const Request& req_, boost::beast::string_view why){
+[[maybe_unused]] static Response bad_request(const Request& req_, boost::beast::string_view why){
     http::response<http::string_body> res{http::status::bad_request, req_.version()};
     res.set(http::field::content_type, "text/plain");
     res.body() = why.to_string();
     return res;
 }
 
-Response not_found(const Request& req_, boost::beast::string_view target){
+[[maybe_unused]] static Response not_found(const Request& req_, boost::beast::string_view target){
     http::response<http::string_body> res{http::status::not_found, req_.version()};
     res.set(http::field::content_type, "text/plain");
     res.body() = "The resource '" + target.to_string() + "' was not found.";
     return res;
 }
 
-Response redirect(const Request& req_, boost::beast::string_view location){
+[[maybe_unused]] static Response redirect(const Request& req_, boost::beast::string_view location){
     http::response<http::string_body> res{http::status::moved_permanently, req_.version()};
     res.set(http::field::location, location);
     return res;
 }
 
-Response jsonResponse(const Request& req_, std::string_view j){
+[[maybe_unused]] static Response jsonResponse(const Request& req_, std::string_view j){
     http::response<http::string_body> res{ http::status::ok, req_.version() };
     res.set(http::field::content_type, "application/json");
     res.body() = j;
     return res;
 }
 
-Response server_error(const Request& req_, boost::beast::string_view what){
+[[maybe_unused]] static Response server_error(const Request& req_, boost::beast::string_view what){
     http::response<http::string_body> res{http::status::internal_server_error, req_.version()};
     res.set(http::field::content_type, "text/html");
     res.body() = "An error occurred: '" + what.to_string() + "'";

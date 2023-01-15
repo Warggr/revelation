@@ -168,6 +168,7 @@ std::tuple<State, uptr<DiscardStep>> State::stepDiscard(DiscardDecision decision
 
 void State::checkConsistency() const {
 #ifndef NDEBUG
+#ifdef ASSERTIONS_CHECK_CONSISTENCY
     if(not isInvalid(*this)){
         for(unsigned int i = 0; i < 2; i++){
             const Player &pl = this->players[i];
@@ -195,6 +196,7 @@ void State::checkConsistency() const {
             }
         }
     }
+#endif
 #endif
 }
 

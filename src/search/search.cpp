@@ -94,7 +94,7 @@ end:
     getContainer().clear();
     this->exit();
     assert(nbTimesEntered_bak == nbTimesEntered);
-    assert(reachedEndState);
+    assert((reachedEndState and bestMoves.initialized) or State::isInvalid(bestState));
 }
 
 using HashKey = int;

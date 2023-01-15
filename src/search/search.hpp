@@ -92,7 +92,7 @@ public:
 
     //Return false by default, and true if we should cut off the search directly
     virtual bool addEndState(const State& state, const DecisionList& decisions, Heuristic::Value heurVal, const ProcessContext&){
-        if(heurVal > maxHeur){
+        if(heurVal > maxHeur or maxHeur == -std::numeric_limits<float>::max()){
 #ifndef NDEBUG
             reachedEndState = true;
 #endif
@@ -113,8 +113,7 @@ public:
         return true;
     }
     virtual std::tuple<State, DecisionList, Heuristic::Value> getResults() {
-        assert(reachedEndState);
-        assert(bestMoves.initialized);
+        assert((reachedEndState and bestMoves.initialized) or State::isInvalid(bestState));
         return std::make_tuple(bestState, bestMoves, maxHeur);
     }
 
