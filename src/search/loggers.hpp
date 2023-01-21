@@ -24,14 +24,4 @@ public:
     void exitTurn() override;
 };
 
-class NoOpLogger : public ProgressLogger {
-public:
-    void enterTurn() override {};
-    void exitTurn() override {};
-    void enter(Timestep, unsigned int) override {};
-    void exit(Timestep) override {};
-    void message(const char*) const override {};
-    void message(const char*, float) const override {};
-};
-
 #endif //REVELATION_PROGRESSLOGGERS_HPP

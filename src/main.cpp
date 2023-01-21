@@ -59,75 +59,76 @@ po::variables_map readArgs(int argc, const char** argv) {
     return vm;
 }
 
+/* Using a bot */
+[[ maybe_unused ]]
+static SearchAgent mkSearchAgent(uint myId) {
+    // Decide on a heuristic (currently only PTTH is implemented)
+    auto heur = std::make_unique<PowerTimesToughnessHeuristic>();
+    // For depth-first search, you can optionally use a logger to log progress.
+    // If you don't want logging, use NoOpLogger::getInstance().
+    // auto logger = NoOpLogger::getInstance();
+    auto logger = std::make_shared<ProgressBar>();
+    // Use a policy. Use StaticDFS by default, all others are still experimental.
+    auto policy = std::make_unique<StaticDFS>(logger, *heur);
+    // You can add additional turns of planning to a StaticDFS by using setOpponentsTurn
+    // policy->setOpponentsTurn(std::make_unique<StaticDFS>(logger, *heur))
+    // ... possibly multiple times
+    //      ->setOpponentsTurn(std::make_unique<StaticDFS>(logger, *heur));
+    // Create a SearchAgent with the policy and the heuristic.
+    SearchAgent searchAgent(myId, std::move(policy), std::move(heur));
+    return searchAgent;
+}
+
 int main(int argc, const char* argv[]){
     auto vm = readArgs(argc, argv);
 
-    auto heur1 = std::make_unique<PowerTimesToughnessHeuristic>(),
-            heur2 = std::make_unique<PowerTimesToughnessHeuristic>();
-    auto noop = std::make_shared<NoOpLogger>();
-    auto pol1 = std::make_unique<StaticDFS>(noop, *heur1);
-    auto pol2 = std::make_unique<StaticDFS>(noop, *heur2);
-    SearchAgent ag1( 1, std::move(pol1), std::move(heur1) );
-    SearchAgent ag2( 2, std::move(pol2), std::move(heur2) );
-
-    std::array<Agent*, NB_AGENTS> agents = { &ag1, &ag2 };
-
-    GeneratorSeed seed = vm["seed"].as<GeneratorSeed>();
-    std::cerr << "Using seed " << seed << '\n';
-
-    Generator generatorForTeams(seed);
+    /* Initialize teams */
     UnitsRepository repository;
+    // teams.txt is assumed to be in the current directory
     std::filesystem::current_path(std::filesystem::current_path() / "resources");
     repository.mkDefaultTeams();
-    for(int i = 0; i<30; i++){
-        repository.addCharacter(ImmutableCharacter::random(generatorForTeams));
-    }
-    for(const auto& [ name, im ] : repository.getCharacters()){
-        std::cout << im.slug << ':' << json(im).dump() << '\n';
-    }
-    std::cout << '\n';
 
-    constexpr int NB_GAMES_PER_THREAD = 5000;
-    constexpr int NB_THREADS = 1;
-    constexpr int NB_GAMES = NB_THREADS * NB_GAMES_PER_THREAD;
+    /* Create bot agent */
+    // <!> pass as myId the index that this will have in the list of agents, so 0 or 1!
+    auto bot = mkSearchAgent(0);
 
-    int completed = 0;
-    std::mutex protectOutput;
-    auto createDataSet = [&protectOutput,&completed,&repository,agents,NB_GAMES](GeneratorSeed seed){
-        Generator generatorForGames(seed);
-        Generator generatorForTeams(seed + 4);
-        for(int i = 0; i<NB_GAMES_PER_THREAD; i++) {
-            std::array<UnitsRepository::TeamList::iterator, 2> teams_iter = {
-                    repository.mkRandom(generatorForTeams, repository, 1),
-                    repository.mkRandom(generatorForTeams, repository, 1)
-            };
-            std::array<const Team*, 2> teams_ptr = { &teams_iter[0]->second, &teams_iter[1]->second };
+    /* Disclaimer: creating a browser-based agent throws a segmentation fault for some reason. */
 
-            Game game(teams_ptr, agents, generatorForGames());
-            auto gameInfo = game.play();
-            protectOutput.lock();
-            completed++;
-            for(int j=0; j<11; j++) std::cerr << '\b';
-            std::cerr << '[' << completed << '/' << NB_GAMES << ']';
-            std::cerr.flush();
-            std::cout << gameInfo.whoWon;
-            for(const auto& team : teams_ptr){
-                for(const auto& row: team->characters) for(const auto& chr : row){
-                    std::cout << ',' << chr->slug;
-                }
-                std::cout << ",END";
-            }
-            std::cout << '\n';
-            std::cout.flush();
-            protectOutput.unlock();
-            for(const auto& team : teams_iter)
-                repository.deleteTeam( team );
-        }
-    };
+    /* Create (normal, browser-based) human agent */
+    // For this, we need a server listening to connections
+    Server_impl server("0.0.0.0", 8000);
+    // Launch server in separate thread
+    auto networkThread = std::thread( [&server]{ server.start(); } );
+    // ...and a server room in which the game takes place
+    auto [ roomId, room ] = server.addRoom();
+    // Tell the room that we expect a new player/session with the given agent ID
+    auto session = room.addSession(1);
+    // Create NetworkAgent from the session
+    auto normal_human = NetworkAgent(1, session);
+    normal_human.sync_init(); // wait for the agent to come online
 
-    std::vector<std::thread> threads;
-    for(int i = 0; i<NB_THREADS; i++){
-        threads.emplace_back(createDataSet, seed+i);
-    }
-    for(auto& thread : threads) thread.join();
+    /* Create a (simple, terminal-based) human agent */
+    // HumanAgent simple_human(1);
+
+    std::array<Agent*, NB_AGENTS> agents = { &bot, &normal_human };
+    // You can set teams directly...
+    // std::array<const Team*, NB_AGENTS> teams = { &(repository.getTeams().at("Europe")), &(repository.getTeams().at("Near East")) };
+    // or ask the agents
+    std::array<const Team*, NB_AGENTS> teams = { &bot.getTeam(repository), &normal_human.getTeam(repository) };
+
+    // Set the game seed (optional)
+    GeneratorSeed seed = vm["seed"].as<GeneratorSeed>();
+    Game game(teams, agents, seed);
+    // without seed
+    // Game game(teams, agents);
+
+    // If there's a server room, send the game events to the room
+    game.logger.addSubLogger<LiveServerAndLogger>(room);
+
+    auto results = game.play();
+    std::cout << results.whoWon << "won!\n";
+
+    // End server and corresponding thread
+    server.stop();
+    networkThread.join();
 }

@@ -20,6 +20,18 @@ public:
     virtual void message(const char* msg, float nb) const;
 };
 
+class NoOpLogger : public ProgressLogger {
+    static std::shared_ptr<NoOpLogger> instance;
+public:
+    static std::shared_ptr<NoOpLogger> getInstance(){ return instance; }
+    void enterTurn() override {};
+    void exitTurn() override {};
+    void enter(Timestep, unsigned int) override {};
+    void exit(Timestep) override {};
+    void message(const char*) const override {};
+    void message(const char*, float) const override {};
+};
+
 class LifoStack;
 
 /*
@@ -28,12 +40,13 @@ class LifoStack;
  */
 class DepthFirstSearch : public SearchPolicy {
 protected:
-    std::shared_ptr<ProgressLogger> logger;
+    std::shared_ptr<ProgressLogger> logger = NoOpLogger::getInstance();
     virtual SearchPolicy* enterOpponentsTurn() = 0;
 public:
     template<typename... Args>
     DepthFirstSearch(std::shared_ptr<ProgressLogger> logger, Args&&... args): SearchPolicy(std::forward<Args>(args)...), logger(std::move(logger)) {}
     virtual ~DepthFirstSearch() = default;
+    void setLogger(std::shared_ptr<ProgressLogger> _logger){ this->logger = _logger; }
     void informNbChildren(unsigned nbChildren, Timestep timestep) override { logger->enter(timestep, nbChildren); }
     bool addEndState(const State& state, const DecisionList& decisions, Heuristic::Value heurVal, const ProcessContext& pc) override;
 
@@ -47,15 +60,15 @@ class LifoStack: public Container<SearchNode> {
         MySearchNode(SearchNode frame, bool pass2): frame(std::move(frame)), pass2(pass2) {};
     };
     std::vector<MySearchNode> stack;
-    DepthFirstSearch* parent;
+    ProgressLogger* logger;
 public:
-    LifoStack(DepthFirstSearch* parent): parent(parent) {};
+    LifoStack(ProgressLogger* logger): logger(logger) {};
     void addChild(const SearchNode& child) override {
         stack.emplace_back( child, false );
     }
     bool hasChildren() override {
         while(not stack.empty() and stack.back().pass2){
-            parent->logger->exit(stack.back().frame.state.timestep);
+            logger->exit(stack.back().frame.state.timestep);
             stack.pop_back();
         }
         return not stack.empty();
@@ -79,7 +92,7 @@ protected:
 public:
     template<typename... Args>
     PerpetualDFS(Args&&... args): DepthFirstSearch(std::forward<Args>(args)...) {}
-    void init(const State& state) override { containers.emplace_back(this); SearchPolicy::init(state); }
+    void init(const State& state) override { containers.emplace_back(logger.get()); SearchPolicy::init(state); }
     void exit() override { containers.pop_back(); SearchPolicy::exit(); }
     Container<SearchNode>& getContainer() override {
         assert(not containers.empty());
@@ -87,12 +100,12 @@ public:
     }
 };
 
-// All other DFS implementations
+// All other DFS implementations have only one container
 class NormalDFS: public DepthFirstSearch {
     LifoStack container;
 public:
     template<typename... Args>
-    NormalDFS(Args&&... args): DepthFirstSearch(std::forward<Args>(args)...), container(this) {}
+    NormalDFS(Args&&... args): DepthFirstSearch(std::forward<Args>(args)...), container(this->logger.get()) {}
     Container<SearchNode>& getContainer() override { return container; }
 };
 

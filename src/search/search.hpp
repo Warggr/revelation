@@ -112,11 +112,13 @@ public:
         maxHeur = std::numeric_limits<float>::max();
         return true;
     }
-    virtual std::tuple<State, DecisionList, Heuristic::Value> getResults() {
+    std::tuple<State, DecisionList, Heuristic::Value> getResults() {
         assert((reachedEndState and bestMoves.initialized) or State::isInvalid(bestState));
         return std::make_tuple(bestState, bestMoves, maxHeur);
     }
 
+    /* An estimate for how many turns in advance you will consider.
+     * It can be higher than the actual value but should not be lower. */
     virtual std::tuple<int, int> asTuple() = 0;
     /* Callbacks that some implementations use */
     virtual void informNbChildren(unsigned int nbChildren, Timestep timestepLevel){ (void)nbChildren; (void)timestepLevel; }

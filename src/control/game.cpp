@@ -3,6 +3,7 @@
 #include "gameplay/state.hpp"
 #include "logging/logger.hpp"
 #include <random>
+#include <cassert>
 
 GeneratorSeed getRandom(){
     return std::random_device()();
@@ -12,6 +13,9 @@ Game::Game(std::array<const Team*, 2> teams, std::array<Agent*, 2> agents, Gener
     state(State::createStart(teams, Generator(seed))), teams(teams), agents(agents)
     , logger(state, teams, seed)
 {
+    for(unsigned int i=0; i<2; i++){
+        assert(agents[i]->getId() == i);
+    }
 }
 
 GameSummary Game::play(int maxSteps) {

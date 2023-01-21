@@ -1,5 +1,7 @@
 #include "depthfirstsearch.hpp"
 
+std::shared_ptr<NoOpLogger> NoOpLogger::instance = std::make_shared<NoOpLogger>();
+
 bool DepthFirstSearch::addEndState(const State& state, const DecisionList& decisions, Heuristic::Value heurVal, const ProcessContext& pc) {
     /* This is depth-first, so we directly go deeper when we enter an end-of-turn state. */
     logger->enter(Timestep::ACTED, 1);
