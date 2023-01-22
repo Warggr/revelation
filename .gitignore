@@ -3,4 +3,3 @@ cmake-build-*/
 build/
 data/
 **/__pycache__/
-*.json

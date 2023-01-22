@@ -1,7 +1,7 @@
 FROM debian:bullseye AS build
 
 RUN apt-get update && \
-	apt-get install cmake g++ libboost-dev --yes
+	apt-get install cmake g++ libboost-dev libboost-program-options-dev --yes
 
 RUN mkdir /home/build
 WORKDIR /home/build

@@ -1,9 +1,11 @@
-build
+.idea/
+.run/
+cmake-build-*/
+build/
+data/
+**/__pycache__/
 Dockerfile
-.git
+.git/
 .gitignore
-.idea
 README.md
-replays
-.run
-viewer/scenarios
+viewer/scenarios/
