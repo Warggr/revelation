@@ -15,6 +15,8 @@ FROM debian:bullseye AS server
 
 COPY --from=build /home/build/src/revelation-server /home/revelation-server
 COPY ./viewer /home/viewer
+COPY ./resources /home/resources
 
+WORKDIR /home/resources
 CMD [ "/home/revelation-server", "0.0.0.0" ,"8000", "/home/viewer" ]
 EXPOSE 8000
