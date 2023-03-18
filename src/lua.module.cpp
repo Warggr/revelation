@@ -1,4 +1,6 @@
 #include "control/game.hpp"
+#include "control/py_agent.hpp"
+#include "control/step_agent.hpp"
 #include "search/search.hpp"
 #include "search/depthfirstsearch.hpp"
 #include "search/loggers.hpp"
@@ -31,15 +33,6 @@
         std::cout << '\n';
     }
 }
-
-template<typename T>
-struct MallocUniquePtr {
-    T* data;
-    MallocUniquePtr(T* data = nullptr): data(data){};
-    ~MallocUniquePtr(){ free(data); }
-    T* get() const noexcept { return data; }
-    operator bool() const noexcept { return data != nullptr; }
-};
 
 extern "C" int print(lua_State* state){
     const char* message = lua_tostring(state, -1);
@@ -160,9 +153,20 @@ extern "C" int luaopen_revelation(lua_State* state){
         return { self.get()->setOpponentsTurn(std::move(oppTurn.value)) };
     };
 
-    auto agent_type = lua.new_usertype<Agent>("Agent", sol::no_constructor);
+    auto agent_type = lua.new_usertype<Agent>("Agent", sol::no_constructor
+        , "getTeam", [](Agent& ag, const UnitsRepository& repo) -> Wrapper<const Team*> { return { &(ag.getTeam(repo)) }; }
+    );
     agent_type["search"] = [](int myId, UptrStaticDFS& policy, uptr<Heuristic>& heuristic) -> std::unique_ptr<Agent> {
         return std::make_unique<SearchAgent>( myId, std::move(policy.value), std::move(heuristic) ); 
+    };
+    agent_type["python"] = [](int myId, const std::string& filename) -> std::unique_ptr<Agent> {
+        return std::make_unique<PyAgent>( myId, filename );
+    };
+    agent_type["simple_python"] = [](int myId, const std::string& filename) -> std::unique_ptr<Agent> {
+        return std::make_unique<SimplePyAgent>( myId, filename );
+    };
+    agent_type["human"] = [](int myId) -> std::unique_ptr<Agent> {
+        return std::make_unique<HumanAgent>(myId);
     };
 
     auto agentsummary_type = lua.new_usertype<AgentGameSummary>("AgentGameSummary",

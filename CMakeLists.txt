@@ -116,7 +116,7 @@ FetchContent_Declare(sol2 URL https://github.com/ThePhD/sol2/archive/refs/tags/v
 FetchContent_MakeAvailable(sol2)
 include_directories(PRIVATE ${CMAKE_BINARY_DIR}/_deps/sol2-src/include)
 
-find_package( Boost 1.40 COMPONENTS program_options REQUIRED )
+find_package( Boost 1.40 COMPONENTS program_options python REQUIRED )
 
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 

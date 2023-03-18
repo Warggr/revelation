@@ -12,7 +12,7 @@ for i = 1,2 do
     logger = ProgressLogger.noop()
     policy = StaticDFS.new(logger, heur)
     -- policy:get():setOpponentsTurn( StaticDFS.new(logger, heur) )
-    agents[i] = Agent.search(i, policy, heur)
+    agents[i] = Agent.search(i - 1, policy, heur)
 end
 
 seed = gen()
