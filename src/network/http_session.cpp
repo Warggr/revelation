@@ -19,9 +19,23 @@
 
 using json = nlohmann::json;
 
-#ifdef HTTP_SERVE_FILES
-beast::string_view mime_type(beast::string_view path);
-#endif
+namespace { // local-only functions
+    [[maybe_unused]] std::string_view mime_type(std::string_view path);
+
+    //Writes the read values to @param roomId and @param agentId and returns a bool to indicate errors, C-style.
+    bool read_request_path(std::string_view& str, unsigned short& retVal){
+        unsigned int iter = 0;
+        if(str[iter++] != '/') return false;
+        retVal = 0;
+        do{
+            char digit = str[iter++] - '0';
+            if(0 > digit or digit > 9) return false;
+            retVal = 10*retVal + digit;
+        } while(iter < str.size() and str[iter] != '/');
+        str = str.substr(iter);
+        return true;
+    }
+}
 
 HttpSession::HttpSession(tcp::socket&& socket, Server_impl& server)
     : socket_(std::move(socket))
@@ -43,20 +57,6 @@ void HttpSession::fail(error_code ec, char const* what){
     // Don't report on canceled operations
     if(ec == net::error::operation_aborted) return;
     std::cerr << what << ": " << ec.message() << "\n";
-}
-
-//Writes the read values to @param roomId and @param agentId and returns a bool to indicate errors, C-style.
-bool read_request_path(boost::string_view& str, unsigned short& retVal){
-    unsigned int iter = 0;
-    if(str[iter++] != '/') return false;
-    retVal = 0;
-    do{
-        char digit = str[iter++] - '0';
-        if(0 > digit or digit > 9) return false;
-        retVal = 10*retVal + digit;
-    } while(iter < str.size() and str[iter] != '/');
-    str = str.substr(iter);
-    return true;
 }
 
 using Request = http::request<http::string_body>;
@@ -82,21 +82,21 @@ void HttpSession::sendResponse(http::response<HttpBodyType>&& res){
                       [&, sp](error_code ec, std::size_t bytes){ on_write(ec, bytes, sp->need_eof()); });
 }
 
-[[maybe_unused]] static Response bad_request(const Request& req_, boost::beast::string_view why){
+[[maybe_unused]] static Response bad_request(const Request& req_, std::string_view why){
     http::response<http::string_body> res{http::status::bad_request, req_.version()};
     res.set(http::field::content_type, "text/plain");
-    res.body() = why.to_string();
+    res.body() = why;
     return res;
 }
 
-[[maybe_unused]] static Response not_found(const Request& req_, boost::beast::string_view target){
+[[maybe_unused]] static Response not_found(const Request& req_, std::string_view target){
     http::response<http::string_body> res{http::status::not_found, req_.version()};
     res.set(http::field::content_type, "text/plain");
-    res.body() = "The resource '" + target.to_string() + "' was not found.";
+    res.body() = "The resource '" + std::string(target) + "' was not found.";
     return res;
 }
 
-[[maybe_unused]] static Response redirect(const Request& req_, boost::beast::string_view location){
+[[maybe_unused]] static Response redirect(const Request& req_, std::string_view location){
     http::response<http::string_body> res{http::status::moved_permanently, req_.version()};
     res.set(http::field::location, location);
     return res;
@@ -109,10 +109,10 @@ void HttpSession::sendResponse(http::response<HttpBodyType>&& res){
     return res;
 }
 
-[[maybe_unused]] static Response server_error(const Request& req_, boost::beast::string_view what){
+[[maybe_unused]] static Response server_error(const Request& req_, std::string_view what){
     http::response<http::string_body> res{http::status::internal_server_error, req_.version()};
     res.set(http::field::content_type, "text/html");
-    res.body() = "An error occurred: '" + what.to_string() + "'";
+    res.body() = "An error occurred: '" + std::string(what) + "'";
     return res;
 }
 
@@ -136,7 +136,7 @@ void HttpSession::on_read(error_code ec, std::size_t){
     if(websocket::is_upgrade(req_)){
         std::cout << "(async http) websocket upgrade heard! " << req_.target() << '\n';
         // The websocket connection is established! Transfer the socket and the request to the server
-        auto request_path = req_.target();
+        std::string_view request_path = req_.target();
 
         ServerRoom* room = nullptr;
         RoomId roomId; AgentId agentId;
@@ -283,15 +283,15 @@ void HttpSession::on_read(error_code ec, std::size_t){
         if(boost::beast::iequals(req_.target(), "/"))
             RESPOND(redirect, "/files/");
 
-        boost::string_view req_path;
+        std::string_view req_path;
 
         if(boost::beast::iequals(doc_api_path, req_.target().substr(0, doc_api_path_len))){
             req_path = req_.target().substr(doc_api_path_len);
             auto const posParams = req_path.rfind("?");
-            if(posParams != beast::string_view::npos) req_path = req_path.substr(0, posParams);
+            if(posParams != std::string_view::npos) req_path = req_path.substr(0, posParams);
 
             // Request path must be absolute and not contain ".."
-            if(req_path.empty() or req_path[0] != '/' or req_path.find("..") != boost::beast::string_view::npos)
+            if(req_path.empty() or req_path[0] != '/' or req_path.find("..") != std::string_view::npos)
                 RESPOND(bad_request, "Illegal request-target");
         }
         else if(boost::beast::iequals(req_.target(), "/favicon.ico")) req_path = "/favicon.ico";
@@ -352,12 +352,14 @@ void HttpSession::on_write(error_code ec, std::size_t, bool close){
         [&](error_code ec, std::size_t bytes){ on_read(ec, bytes); });
 }
 
+namespace {
+
 // Return a reasonable mime type based on the extension of a file.
-beast::string_view mime_type(beast::string_view path){
+std::string_view mime_type(std::string_view path){
     using boost::beast::iequals;
-    auto const pos = path.rfind(".");
-    if(pos == beast::string_view::npos) return "application/text";
-    const beast::string_view ext = path.substr(pos+1);
+    auto const pos = path.rfind('.');
+    if(pos == std::string_view::npos) return "application/text";
+    const std::string_view ext = path.substr(pos+1);
     if(iequals(ext, "htm"))  return "text/html";
     if(iequals(ext, "html")) return "text/html";
     if(iequals(ext, "php"))  return "text/html";
@@ -382,11 +384,13 @@ beast::string_view mime_type(beast::string_view path){
     return "application/text";
 }
 
+}
+
 // Append an HTTP rel-path to a local filesystem path.
 // The returned path is normalized for the platform.
-std::string path_cat(boost::beast::string_view base, boost::beast::string_view path){
-    if(base.empty()) return path.to_string();
-    std::string result = base.to_string();
+std::string path_cat(std::string_view base, std::string_view path){
+    if(base.empty()) return std::string( path );
+    auto result = std::string( base );
 #if BOOST_MSVC
     constexpr char path_separator = '\\';
     if(result.back() == path_separator) result.resize(result.size() - 1);

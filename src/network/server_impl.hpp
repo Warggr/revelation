@@ -38,6 +38,6 @@ public:
     const std::unordered_map<RoomId, GameRoom_impl>& getRooms() const { return rooms; }
 };
 
-std::string path_cat(boost::beast::string_view base, boost::beast::string_view path);
+std::string path_cat(std::string_view base, std::string_view path);
 
 #endif //REVELATION_SERVER_IMPL_HPP
