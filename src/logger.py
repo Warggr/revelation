@@ -10,38 +10,38 @@ from serialize import WSJSONEncoder
 from player import Player
 from state import Step
 
-class Logger:
-    def liveServer(self) -> 'Logger':
-        return LiveServerAndLogger(self)
-    def logToTerminal(self) -> 'Logger':
-        return PrintLogger(self)
+class SubLogger:
+    def __init__(self, parent: 'Logger'):
+        self.parent = parent
     def __enter__(self):
         return self
     def __exit__(self, type, value, traceback):
-        return
+        pass
+    def addStep(self, step : Step):
+        pass
 
-class BaseLogger(Logger):
+class Logger:
     def __init__(self, state : 'State', game : 'Game'):
+        self.subloggers : list[SubLogger] = []
         self.state = state
         self.game = game
         self.steps : list[Step] = []
+    def addSubLogger(self, SubloggerClass, *args, **kwargs):
+        self.subloggers.append( SubloggerClass(self, *args, **kwargs) )
     def addStep(self, step : Step):
         self.steps.append(step)
+        for sublogger in self.subloggers:
+            sublogger.addStep(step)
     def all(self):
         return { "state" : self.state.serialize(), "steps" : self.steps, "game" : self.game.serialize() }
+    def __enter__(self):
+        for sublogger in self.subloggers:
+            sublogger.__enter__()
     def __exit__(self, type, value, traceback):
-        if type is None:
-            now = datetime.datetime.now()
-            file = open(now.strftime('%m.%d-%H:%M:%S') + '-replay.json', 'x')
-            JSONlib.dump(self.all(), file, cls=WSJSONEncoder)
+        for sublogger in self.subloggers:
+            sublogger.__exit__(type, value, traceback)
 
-class Decorator(Logger):
-    def __init__(self, parent):
-        self.parent = parent
-    def all(self):
-        return self.parent.all()
-
-class LiveServerAndLogger(Decorator):
+class LiveServerAndLogger(SubLogger):
     def __init__(self, parent):
         super().__init__(parent)
         self.connected = False
@@ -78,7 +78,6 @@ class LiveServerAndLogger(Decorator):
                 await websocket.send( JSONlib.dumps(step, cls=WSJSONEncoder) )
 
     def addStep(self, step : Step):
-        self.parent.addStep(step)
         with self.lockConnectionStatus:
             if self.connected:
                 self.messageQueue.put(step)
@@ -91,14 +90,19 @@ class LiveServerAndLogger(Decorator):
                 self.loop.call_soon_threadsafe(self.loop.stop)
 
         self.serverThread.join()
-        self.parent.__exit__(type, value, traceback)
 
-class PrintLogger(Decorator):
-    def __init__(self, parent):
+class PrintLogger(SubLogger):
+    def __init__(self, parent: 'Logger'):
         super().__init__(parent)
         print('Log will be printed')
     def addStep(self, step : Step):
-        self.parent.addStep(step)
         print(step)
+
+class FileLogger(SubLogger):
+    def __init__(self, parent: 'Logger'):
+        super().__init__(parent)
     def __exit__(self, type, value, traceback):
-        self.parent.__exit__(type, value, traceback)
+        if type is None:
+            now = datetime.datetime.now()
+            file = open(now.strftime('%m.%d-%H:%M:%S') + '-replay.json', 'x')
+            JSONlib.dump(self.parent.all(), file, cls=WSJSONEncoder)

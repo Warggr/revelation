@@ -3,7 +3,7 @@ from team import Team
 from state import State, Step
 from constants import Timestep
 from agent import Agent, MoveDecision, ActionDecision, ActionOrResource
-from logger import BaseLogger
+from logger import Logger, FileLogger, PrintLogger, LiveServerAndLogger
 import random
 from time import time
 
@@ -23,11 +23,12 @@ class Game:
     def serialize(self):
         return { "teamNames" : self.teamNames }
     def play(self, isLiveServer : bool = False, logToTerminal : bool = False) -> bool:
-        logger = BaseLogger(self.state, self)
+        logger = Logger(self.state, self)
+        logger.addSubLogger(FileLogger)
         if isLiveServer:
-            logger = logger.liveServer()
+            logger.addSubLogger(LiveServerAndLogger)
         if logToTerminal:
-            logger = logger.logToTerminal()
+            logger.addSubLogger(PrintLogger)
 
         with logger:
             while not self.state.isFinished():
