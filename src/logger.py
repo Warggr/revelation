@@ -3,9 +3,8 @@ import pathlib
 import datetime
 import json as JSONlib
 from threading import Thread, Lock
-from queue import Queue
-from websockets.server import serve
-
+import queue
+import websockets
 from serialize import WSJSONEncoder
 from player import Player
 from state import Step
@@ -42,54 +41,61 @@ class Logger:
             sublogger.__exit__(type, value, traceback)
 
 class LiveServerAndLogger(SubLogger):
-    def __init__(self, parent):
+    def __init__(self, parent, server):
         super().__init__(parent)
         self.connected = False
+        self.server = server
         self.lockConnectionStatus = Lock()
-        self.messageQueue = Queue()
-        self.loop = asyncio.new_event_loop()
-        self.serverThread = Thread(target=self.runServer)
-        self.serverThread.start()
+        # The inbound queue can block this thread
+        self.messageQueue_inbound = queue.Queue()
+        # The outbound queue can block the network thread, so it has to be an asyncio Queue
+        self.messageQueue_outbound = asyncio.Queue()
 
-    #network-thread
-    def runServer(self):
-        asyncio.set_event_loop(self.loop)
-        print(f'Server running! Open this URL: file://{ str(pathlib.Path(__file__).parent.parent / "viewer" / "player.html") }?liveurl=localhost%3A8000')
-        self.loop.run_until_complete( serve(self.asyncServer, 'localhost', 8000) )
-        self.loop.run_forever()
-        print('Network thread exited')
-
-    async def asyncServer(self, websocket, path):
-        # on connect
-        with self.lockConnectionStatus:
-            print('Connected!')
-            self.connected = True
-
-        await websocket.send( JSONlib.dumps(self.all(), cls=WSJSONEncoder) )
-
-        while True:
-            step = self.messageQueue.get()
-            if(step is None):
-                await websocket.close()
-                self.loop.call_soon_threadsafe(self.loop.stop)
-                print('WebSocket server exited')
-                return
-            else:
-                await websocket.send( JSONlib.dumps(step, cls=WSJSONEncoder) )
-
-    def addStep(self, step : Step):
-        with self.lockConnectionStatus:
-            if self.connected:
-                self.messageQueue.put(step)
+    def __enter__(self):
+        self.server.add_client('/watch', self.nt_serve)
+        return self
 
     def __exit__(self, type, value, traceback):
+        print('exiting logger...')
         with self.lockConnectionStatus:
             if self.connected:
-                self.messageQueue.put(None)
-            else:
-                self.loop.call_soon_threadsafe(self.loop.stop)
+                self.messageQueue_outbound.put_nowait(None)
 
-        self.serverThread.join()
+    async def nt_serve(self, websocket):
+        with self.lockConnectionStatus:
+            self.connected = True
+
+        async def reading_coroutine(websocket):
+            async for message in websocket:
+                print('recv: Received message: ', message)
+                self.messageQueue_inbound.put(message)
+
+        async def sending_coroutine(websocket):
+            await websocket.send( JSONlib.dumps(self.parent.all(), cls=WSJSONEncoder) )
+
+            while True:
+                step = await self.messageQueue_outbound.get()
+                if(step is None):
+                    return
+                else:
+                    await websocket.send( JSONlib.dumps(step, cls=WSJSONEncoder) )
+
+        tasks = [ self.server.loop.create_task( coroutine(websocket) ) for coroutine in (reading_coroutine, sending_coroutine) ]
+        done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+        for pending in pending:
+            pending.cancel()
+
+        with self.lockConnectionStatus:
+            self.connected = False
+
+    # asyncio.Queue is not thread-safe, so we have to modify the queue on the network thread
+    def nt_addStep(self, step : Step):
+        with self.lockConnectionStatus:
+            if self.connected:
+                self.messageQueue_outbound.put_nowait(step)
+
+    def addStep(self, step : Step):
+        self.server.loop.call_soon_threadsafe( lambda: self.nt_addStep(step) )
 
 class PrintLogger(SubLogger):
     def __init__(self, parent: 'Logger'):
